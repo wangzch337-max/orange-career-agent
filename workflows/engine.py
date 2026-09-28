@@ -3,6 +3,7 @@
 from typing import Dict, Optional
 
 from pydantic import JsonValue, ValidationError
+from providers.errors import LLMError
 
 from agents.base import record_agent_event, record_tool_event
 from agents.job_intelligence import JobIntelligenceAgent
@@ -88,7 +89,7 @@ class DeterministicWorkflowEngine:
                     )
                 else:
                     raise InvalidWorkflowTransition(f"没有为阶段 {state.stage.value} 定义执行步骤")
-            except (FixtureLoadError, ValidationError) as exc:
+            except (FixtureLoadError, ValidationError, LLMError) as exc:
                 return self.fail(state, f"结构化数据验证失败：{type(exc).__name__}")
         return state
 

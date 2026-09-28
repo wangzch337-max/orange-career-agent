@@ -1,4 +1,4 @@
-"""Orange Phase 1 的完全离线确定性 Demo。"""
+"""Orange Phase 3 的完全离线公共工作流 Demo。"""
 
 import json
 from pathlib import Path
@@ -29,12 +29,13 @@ def run_demo_to_completion(paused_state: WorkflowState) -> WorkflowState:
 
 
 def main() -> None:
-    print("Orange Phase 1 Demo")
+    print("Orange Phase 3 Offline Workflow Demo")
     print("\nSTEP 1 — 生成并暂停在画像确认节点")
     paused = run_demo_until_confirmation()
     print("✓ 已加载匿名用户输入")
     print(f"✓ 已加载 {len(paused.course_records)} 门模拟课程")
     print("✓ Self-Discovery Agent 完成")
+    print("✓ FakeLLMProvider 完成结构化候选信号抽取")
     print(f"✓ UserProfile v{paused.user_profile.version} 已生成")
     print("\n当前状态：等待用户确认画像")
     print(f"岗位情报记录：{len(paused.job_intelligence)}（确认前必须为 0）")
@@ -46,7 +47,7 @@ def main() -> None:
     print(f"✓ 已生成 {len(completed.match_results)} 条 exact-overlap Demo 结果")
     print("✓ CareerReport 已组装")
     print(f"\n最终状态：{completed.stage.value}")
-    print("说明：本 Demo 无 LLM、无真实评分、无网络调用。")
+    print("说明：本 Demo 使用 FakeLLMProvider，无 live API、无真实评分、无网络调用。")
 
 
 if __name__ == "__main__":

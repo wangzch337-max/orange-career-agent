@@ -23,6 +23,8 @@ from providers.models import (
     ProfileSignalExtraction,
 )
 from providers.qwen import QwenProvider
+from agents.self_discovery import public_offline_extraction
+from agents.self_discovery_models import SelfDiscoveryExtraction
 
 
 class ParseEndpoint:
@@ -214,3 +216,17 @@ def test_safe_observability_metadata_has_no_credentials() -> None:
     assert "unit-test-key" not in rendered
     assert "workspace.invalid" not in rendered
     assert response.safe_metadata()["thinking_enabled"] is False
+
+
+def test_qwen_transport_supports_phase3_self_discovery_schema() -> None:
+    client = ClientStub([completion(public_offline_extraction())])
+    response = provider(client).generate_structured(
+        [LLMMessage(role=MessageRole.USER, content="sanitized phase 3 evidence")],
+        SelfDiscoveryExtraction,
+        GenerationOptions(max_output_tokens=3000, max_retries=0),
+        prompt_name="self_discovery",
+        prompt_version="v1",
+    )
+    assert isinstance(response.data, SelfDiscoveryExtraction)
+    assert client.endpoint.calls[0]["response_format"] is SelfDiscoveryExtraction
+    assert client.endpoint.calls[0]["extra_body"] == {"enable_thinking": False}

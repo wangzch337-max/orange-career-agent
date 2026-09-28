@@ -1,16 +1,17 @@
-"""Orange Phase 2 entry-point placeholder; Streamlit is not used yet."""
+"""Orange Phase 3 entry-point placeholder; Streamlit is not used yet."""
 
 
 def main() -> None:
-    """Point developers to the deterministic and provider-level Demos."""
+    """Point developers to the offline workflow and explicit Self-Discovery demos."""
     print("Orange")
-    print("Phase 2 — LLM Provider Abstraction")
-    print("\nPhase 1 确定性工作流 Demo：")
+    print("Phase 3 — Evidence-Backed Self-Discovery Agent")
+    print("\nPhase 3 公共离线工作流 Demo：")
     print("python3 -m workflows.demo")
     print("\nPhase 2 离线 Provider Demo：")
     print("python3 -m providers.demo")
-    print("\nLive Qwen Demo 仅在本地配置完成后显式运行：")
-    print("python3 -m providers.demo --live")
+    print("\nSelf-Discovery Demo（默认 public/offline）：")
+    print("python3 -m agents.self_discovery_demo")
+    print("\nLive Self-Discovery 仅通过 --live 显式运行。")
 
 
 if __name__ == "__main__":

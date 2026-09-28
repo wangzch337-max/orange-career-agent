@@ -156,3 +156,20 @@ Dependency inversion 允许测试不联网、供应商替换不改变 Agent 领�
 
 **Status**
 Accepted — Phase 2
+
+## ADR-010 — LLM 提取候选信号，确定性代码构造画像
+
+**Context**
+Self-Discovery 需要理解课程、项目和明确偏好的语义，但让模型直接拥有权威 `UserProfile` 会混淆事实与推断，也可能引入不存在的证据、弱点或偏好。
+
+**Decision**
+确定性 `SourceEvidenceBuilder` 首先建立稳定证据；注入的 `LLMProvider` 只生成 `SelfDiscoveryExtraction` 候选信号；确定性 evidence validator 与 `ProfileAssembler` 拒绝未知引用并映射为 draft `UserProfile`。缺少证据不是弱点，development area 只能由明确有限经验或直接能力缺口证据支持。
+
+**Reason**
+混合边界让 LLM 专注语义理解，同时由可测试 Python 保证 provenance、版本、确认状态和安全不变量。用户可以看到 explicit fact 与 evidence-supported inference 的区别，并在任何下游分析前确认或修订画像。
+
+**Tradeoffs**
+系统需要维护 extraction 与 domain 两套相邻 schema，并对映射编写更多测试；严格规则可能拒绝可读但证据不足的模型输出。作为回报，失败不会静默污染权威画像，离线 Fake integration 也可完整复现。
+
+**Status**
+Accepted — Phase 3

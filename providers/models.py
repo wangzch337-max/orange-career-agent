@@ -153,9 +153,9 @@ class LLMSettings(ProviderModel):
 
     def require_live_qwen(self) -> "LLMSettings":
         if self.provider != "qwen":
-            raise LLMConfigurationError("Phase 2 live provider 必须为 qwen。")
+            raise LLMConfigurationError("当前 live provider 必须为 qwen。")
         if self.model != "qwen3.8-flash":
-            raise LLMConfigurationError("Phase 2 live model 必须为 qwen3.8-flash。")
+            raise LLMConfigurationError("当前 live model 必须为 qwen3.8-flash。")
         if self.api_key is None or not self.api_key.get_secret_value().strip():
             raise LLMConfigurationError("本地 Qwen API key 尚未配置。")
         if self.base_url is None or not self.base_url.get_secret_value().strip():

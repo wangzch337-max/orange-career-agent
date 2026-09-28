@@ -3,7 +3,7 @@
 > AI Career Discovery Agent for University Students
 > 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 2 — LLM Provider Abstraction（LLM Provider 抽象）**
+**当前状态：Phase 3 — Evidence-Backed Self-Discovery Agent（证据驱动的自我探索 Agent）**
 
 Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
 
@@ -72,7 +72,7 @@ flowchart TD
 - Pydantic 领域模型、证据 provenance 与安全 JSON 序列化；
 - 可版本化、可修订、可确认的 `UserProfile`；
 - 普通 Python 实现的显式状态机和 deterministic-first Orchestrator；
-- 四个核心 Agent 概念的 Phase 1 stub；
+- 四个核心 Agent 概念；其中 Self-Discovery 已升级为 provider-independent 语义 Agent；
 - 本地 Course／Job fixture provider 与确定性 Report Builder；
 - 不可跳过的画像确认门、修订返回路径和非法转换拒绝；
 - 内存 `AgentEvent`／`ToolEvent` 与安全 routing summary；
@@ -85,15 +85,21 @@ flowchart TD
 - `profile_signal_extraction@v1` 版本化中文 Prompt；
 - timeout／429／连接／5xx 的有限重试与安全错误归一化；
 - token usage、latency、prompt metadata 与 retry count 的 credential-safe wrapper；
-- 默认不联网的 Phase 2 Provider Demo。
+- 默认不联网的 Phase 2 Provider Demo；
+- `self_discovery@v1` 中文结构化 Prompt 与 richer `SelfDiscoveryExtraction`；
+- 确定性 `SourceEvidenceBuilder`、evidence whitelist 和 `ProfileAssembler`；
+- 明确事实／证据推断区分、职业偏好、不确定性与 0–5 个澄清问题；
+- 保守 development-area 规则：缺少证据绝不自动视为弱点；
+- provider-injected `SelfDiscoveryAgent`、安全事件与不可跳过的画像确认门；
+- Git-ignored 私有 Golden Case 路径，以及完全公开安全的离线测试路径。
 
-Phase 1 的 Self-Discovery、Job Intelligence 与 Match & Insight 都是**明确标记的确定性 stub**。精确技能标签重合只用于验证数据流，不是 AI 语义能力、科学匹配方法或职业质量分数。
+Job Intelligence 与 Match & Insight 仍是**明确标记的确定性 stub**。精确技能标签重合只用于验证数据流，不是 AI 语义能力、科学匹配方法或职业质量分数。
 
-Phase 2 的真实模型调用仍是与 Agent 工作流隔离的 provider-level Demo。`SelfDiscoveryAgent` 尚未 AI 化。当前本地 Qwen 配置不存在，因此 live smoke validation **pending**，不能声称已完成 live 调用。
+Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取候选信号，但权威 `UserProfile` 始终由确定性 Python 组装并保持 draft，等待用户确认。
 
 ### 计划中 Planned
 
-- 真实语义 Agent 能力与经过验证的匹配策略；
+- Job Intelligence 与 Match & Insight 的真实语义能力及经过验证的匹配策略；
 - LangGraph、Memory Layer、Vector Memory；
 - Streamlit UI；
 - 真实职位来源和脱敏课程导出 adapter。
@@ -101,18 +107,19 @@ Phase 2 的真实模型调用仍是与 Agent 工作流隔离的 provider-level D
 ## Roadmap（计划中，非已完成）
 
 - Phase 1：领域模型与确定性工作流骨架（当前已实现）
-- Phase 2：LLM Provider 抽象与首次结构化调用（离线实现完成；live validation pending）
-- Phase 3–5：Self-Discovery、Job Intelligence、Match & Insight
+- Phase 2：LLM Provider 抽象与首次结构化调用（完成）
+- Phase 3：Evidence-Backed Self-Discovery Agent（当前已实现）
+- Phase 4–5：Job Intelligence、Match & Insight
 - Phase 6：LangGraph 完整工作流
 - Phase 7–8：Memory 与 Observability
 - Phase 9–10：Streamlit UI 与课程数据适配器
 - Phase 11–13：测试、成本控制、演示案例与最终打磨
 
-约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Phase 3。
+约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Phase 4。
 
 ## 本地验证 Local Validation
 
-目标运行环境为 Python 3.10+，当前本地开发环境为 Python 3.11。Phase 2 使用 Pydantic、pytest、OpenAI-compatible transport SDK 与 python-dotenv：
+目标运行环境为 Python 3.10+，当前本地开发环境为 Python 3.11。Phase 3 沿用 Pydantic、pytest、OpenAI-compatible transport SDK 与 python-dotenv：
 
 ```bash
 python3 -m venv .venv
@@ -121,6 +128,7 @@ python3 -m venv .venv
 .venv/bin/python app.py
 .venv/bin/python -m workflows.demo
 .venv/bin/python -m providers.demo
+.venv/bin/python -m agents.self_discovery_demo
 ```
 
-上述默认验证全部离线。只有显式执行 `.venv/bin/python -m providers.demo --live` 才允许读取仓库根目录 `.env.local` 或 shell environment 中的 Qwen 配置并发起一次调用；不得把配置值提交或打印。
+上述默认验证全部离线。只有显式使用 `--live` 的 Demo 才允许读取仓库根目录 `.env.local` 或 shell environment 中的 Qwen 配置。Self-Discovery 可选择 `--fixture public` 或仅存在于本机、Git-ignored 的 `--fixture private`；不得打印完整私有输入或配置值。

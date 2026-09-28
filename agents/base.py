@@ -1,7 +1,9 @@
 """不依赖 Agent framework 的轻量接口与事件辅助函数。"""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, List, Optional
+
+from pydantic import JsonValue
 
 from data.models import AgentEvent, AgentName, EventType, ToolEvent
 from utils.ids import next_sequence_id
@@ -24,6 +26,7 @@ def record_agent_event(
     event_type: EventType,
     summary: str,
     evidence_ids: Optional[List[str]] = None,
+    safe_metadata: Optional[Dict[str, JsonValue]] = None,
 ) -> WorkflowState:
     existing_ids = [event.event_id for event in state.agent_events]
     event = AgentEvent(
@@ -33,6 +36,7 @@ def record_agent_event(
         agent_name=agent_name,
         summary=summary,
         evidence_ids=evidence_ids or [],
+        safe_metadata=safe_metadata or {},
     )
     return state.validated_copy(agent_events=[*state.agent_events, event])
 

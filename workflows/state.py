@@ -17,6 +17,8 @@ from data.models import (
     MatchResult,
     ToolEvent,
     UserProfile,
+    ClarificationQuestion,
+    ProfileUncertainty,
     utc_now,
 )
 from workflows.stages import WorkflowStage
@@ -28,6 +30,9 @@ class WorkflowState(DomainModel):
     user_input: Dict[str, JsonValue] = Field(default_factory=dict)
     course_records: List[CourseRecord] = Field(default_factory=list)
     user_profile: Optional[UserProfile] = None
+    profile_uncertainties: List[ProfileUncertainty] = Field(default_factory=list)
+    clarification_questions: List[ClarificationQuestion] = Field(default_factory=list)
+    self_discovery_metadata: Dict[str, JsonValue] = Field(default_factory=dict)
     profile_confirmed: bool = False
     job_records: List[JobRecord] = Field(default_factory=list)
     job_intelligence: List[JobIntelligenceRecord] = Field(default_factory=list)

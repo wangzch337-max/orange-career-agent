@@ -1,6 +1,6 @@
 # Orange 学习计划 Learning Plan
 
-Orange 采用 **Learning Mode**：交付代码与培养开发者解释、实现和验证系统的能力同等重要。每一阶段都在开发者完成验收问题并能用自己的语言解释关键取舍后停止；未经确认不自动进入下一阶段。
+Orange 采用 **Learning Mode**：交付代码与培养开发者解释、实现和验证系统的能力同等重要。开发者可以明确选择跳过正式问答／检查点；这种选择不阻止阶段完成，但仍保留可选 hands-on task 与关键概念记录。未经明确授权不自动进入下一阶段。
 
 ## Phase 0 — Foundation & Product Contract
 
@@ -106,15 +106,15 @@ Fake 与 Qwen adapter 的离线测试通过，secret 未进入仓库，失败不
 
 ### 2. 需要理解的概念
 
-信息抽取、provenance、confidence、prompt contract、用户确认、事实与推断分离。
+semantic extraction、deterministic assembly、provenance、uncertainty、confidence、prompt grounding、dependency injection、hybrid LLM/rule architecture、用户确认，以及事实与推断分离。
 
 ### 3. Codex 负责
 
-提供 prompt／schema 评审、边界案例和自动测试建议；检查是否出现人格诊断或无证据结论。
+实现并验证 provider-independent semantic extraction、稳定 SourceEvidence、确定性 ProfileAssembler、安全 observability、公开离线路径和私有 Golden Case 边界；检查人格诊断、无证据结论和 absence-as-weakness。
 
 ### 4. 开发者亲手完成
 
-设计一版抽取 prompt，手工标注一个脱敏输入的期望证据，比较模型输出并修订规则。
+可选任务：只修改私有 Golden Case 中一项非敏感 `career_preferences`，运行本地 Self-Discovery Demo，并比较该明确偏好如何影响候选偏好、不确定性或澄清问题。此任务不是考试或 Phase 完成门。
 
 ### 5. 验收问题
 
@@ -126,7 +126,7 @@ Fake 与 Qwen adapter 的离线测试通过，secret 未进入仓库，失败不
 
 ### 7. 完成标准
 
-草案字段可追溯，确认门生效，边界案例不过度诊断，离线 fixture 测试通过。
+草案字段可追溯，确认门生效，边界案例不过度诊断，离线 fixture 测试通过；开发者已选择跳过正式学习 quiz，因此不以回答问题作为 Phase 完成条件。
 
 ## Phase 4 — Job Intelligence Agent + Demo Job Dataset
 

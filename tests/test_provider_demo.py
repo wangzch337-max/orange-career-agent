@@ -42,12 +42,13 @@ def test_live_demo_missing_config_fails_before_provider(monkeypatch, capsys) -> 
     assert "配置不完整" in output
 
 
-def test_phase1_self_discovery_remains_provider_independent() -> None:
+def test_phase3_self_discovery_depends_on_provider_abstraction_only() -> None:
     source = Path(SelfDiscoveryAgent.__module__.replace(".", "/") + ".py").read_text(
         encoding="utf-8"
     )
-    assert "providers" not in source
-    assert "LLM" not in source
+    assert "from providers.base import LLMProvider" in source
+    assert "QwenProvider" not in source
+    assert "OpenAI" not in source
 
 
 def test_existing_deterministic_workflow_still_completes() -> None:

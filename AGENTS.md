@@ -17,8 +17,8 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 ## 阶段式开发
 
 - 严格按 `IMPLEMENTATION_PLAN.md` 推进，不跨阶段实现。
-- 当前 Phase 2 只允许 provider-independent `LLMProvider`、`FakeLLMProvider`、Qwen OpenAI-compatible transport、`ProfileSignalExtraction`、版本化 Prompt、严格结构化输出、有限重试、安全 usage metadata 与隔离 Demo。
-- `SelfDiscoveryAgent` 必须继续使用 Phase 1 确定性规则；未经开发者明确批准，不得引入 LangGraph、LangChain、Streamlit、Chroma、Canvas API、职位抓取或 Phase 3 Agent 集成。
+- 当前 Phase 3 只允许 evidence-backed `SelfDiscoveryAgent`、`SelfDiscoveryExtraction`、确定性 `SourceEvidenceBuilder`／`ProfileAssembler`、版本化 Prompt、Fake/Qwen provider 注入、画像确认门和公开／私有隔离 Demo。
+- Job Intelligence 与 Match & Insight 必须继续使用 Phase 1 确定性 stub；未经开发者明确批准，不得引入 LangGraph、LangChain、Streamlit、Chroma、Canvas API、职位抓取或 Phase 4 能力。
 - 不得静默改变四个核心 Agent、Golden Flow、数据边界或目录结构。必要变更必须先记录理由、影响和取舍，并取得确认。
 - 每个阶段结束时运行与风险相称的测试；测试失败不得伪装为完成。
 
@@ -50,6 +50,8 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 - 不得把凭据写入代码、测试、日志、文档、截图或示例。
 
 ## Learning Mode（强制）
+
+用户已明确选择跳过 Phase 3 的正式 quiz/checkpoint；这不阻止本阶段完成。仍需记录关键概念，并只提供一个可选、非考试性质的 hands-on task。
 
 每个实现阶段都必须明确列出：
 

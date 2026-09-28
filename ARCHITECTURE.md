@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 2 Provider 抽象；LLM 尚未接入 Agent workflow，LangGraph、Memory 和 UI 仍未实现。**
+**状态：Phase 3 Evidence-Backed Self-Discovery；LangGraph、Memory 和 UI 仍未实现。**
 
 ## 1. 架构目标
 
@@ -152,7 +152,7 @@ classDiagram
 
 **为什么抽象 provider：**它允许根据成本、结构化输出能力、区域可用性和可靠性替换模型，也让测试使用 fake provider，而不把业务规则绑在特定供应商响应格式上。
 
-### 8.1 Phase 2 可执行边界
+### 8.1 Phase 2 Provider 边界
 
 ```mermaid
 flowchart TB
@@ -165,7 +165,7 @@ flowchart TB
 
 `providers/base.py` 定义通用结构化生成契约；future Agent 只需了解 messages、Pydantic response model、generation options 与安全 response wrapper，不需要了解 Alibaba base URL、API key、workspace ID 或 transport payload。
 
-Phase 2 只在 `providers.demo` 中验证 `ProfileSignalExtraction`。它不是 `UserProfile`，也未接入 `agents/self_discovery.py`。这种隔离先验证 transport、JSON Schema、Pydantic parsing、evidence whitelist、错误映射和 observability，再在 Phase 3 讨论真实 Agent 行为，避免将供应商细节或未验证输出直接污染领域状态。
+Phase 2 在 `providers.demo` 中隔离验证 `ProfileSignalExtraction`；其历史 Prompt 与 Demo 保持不变。Phase 3 在此边界之上注入 `LLMProvider`，Agent 仍不知道 Alibaba base URL、API key 或 transport response。
 
 当前 live adapter 只有 `QwenProvider`；`qwen3.8-flash` 是 Phase 2 Demo 配置，不是永久产品依赖。SDK 内建 retry 被关闭，由 Orange 使用小型、可测试的单层 retry policy。
 
@@ -227,6 +227,25 @@ Phase 1 当时没有 LLM provider／调用、LangGraph、LangChain、Chroma／�
 
 ## 14. Phase 2 实现与限制
 
-Phase 2 已实现 provider contract、Fake／Qwen adapter、版本化 Prompt、严格 `ProfileSignalExtraction`、evidence-ID 验证、有限重试和安全 usage/latency metadata。由于本地配置尚不存在，live smoke validation pending。
+Phase 2 已实现 provider contract、Fake／Qwen adapter、版本化 Prompt、严格 `ProfileSignalExtraction`、evidence-ID 验证、有限重试和安全 usage/latency metadata，并已完成一次 live structured smoke validation。
 
-仍未实现：LLM 驱动的 Self-Discovery、Job Intelligence 或 Match & Insight、最终 `UserProfile` 生成、LangGraph、Memory、Streamlit、Canvas／job API 与 tool calling。
+仍未实现：LLM 驱动的 Job Intelligence 或 Match & Insight、LangGraph、Memory、Streamlit、Canvas／job API 与 tool calling。
+
+## 15. Phase 3 语义／确定性边界
+
+```mermaid
+flowchart TB
+    E[User / Course / Project Evidence] --> B[SourceEvidenceBuilder]
+    B --> S[Stable SourceEvidence]
+    S --> A[SelfDiscoveryAgent]
+    A --> P[LLMProvider<br/>Fake or Qwen]
+    P --> X[SelfDiscoveryExtraction<br/>candidate signals only]
+    X --> V[Deterministic Evidence Validator]
+    V --> PA[Deterministic ProfileAssembler]
+    PA --> UP[UserProfile v1<br/>draft / unconfirmed]
+    UP --> G[Awaiting Profile Confirmation]
+```
+
+LLM 只理解受控证据并输出候选技能、兴趣、价值、目标、优势、发展领域、职业偏好、不确定性和澄清问题。Python 创建 source evidence、拒绝未知或重复引用、强制 development area 必须有直接缺口证据，并把通过验证的信号映射为领域模型。`ProfileAssembler` 不调用模型，也不添加新语义结论。
+
+这条边界使模型输出始终可拒绝、可替换和可审计。`UserProfile` v1 默认 `confirmed=false`；Orchestrator 仍暂停在 `AWAITING_PROFILE_CONFIRMATION`，Job Intelligence 在确认前不能运行。默认对象图显式注入 `FakeLLMProvider`，只有带 `--live` 的 Self-Discovery Demo 才构造 `QwenProvider`。

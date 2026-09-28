@@ -3,11 +3,12 @@
 from agents.base import BaseAgent
 from agents.job_intelligence import JobIntelligenceAgent
 from agents.match_insight import MatchInsightAgent
-from agents.self_discovery import SelfDiscoveryAgent
+from agents.self_discovery import SelfDiscoveryAgent, public_offline_extraction
 from data.models import AgentName
 from tools.course_data import MockCourseDataProvider
 from tools.job_data import MockJobDataProvider
 from tools.report import DeterministicReportBuilder
+from providers.fake import FakeLLMProvider
 from workflows.engine import DeterministicWorkflowEngine
 from workflows.state import WorkflowState
 
@@ -25,7 +26,10 @@ class OrchestratorAgent(BaseAgent):
         """组装只依赖公开本地 fixture 的 Phase 1 默认对象图。"""
 
         engine = DeterministicWorkflowEngine(
-            self_discovery_agent=SelfDiscoveryAgent(MockCourseDataProvider()),
+            self_discovery_agent=SelfDiscoveryAgent(
+                MockCourseDataProvider(),
+                FakeLLMProvider(public_offline_extraction()),
+            ),
             job_intelligence_agent=JobIntelligenceAgent(MockJobDataProvider()),
             match_insight_agent=MatchInsightAgent(),
             report_builder=DeterministicReportBuilder(),

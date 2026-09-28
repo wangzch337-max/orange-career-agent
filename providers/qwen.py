@@ -30,7 +30,7 @@ ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
 
 class QwenProvider(LLMProvider):
-    """Strict structured output adapter for the single Phase 2 live provider."""
+    """Strict structured output adapter for Orange's current live provider."""
 
     name = "qwen"
 
@@ -66,7 +66,7 @@ class QwenProvider(LLMProvider):
         prompt_version: str,
     ) -> StructuredLLMResponse[ResponseT]:
         if options.thinking_enabled:
-            raise LLMConfigurationError("Phase 2 Qwen structured extraction 必须关闭 thinking。")
+            raise LLMConfigurationError("Orange Qwen structured extraction 必须关闭 thinking。")
         client = self._client or self._create_client(options)
         started = self._clock()
 

@@ -36,6 +36,13 @@ class EvidenceSourceType(str, Enum):
     SYSTEM_FIXTURE = "system_fixture"
 
 
+class InferenceType(str, Enum):
+    """区分用户明确事实与基于证据形成、仍待确认的推断。"""
+
+    EXPLICIT_FACT = "explicit_fact"
+    EVIDENCE_SUPPORTED_INFERENCE = "evidence_supported_inference"
+
+
 class ProfileStatus(str, Enum):
     DRAFT = "draft"
     CONFIRMED = "confirmed"
@@ -89,6 +96,12 @@ class EventType(str, Enum):
     VALIDATION_FAILED = "validation_failed"
     WORKFLOW_COMPLETED = "workflow_completed"
     WORKFLOW_FAILED = "workflow_failed"
+    SOURCE_EVIDENCE_BUILT = "source_evidence_built"
+    LLM_EXTRACTION_COMPLETED = "llm_extraction_completed"
+    EVIDENCE_VALIDATION_COMPLETED = "evidence_validation_completed"
+    PROFILE_ASSEMBLED = "profile_assembled"
+    PROFILE_CONFIRMATION_REQUIRED = "profile_confirmation_required"
+    CLARIFICATION_QUESTIONS_CREATED = "clarification_questions_created"
 
 
 class AgentName(str, Enum):
@@ -119,12 +132,15 @@ class EvidenceLinkedModel(DomainModel):
     confidence: float = Field(ge=0.0, le=1.0)
     evidence_ids: List[str] = Field(default_factory=list)
     source_type: EvidenceSourceType
+    inference_type: InferenceType = InferenceType.EXPLICIT_FACT
+    needs_confirmation: bool = True
     confirmed_by_user: bool = False
 
 
 class CandidateSkill(EvidenceLinkedModel):
     skill_id: str = Field(min_length=1)
     label: str = Field(min_length=1)
+    description: Optional[str] = None
     level: Optional[str] = None
 
     @property
@@ -135,28 +151,57 @@ class CandidateSkill(EvidenceLinkedModel):
 class InterestSignal(EvidenceLinkedModel):
     interest_id: str = Field(min_length=1)
     label: str = Field(min_length=1)
+    description: Optional[str] = None
     strength: SignalStrength = SignalStrength.MEDIUM
 
 
 class ValueSignal(EvidenceLinkedModel):
     value_id: str = Field(min_length=1)
     label: str = Field(min_length=1)
+    description: Optional[str] = None
     importance: Optional[int] = Field(default=None, ge=1, le=5)
 
 
 class Goal(DomainModel):
     goal_id: str = Field(min_length=1)
     label: str = Field(min_length=1)
+    description: Optional[str] = None
     horizon: GoalHorizon = GoalHorizon.SHORT
     status: GoalStatus = GoalStatus.DRAFT
     success_signal: Optional[str] = None
     evidence_ids: List[str] = Field(default_factory=list)
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     source_type: EvidenceSourceType = EvidenceSourceType.EXPLICIT_USER_INPUT
+    inference_type: InferenceType = InferenceType.EXPLICIT_FACT
+    needs_confirmation: bool = True
     confirmed_by_user: bool = False
 
 
 class EvidenceBackedStatement(EvidenceLinkedModel):
     text: str = Field(min_length=1)
+
+
+class CareerPreference(EvidenceLinkedModel):
+    preference_id: str = Field(min_length=1)
+    label: str = Field(min_length=1)
+    description: Optional[str] = None
+
+
+class ProfileUncertainty(DomainModel):
+    topic: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    evidence_ids: List[str] = Field(default_factory=list)
+    importance: Severity = Severity.MEDIUM
+    needs_user_input: bool = True
+
+
+class ClarificationQuestion(DomainModel):
+    question_id: str = Field(min_length=1)
+    question: str = Field(min_length=1)
+    topic: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    priority: Severity = Severity.MEDIUM
+    related_evidence_ids: List[str] = Field(default_factory=list)
 
 
 class UserProfile(DomainModel):
@@ -172,6 +217,7 @@ class UserProfile(DomainModel):
     goals: List[Goal] = Field(default_factory=list)
     strengths: List[EvidenceBackedStatement] = Field(default_factory=list)
     development_areas: List[EvidenceBackedStatement] = Field(default_factory=list)
+    career_preferences: List[CareerPreference] = Field(default_factory=list)
     evidence: List[EvidenceItem] = Field(default_factory=list)
     confirmed: bool = False
     created_at: datetime = Field(default_factory=utc_now)
@@ -189,6 +235,7 @@ class UserProfile(DomainModel):
             *self.goals,
             *self.strengths,
             *self.development_areas,
+            *self.career_preferences,
         ]
         for item in linked_items:
             referenced_ids.update(item.evidence_ids)
@@ -233,6 +280,7 @@ class UserProfile(DomainModel):
             "goals",
             "strengths",
             "development_areas",
+            "career_preferences",
         ):
             data[field_name] = [
                 {**item, "confirmed_by_user": True} for item in data[field_name]

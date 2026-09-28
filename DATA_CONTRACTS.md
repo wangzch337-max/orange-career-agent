@@ -1,6 +1,6 @@
 # Orange 概念数据契约 Data Contracts
 
-**状态：Phase 2。本文保留长期概念语义；核心领域实现位于 `data/models.py`，工作流状态位于 `workflows/state.py`，隔离的 provider extraction schema 位于 `providers/models.py`。**
+**状态：Phase 3。本文保留长期概念语义；核心领域实现位于 `data/models.py`，Self-Discovery extraction 位于 `agents/self_discovery_models.py`。**
 
 ## 1. 通用约定
 
@@ -298,3 +298,16 @@ Phase 2 新增的结构只用于 provider-level Demo，不替代或直接生成 
 - `StructuredLLMResponse[T]`：包含已验证 `data`、provider/model、usage、latency、Prompt name/version、status、request id 和 retry count，不包含 credential、完整 request 或隐藏推理。
 
 Pydantic 首先验证结构和 confidence 范围；随后确定性 evidence whitelist 验证每个返回 ID 都存在于该请求的 `SourceEvidence`。未知 ID 会使整个结果失败，不能静默删除。
+
+## 21. Phase 3 Self-Discovery Contracts
+
+- `SelfDiscoverySourceEvidence`：由 Python 确定性创建，包含稳定 ID、最小文本、来源类型、来源名和是否能支持 development area 的布尔标记。LLM 不创建证据。
+- `SelfDiscoveryExtraction`：只保存候选 `skills`、`interests`、`values`、`goals`、`strengths`、`development_areas`、`career_preferences`、`profile_uncertainties` 和最多五个 `clarification_questions`，不是权威画像。
+- 通用 signal：包含 `label`、简短 `description`、`confidence`、非空且不重复的 `evidence_ids`、`inference_type` 和 `needs_confirmation`。技能 `level` 可以保持未知。
+- `inference_type`：仅允许 `explicit_fact` 或 `evidence_supported_inference`。组装后继续保留该区别；推断的领域 `source_type` 为 `model_inference`，实际证据仍由 ID 解析。
+- `CareerPreference`：进入 `UserProfile` 的可确认偏好；没有证据时可以为空。
+- `ProfileUncertainty`：表达仍未知但可能值得澄清的主题，不伪造答案。
+- `ClarificationQuestion`：结构化记录问题、主题、原因、优先级和相关证据；一次最多五个。
+- `SelfDiscoveryResult`：包含 draft `user_profile`、uncertainties、clarification questions、安全 extraction metadata 与 usage。
+
+`ProfileAssembler` 先执行完整 evidence whitelist 校验，再执行 development-area 专用规则：只有引用明确有限经验或直接能力缺口证据的项才能进入画像。absence of evidence 永远不自动转换为 weakness。组装器不调用 LLM、不创建额外信号，生成的 `UserProfile` 固定从 v1/draft/unconfirmed 开始。
