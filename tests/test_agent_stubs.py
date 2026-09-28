@@ -20,8 +20,8 @@ def test_self_discovery_produces_valid_profile(paused_state) -> None:
     assert len(paused_state.user_profile.evidence) >= 6
 
 
-def test_job_intelligence_stub_returns_valid_records(completed_state) -> None:
-    assert len(completed_state.job_intelligence) == 3
+def test_job_intelligence_agent_returns_valid_records(completed_state) -> None:
+    assert len(completed_state.job_intelligence) == 20
     assert all(record.evidence_ids for record in completed_state.job_intelligence)
 
 
@@ -33,7 +33,7 @@ def test_match_stub_uses_exact_overlap_without_score(completed_state) -> None:
         for dimension in match.dimensions
     )
     product_match = next(
-        item for item in completed_state.match_results if item.job_id == "job_ai_product_intern"
+        item for item in completed_state.match_results if item.job_id == "job_001"
     )
     assert product_match.dimensions[0].matched_items == [
         "AI Product Thinking",

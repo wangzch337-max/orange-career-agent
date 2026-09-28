@@ -75,6 +75,44 @@ class EmploymentType(str, Enum):
     CONTRACT = "contract"
 
 
+class RoleFamily(str, Enum):
+    """Phase 4 Demo 岗位的轻量角色分类。"""
+
+    PRODUCT_BUSINESS = "product_business"
+    AI_APPLICATION_AGENT = "ai_application_agent"
+    ML_DATA = "ml_data"
+    SPECIALIZED_AI_ENGINEERING = "specialized_ai_engineering"
+    SOLUTION_PLATFORM = "solution_platform"
+    RESEARCH = "research"
+
+    @property
+    def display_name_zh(self) -> str:
+        return {
+            self.PRODUCT_BUSINESS: "产品与商业",
+            self.AI_APPLICATION_AGENT: "AI应用与Agent",
+            self.ML_DATA: "机器学习与数据",
+            self.SPECIALIZED_AI_ENGINEERING: "专项AI工程",
+            self.SOLUTION_PLATFORM: "AI解决方案与平台",
+            self.RESEARCH: "AI研究",
+        }[self]
+
+
+class Region(str, Enum):
+    """仅用于岗位地理筛选的功能性区域字段。"""
+
+    MAINLAND_CHINA = "mainland_china"
+    HONG_KONG = "hong_kong"
+    MACAU = "macau"
+    TAIWAN = "taiwan"
+
+
+class JobSignalInferenceType(str, Enum):
+    """区分岗位原文事实与证据支持的岗位解释。"""
+
+    EXPLICIT_JOB_FACT = "explicit_job_fact"
+    EVIDENCE_SUPPORTED_JOB_INFERENCE = "evidence_supported_job_inference"
+
+
 class MatchMethod(str, Enum):
     """Phase 1 仅允许精确标签重合。"""
 
@@ -102,6 +140,13 @@ class EventType(str, Enum):
     PROFILE_ASSEMBLED = "profile_assembled"
     PROFILE_CONFIRMATION_REQUIRED = "profile_confirmation_required"
     CLARIFICATION_QUESTIONS_CREATED = "clarification_questions_created"
+    JOB_INTELLIGENCE_STARTED = "job_intelligence_started"
+    JOB_EVIDENCE_BUILT = "job_evidence_built"
+    JOB_LLM_EXTRACTION_COMPLETED = "job_llm_extraction_completed"
+    JOB_EVIDENCE_VALIDATION_COMPLETED = "job_evidence_validation_completed"
+    JOB_INTELLIGENCE_ASSEMBLED = "job_intelligence_assembled"
+    JOB_UNCERTAINTIES_IDENTIFIED = "job_uncertainties_identified"
+    JOB_INTELLIGENCE_COMPLETED = "job_intelligence_completed"
 
 
 class AgentName(str, Enum):
@@ -305,39 +350,78 @@ class CourseRecord(DomainModel):
 class JobRecord(DomainModel):
     job_id: str = Field(min_length=1)
     title: str = Field(min_length=1)
+    role_family: RoleFamily
     organization: str = Field(min_length=1)
-    location: str = Field(min_length=1)
-    region: str = Field(min_length=1)
+    city: str = Field(min_length=1)
+    region: Region
     employment_type: EmploymentType
     description: str = Field(min_length=1)
+    responsibilities: List[str] = Field(default_factory=list)
     requirements: List[str] = Field(default_factory=list)
-    source: str = Field(min_length=1)
+    preferred_qualifications: List[str] = Field(default_factory=list)
+    technology_tags: List[str] = Field(default_factory=list)
+    language_requirements: List[str] = Field(default_factory=list)
+    source_type: EvidenceSourceType = EvidenceSourceType.SYSTEM_FIXTURE
+    source_name: str = Field(min_length=1)
     source_url: Optional[str] = None
+    # Phase 1 exact-overlap compatibility only; Phase 5 will replace this stub input.
     skills: List[str] = Field(default_factory=list)
-    language: List[str] = Field(default_factory=list)
     metadata: Dict[str, JsonValue] = Field(default_factory=dict)
+
+
+class JobIntelligenceSignal(DomainModel):
+    label: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence_ids: List[str] = Field(min_length=1)
+    inference_type: JobSignalInferenceType
+
+
+class JobUncertainty(DomainModel):
+    topic: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    importance: Severity = Severity.MEDIUM
+    evidence_ids: List[str] = Field(default_factory=list)
+    unknown_due_to_missing_information: bool = True
 
 
 class JobIntelligenceRecord(DomainModel):
     intelligence_id: str = Field(min_length=1)
     job_id: str = Field(min_length=1)
-    canonical_role: str = Field(min_length=1)
-    actual_work: List[str] = Field(default_factory=list)
-    required_capabilities: List[str] = Field(default_factory=list)
-    preferred_capabilities: List[str] = Field(default_factory=list)
-    work_style: List[str] = Field(default_factory=list)
-    career_path: List[str] = Field(default_factory=list)
-    advantages: List[str] = Field(default_factory=list)
-    potential_drawbacks: List[str] = Field(default_factory=list)
+    role_family: RoleFamily
+    actual_work: List[JobIntelligenceSignal] = Field(default_factory=list)
+    required_capabilities: List[JobIntelligenceSignal] = Field(default_factory=list)
+    preferred_capabilities: List[JobIntelligenceSignal] = Field(default_factory=list)
+    technology_signals: List[JobIntelligenceSignal] = Field(default_factory=list)
+    work_style: List[JobIntelligenceSignal] = Field(default_factory=list)
+    collaboration_context: List[JobIntelligenceSignal] = Field(default_factory=list)
+    growth_exposure: List[JobIntelligenceSignal] = Field(default_factory=list)
+    potential_friction: List[JobIntelligenceSignal] = Field(default_factory=list)
+    uncertainties: List[JobUncertainty] = Field(default_factory=list)
     evidence: List[EvidenceItem] = Field(default_factory=list)
     evidence_ids: List[str] = Field(default_factory=list)
+    analysis_metadata: Dict[str, JsonValue] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_evidence_links(self) -> "JobIntelligenceRecord":
         available_ids = {item.id for item in self.evidence}
-        missing = set(self.evidence_ids) - available_ids
+        linked_items = [
+            *self.actual_work,
+            *self.required_capabilities,
+            *self.preferred_capabilities,
+            *self.technology_signals,
+            *self.work_style,
+            *self.collaboration_context,
+            *self.growth_exposure,
+            *self.potential_friction,
+            *self.uncertainties,
+        ]
+        referenced_ids = {evidence_id for item in linked_items for evidence_id in item.evidence_ids}
+        missing = (set(self.evidence_ids) | referenced_ids) - available_ids
         if missing:
             raise ValueError(f"岗位情报引用了不存在的 evidence IDs: {sorted(missing)}")
+        if len(self.evidence_ids) != len(set(self.evidence_ids)):
+            raise ValueError("岗位情报 evidence_ids 不能重复")
         return self
 
 

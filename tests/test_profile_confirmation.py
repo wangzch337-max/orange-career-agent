@@ -20,7 +20,7 @@ def test_confirmation_permits_completion(orchestrator, paused_state) -> None:
     completed = orchestrator.confirm_and_continue(paused_state)
     assert completed.stage == WorkflowStage.COMPLETED
     assert completed.profile_confirmed is True
-    assert len(completed.job_intelligence) == 3
+    assert len(completed.job_intelligence) == 20
 
 
 def test_revision_returns_to_self_discovery_with_next_version(orchestrator, paused_state) -> None:

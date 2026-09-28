@@ -23,8 +23,14 @@ class FakeLLMProvider(LLMProvider):
 
     name = "fake"
 
-    def __init__(self, predefined_response: Union[BaseModel, Mapping[str, object], None]) -> None:
+    def __init__(
+        self,
+        predefined_response: Union[BaseModel, Mapping[str, object], None],
+        *,
+        predefined_responses: Sequence[Union[BaseModel, Mapping[str, object]]] | None = None,
+    ) -> None:
         self.predefined_response = predefined_response
+        self.predefined_responses = list(predefined_responses or [])
         self.call_count = 0
 
     def generate_structured(
@@ -39,12 +45,17 @@ class FakeLLMProvider(LLMProvider):
         del messages
         started = perf_counter()
         self.call_count += 1
-        if self.predefined_response is None:
+        selected = (
+            self.predefined_responses[self.call_count - 1]
+            if self.call_count <= len(self.predefined_responses)
+            else self.predefined_response
+        )
+        if selected is None:
             raise LLMStructuredOutputError("Fake provider 没有预定义结构化响应。")
         raw = (
-            self.predefined_response.model_dump()
-            if isinstance(self.predefined_response, BaseModel)
-            else self.predefined_response
+            selected.model_dump()
+            if isinstance(selected, BaseModel)
+            else selected
         )
         try:
             data = response_model.model_validate(raw)

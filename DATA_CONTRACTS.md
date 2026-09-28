@@ -1,6 +1,6 @@
 # Orange 概念数据契约 Data Contracts
 
-**状态：Phase 3。本文保留长期概念语义；核心领域实现位于 `data/models.py`，Self-Discovery extraction 位于 `agents/self_discovery_models.py`。**
+**状态：Phase 4。核心领域实现位于 `data/models.py`；Self-Discovery 与 Job Intelligence extraction 分别位于各自的 Agent contract 模块。**
 
 ## 1. 通用约定
 
@@ -119,12 +119,23 @@
 |---|---|---|---|---|---|
 | `job_id` | `str` | 记录标识 | Job provider | 是 | `role_ai_pm_001` |
 | `title` | `str` | 原始或标准职位名 | fixture／来源 | 是 | `AI Product Manager` |
-| `organization` | `str?` | 组织名；公开 Demo 可泛化 | 来源 | 否 | `Demo Technology Company` |
-| `region` | `Region` | 地区元数据 | 来源 | 是 | `Hong Kong` |
+| `role_family` | `RoleFamily` | 六类轻量 Demo taxonomy | fixture／来源 | 是 | `product_business` |
+| `organization` | `str` | 组织名；公开 Demo 明确虚构 | 来源 | 是 | `Orange Demo Labs` |
+| `city` | `str` | 城市，可扩展到任意未来城市 | 来源 | 是 | `Hong Kong` |
+| `region` | `Region` | 功能性地区元数据 | 来源 | 是 | `hong_kong` |
+| `employment_type` | `EmploymentType` | 实习／全职等 | 来源 | 是 | `internship` |
 | `description` | `str` | 已授权职位描述 | 来源 | 是 | `负责 AI 产品发现与交付…` |
+| `responsibilities` | `list[str]` | 明确职责 | 来源 | 是 | `[]` |
+| `requirements` | `list[str]` | 明确要求 | 来源 | 是 | `[]` |
+| `preferred_qualifications` | `list[str]` | 明确偏好资格 | 来源 | 是 | `[]` |
+| `technology_tags` | `list[str]` | 明确技术标签 | 来源 | 是 | `[]` |
+| `language_requirements` | `list[str]` | 明确语言要求 | 来源 | 是 | `[]` |
 | `source_url` | `str?` | 来源链接 | 来源 | 否 | `null` |
-| `source_type` | `enum` | 通常为 job_description | provenance | 是 | `job_description` |
-| `captured_at` | `datetime?` | 采集或 fixture 日期 | provider | 否 | `2026-02-01T00:00:00+08:00` |
+| `source_type` | `EvidenceSourceType` | Demo 固定为 system_fixture | provenance | 是 | `system_fixture` |
+| `source_name` | `str` | 来源显示名 | provider | 是 | `Orange Phase 4 Demo Role Archetypes` |
+| `metadata` | `map` | public-safe 标记 | provider | 是 | `{"fictional": true}` |
+
+`RoleFamily` 只包含 `PRODUCT_BUSINESS`、`AI_APPLICATION_AGENT`、`ML_DATA`、`SPECIALIZED_AI_ENGINEERING`、`SOLUTION_PLATFORM`、`RESEARCH`。`Region` 只承担地理筛选，支持 `MAINLAND_CHINA`、`HONG_KONG`、`MACAU`、`TAIWAN`；city 始终分开保存。
 
 ## 9. `JobIntelligenceRecord`
 
@@ -134,15 +145,21 @@ Job Intelligence Agent 对一个角色的结构化理解。
 |---|---|---|---|---|---|
 | `intelligence_id` | `str` | 解释记录标识 | 系统 | 是 | `ji_ai_pm_001` |
 | `job_id` | `str` | 关联基础记录 | `JobRecord` | 是 | `role_ai_pm_001` |
-| `canonical_role` | `str` | 规范角色名 | 规则／模型 | 是 | `AI Product Manager` |
-| `actual_work` | `list[str]` | 典型实际工作 | 职位证据／推断 | 是 | `["定义问题与成功指标"]` |
-| `capability_requirements` | `list[str]` | 能力要求 | 职位证据／规范化 | 是 | `["需求分析"]` |
-| `work_style` | `list[str]` | 协作、节奏等特征 | 证据／推断 | 是 | `["跨职能协作"]` |
-| `advantages` | `list[str]` | 角色可能优势 | 证据／推断 | 是 | `["连接技术与用户价值"]` |
-| `drawbacks` | `list[str]` | 可能缺点或压力 | 证据／推断 | 是 | `["高不确定性"]` |
-| `career_paths` | `list[str]` | 常见发展方向 | 证据／推断 | 否 | `["Senior AI PM"]` |
+| `role_family` | `RoleFamily` | Demo taxonomy | JobRecord | 是 | `product_business` |
+| `actual_work` | `list[JobIntelligenceSignal]` | 证据支持的实际工作 | extraction | 是 | `[]` |
+| `required_capabilities` | `list[JobIntelligenceSignal]` | 明确要求或强职责证据 | extraction | 是 | `[]` |
+| `preferred_capabilities` | `list[JobIntelligenceSignal]` | 偏好资格证据 | extraction | 是 | `[]` |
+| `technology_signals` | `list[JobIntelligenceSignal]` | 明确技术或技术类别 | extraction | 是 | `[]` |
+| `work_style` | `list[JobIntelligenceSignal]` | 非人格化工作方式 | extraction | 是 | `[]` |
+| `collaboration_context` | `list[JobIntelligenceSignal]` | 证据支持的协作对象 | extraction | 是 | `[]` |
+| `growth_exposure` | `list[JobIntelligenceSignal]` | 可能积累的经历，不是晋升预测 | extraction | 是 | `[]` |
+| `potential_friction` | `list[JobIntelligenceSignal]` | 中性岗位挑战特征 | extraction | 是 | `[]` |
+| `uncertainties` | `list[JobUncertainty]` | 明确保留的未知信息 | extraction | 是 | `[]` |
+| `evidence` | `list[EvidenceItem]` | 可解析证据集合 | assembler | 是 | `[]` |
 | `evidence_ids` | `list[str]` | 使用证据 | 系统 | 是 | `["ev_job_01"]` |
-| `confidence` | `float` | 综合解释信心 | 系统 | 是 | `0.76` |
+| `analysis_metadata` | `map` | safe provider／usage／counts | 系统 | 是 | `{}` |
+
+`JobIntelligenceSignal` 包含 `label`、`description`、0–1 `confidence`、非空唯一 `evidence_ids` 与 `inference_type`。岗位推断类型仅允许 `explicit_job_fact` 或 `evidence_supported_job_inference`。
 
 ## 10. `MatchDimension`
 
@@ -311,3 +328,13 @@ Pydantic 首先验证结构和 confidence 范围；随后确定性 evidence whit
 - `SelfDiscoveryResult`：包含 draft `user_profile`、uncertainties、clarification questions、安全 extraction metadata 与 usage。
 
 `ProfileAssembler` 先执行完整 evidence whitelist 校验，再执行 development-area 专用规则：只有引用明确有限经验或直接能力缺口证据的项才能进入画像。absence of evidence 永远不自动转换为 weakness。组装器不调用 LLM、不创建额外信号，生成的 `UserProfile` 固定从 v1/draft/unconfirmed 开始。
+
+## 22. Phase 4 Job Intelligence Contracts
+
+- `JobSourceEvidence`：包含稳定 `id`、`job_id`、category、最小 `text` 与 `source_type`。category 支持 title、summary、responsibility、requirement、preferred qualification、technology、location 与 employment type；ID 只能由 `JobEvidenceBuilder` 创建。
+- `JobIntelligenceExtraction`：provider-facing 候选结构，包含 actual work、required/preferred capabilities、technology、work style、collaboration context、growth exposure、potential friction 与 job uncertainties。它不是权威领域记录。
+- `JobUncertainty`：包含 topic、reason、importance、可选 evidence IDs 与 `unknown_due_to_missing_information=true`。没有薪资、晋升、work-life、remote policy、team size 或完整技术栈证据时保留 unknown。
+- `JobIntelligenceAssembler`：重新验证 evidence whitelist，只复制 extraction 中已有信号，保留 confidence、evidence IDs 与事实／推断区别，不调用 LLM，不补充技术或劳动力市场常识。
+- `JobIntelligenceAgent`：只依赖 `LLMProvider`，可在没有 `UserProfile` 时独立分析 `JobRecord`。Phase 4 不包含 fit score、ranking、recommendation、gap analysis 或 user-specific action plan。
+
+公开 `MockJobDataProvider` 只加载 20 条 `system_fixture` Fictional Demo Job Records；没有真实招聘 URL、招聘联系人、薪资情报或实时市场主张。

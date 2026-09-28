@@ -11,11 +11,17 @@ from tools.base import JobDataProvider
 from workflows.stages import FixtureLoadError
 
 
-DEFAULT_FIXTURE = Path(__file__).resolve().parents[1] / "data" / "fixtures" / "sample_jobs.json"
+DEFAULT_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "data"
+    / "fixtures"
+    / "jobs"
+    / "demo_jobs.json"
+)
 
 
 class MockJobDataProvider(JobDataProvider):
-    """Phase 1 离线岗位 fixture provider。"""
+    """Phase 4 public, fictional Demo Role Archetype provider。"""
 
     name = "MockJobDataProvider"
 

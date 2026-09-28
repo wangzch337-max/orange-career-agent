@@ -65,8 +65,8 @@ class MatchInsightAgent(BaseAgent):
                 else []
             )
             friction = (
-                [f"fixture 提示的潜在摩擦：{intelligence.potential_drawbacks[0]}"]
-                if intelligence.potential_drawbacks
+                [f"fixture 提示的潜在摩擦：{intelligence.potential_friction[0].label}"]
+                if intelligence.potential_friction
                 else []
             )
             matches.append(

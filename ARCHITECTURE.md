@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 3 Evidence-Backed Self-Discovery；LangGraph、Memory 和 UI 仍未实现。**
+**状态：Phase 4 Job Intelligence Agent + Demo Role Taxonomy；LangGraph、Memory 和 UI 仍未实现。**
 
 ## 1. 架构目标
 
@@ -75,7 +75,7 @@ stateDiagram-v2
 
 ### 4.3 Job Intelligence Agent
 
-将不同来源的角色／职位信息规范化为 `JobIntelligenceRecord`，解释实际工作、能力要求、职业路径、优势、潜在缺点和工作方式。热度或需求量若未来加入，只是独立元数据，不能替代职业理解。
+把 `JobRecord` 确定性拆为带稳定 ID 的 `JobSourceEvidence`，通过注入的 `LLMProvider` 生成候选 `JobIntelligenceExtraction`，再由 evidence whitelist 与确定性 `JobIntelligenceAssembler` 形成 `JobIntelligenceRecord`。它解释实际工作、能力、技术、工作方式、协作、成长暴露、潜在摩擦与未知信息，但不读取用户画像，也不进行匹配、排名或推荐。
 
 ### 4.4 Match & Insight Agent
 
@@ -229,7 +229,7 @@ Phase 1 当时没有 LLM provider／调用、LangGraph、LangChain、Chroma／�
 
 Phase 2 已实现 provider contract、Fake／Qwen adapter、版本化 Prompt、严格 `ProfileSignalExtraction`、evidence-ID 验证、有限重试和安全 usage/latency metadata，并已完成一次 live structured smoke validation。
 
-仍未实现：LLM 驱动的 Job Intelligence 或 Match & Insight、LangGraph、Memory、Streamlit、Canvas／job API 与 tool calling。
+仍未实现：LLM 驱动的 Match & Insight、LangGraph、Memory、Streamlit、Canvas／job API 与 tool calling。
 
 ## 15. Phase 3 语义／确定性边界
 
@@ -249,3 +249,19 @@ flowchart TB
 LLM 只理解受控证据并输出候选技能、兴趣、价值、目标、优势、发展领域、职业偏好、不确定性和澄清问题。Python 创建 source evidence、拒绝未知或重复引用、强制 development area 必须有直接缺口证据，并把通过验证的信号映射为领域模型。`ProfileAssembler` 不调用模型，也不添加新语义结论。
 
 这条边界使模型输出始终可拒绝、可替换和可审计。`UserProfile` v1 默认 `confirmed=false`；Orchestrator 仍暂停在 `AWAITING_PROFILE_CONFIRMATION`，Job Intelligence 在确认前不能运行。默认对象图显式注入 `FakeLLMProvider`，只有带 `--live` 的 Self-Discovery Demo 才构造 `QwenProvider`。
+
+## 16. Phase 4 对称证据架构
+
+```mermaid
+flowchart LR
+    UE[User Evidence] --> SD[SelfDiscoveryAgent]
+    SD --> UP[UserProfile]
+    JE[Job Evidence] --> JI[JobIntelligenceAgent]
+    JI --> JR[JobIntelligenceRecord]
+    UP -. future Phase 5 input .-> MI[Match & Insight]
+    JR -. future Phase 5 input .-> MI
+```
+
+岗位路径的完整边界是：`JobRecord → JobEvidenceBuilder → JobSourceEvidence[] → JobIntelligenceAgent → LLMProvider → JobIntelligenceExtraction → evidence validation → JobIntelligenceAssembler → JobIntelligenceRecord`。LLM 负责有限的语义解释；Python 决定哪些有合法证据引用的字段进入权威记录。
+
+两条分析路径在 Phase 4 刻意独立：`JobIntelligenceAgent.analyze()` 不接收 `UserProfile`。工作流中的画像确认门仍是编排顺序要求，而不是岗位理解的领域依赖。`FakeLLMProvider` 可离线运行全部 20 个 Demo archetype；只有显式 live Demo 构造 `QwenProvider`。缺失的薪资、晋升、work-life、remote policy、team size 或完整技术栈保留为 `JobUncertainty`，不得由模型常识补齐。

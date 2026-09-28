@@ -41,11 +41,11 @@ def test_demo_requires_no_network(monkeypatch) -> None:
 
 def test_fixtures_have_exact_record_counts_and_no_obvious_identifiers() -> None:
     courses = json.loads((FIXTURE_DIR / "sample_courses.json").read_text(encoding="utf-8"))
-    jobs = json.loads((FIXTURE_DIR / "sample_jobs.json").read_text(encoding="utf-8"))
+    jobs = json.loads((FIXTURE_DIR / "jobs" / "demo_jobs.json").read_text(encoding="utf-8"))
     assert len(courses) == 3
-    assert len(jobs) == 3
+    assert len(jobs) == 20
 
-    combined = "\n".join(path.read_text(encoding="utf-8") for path in FIXTURE_DIR.glob("*.json"))
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in FIXTURE_DIR.rglob("*.json"))
     assert not re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", combined)
     assert not re.search(r"\b(?:student[_ -]?id|phone|email|address)\b", combined, re.IGNORECASE)
     assert not re.search(r"\b[569]\d{7}\b", combined)

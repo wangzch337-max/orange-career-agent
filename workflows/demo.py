@@ -1,4 +1,4 @@
-"""Orange Phase 3 的完全离线公共工作流 Demo。"""
+"""Orange Phase 4 的完全离线公共工作流 Demo。"""
 
 import json
 from pathlib import Path
@@ -29,7 +29,7 @@ def run_demo_to_completion(paused_state: WorkflowState) -> WorkflowState:
 
 
 def main() -> None:
-    print("Orange Phase 3 Offline Workflow Demo")
+    print("Orange Phase 4 Offline Workflow Demo")
     print("\nSTEP 1 — 生成并暂停在画像确认节点")
     paused = run_demo_until_confirmation()
     print("✓ 已加载匿名用户输入")

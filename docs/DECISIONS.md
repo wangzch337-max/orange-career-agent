@@ -173,3 +173,22 @@ Self-Discovery 需要理解课程、项目和明确偏好的语义，但让模�
 
 **Status**
 Accepted — Phase 3
+
+## ADR-011 — Job Intelligence 使用证据受限语义抽取与确定性组装
+
+**Context**
+岗位描述需要语义归纳实际工作、能力、工作方式与潜在摩擦，但通用模型知识可能把常见行业信息误写成特定岗位事实，也可能在缺少薪资、晋升或团队信息时自动补全。
+
+**Decision**
+确定性 `JobEvidenceBuilder` 先把 `JobRecord` 转为稳定、去重的 `JobSourceEvidence`。注入的 `LLMProvider` 只返回 `JobIntelligenceExtraction` 候选信号；确定性 evidence whitelist 与 `JobIntelligenceAssembler` 再建立权威 `JobIntelligenceRecord`。每个信号保留 confidence、evidence IDs 与 `explicit_job_fact`／`evidence_supported_job_inference` 区分。缺失岗位信息保存为 `JobUncertainty`，不由模型常识填充。
+
+Job Intelligence 不接收 `UserProfile`，不计算 fit、排名、推荐、gap 或用户行动计划。公开 Demo 使用 20 条虚构 role archetypes；自动化测试只使用 `FakeLLMProvider`。
+
+**Reason**
+该对称混合架构让模型处理有限语义规范化，同时由可测试 Python 保证 provenance、缺失值与权限边界。岗位理解可独立复用，也不会提前混入 Phase 5 的用户匹配判断。
+
+**Tradeoffs**
+系统维护 extraction 与 domain 两套相邻 schema，严格 evidence 校验会拒绝部分看似合理但没有来源的输出；Demo archetype 也不能代表实时招聘市场。作为回报，缺失信息、事实／推断和每条语义结论都保持可审计。
+
+**Status**
+Accepted — Phase 4

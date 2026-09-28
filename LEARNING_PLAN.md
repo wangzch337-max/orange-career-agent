@@ -136,27 +136,27 @@ semantic extraction、deterministic assembly、provenance、uncertainty、confid
 
 ### 2. 需要理解的概念
 
-数据规范化、taxonomy、来源时效、fixture 设计、角色与单个招聘职位的差别。
+taxonomy 设计、结构化岗位数据、语义规范化、evidence-backed inference、不确定性表达、hallucination control，以及岗位理解与用户匹配的分离。
 
 ### 3. Codex 负责
 
-协助定义最小字段、数据质量检查和去标识化规则；评审约 15–20 个代表角色的平衡性。
+实现六类轻量 `RoleFamily`、20 条 Fictional Demo Job Records、`JobEvidenceBuilder`、provider-independent `JobIntelligenceAgent`、严格 extraction schema、evidence whitelist 与确定性 assembler，并保持 Match & Insight 为 stub。
 
-### 4. 开发者亲手完成
+### 4. OPTIONAL DEVELOPER HANDS-ON TASK
 
-研究并整理一部分代表角色，标记来源与日期；手工验证至少两条 `actual_work` 是否贴近现实。
+可选且不作为 Phase gate：只给一个 Demo role 新增一条虚构 responsibility，运行 `.venv/bin/python -m agents.job_intelligence_demo`，观察稳定 evidence ID 与对应结构化信号如何变化。
 
 ### 5. 验收问题
 
-如何避免把某一家公司职位描述当作整个职业的真相？热度为何不能替代职业解释？
+为什么缺失薪资或晋升信息必须保持 unknown？如何区分 `explicit_job_fact` 与 `evidence_supported_job_inference`？
 
 ### 6. 面试中应该能如何解释
 
-说明规范化流程、来源限制和为何首个 Demo 选择小而精的数据集。
+说明 LLM 只做证据受限的语义解释，而确定性 Python 控制权威记录；说明为什么岗位理解与用户匹配在 Phase 4 独立。
 
 ### 7. 完成标准
 
-fixture 脱敏、schema 合法、角色覆盖合理、每条核心说明有来源或明确推断标记。
+20-role fixture public-safe、schema 合法、所有信号证据可解析、缺失信息保留 unknown、离线 Demo 全部通过且 live 验证只覆盖三条代表角色。
 
 ## Phase 5 — Match & Insight Engine
 

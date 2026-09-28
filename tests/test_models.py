@@ -3,7 +3,14 @@
 import pytest
 from pydantic import ValidationError
 
-from data.models import EmploymentType, EvidenceItem, EvidenceSourceType, JobRecord
+from data.models import (
+    EmploymentType,
+    EvidenceItem,
+    EvidenceSourceType,
+    JobRecord,
+    Region,
+    RoleFamily,
+)
 
 
 def test_evidence_confidence_accepts_bounds() -> None:
@@ -45,22 +52,24 @@ def test_job_record_validates_required_fields() -> None:
     record = JobRecord(
         job_id="job_test",
         title="Demo Intern",
+        role_family=RoleFamily.PRODUCT_BUSINESS,
         organization="Fictional Studio",
-        location="Hong Kong",
-        region="hong_kong",
+        city="Hong Kong",
+        region=Region.HONG_KONG,
         employment_type=EmploymentType.INTERNSHIP,
         description="虚构岗位。",
-        source="phase_1_fixture",
+        source_name="test_fixture",
     )
     assert record.source_url is None
     with pytest.raises(ValidationError):
         JobRecord(
             job_id="job_test",
             title="",
+            role_family=RoleFamily.PRODUCT_BUSINESS,
             organization="Fictional Studio",
-            location="Hong Kong",
-            region="hong_kong",
+            city="Hong Kong",
+            region=Region.HONG_KONG,
             employment_type=EmploymentType.INTERNSHIP,
             description="虚构岗位。",
-            source="phase_1_fixture",
+            source_name="test_fixture",
         )

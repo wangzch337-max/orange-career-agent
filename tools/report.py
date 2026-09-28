@@ -25,7 +25,7 @@ class DeterministicReportBuilder(ReportProvider):
 
         for match in matches:
             record = intelligence_by_job[match.job_id]
-            actual_work[match.job_id] = record.actual_work
+            actual_work[match.job_id] = [signal.label for signal in record.actual_work]
             evidence_of_fit[match.job_id] = match.evidence_of_fit
             potential_friction[match.job_id] = match.potential_friction
 
