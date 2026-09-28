@@ -1,0 +1,21 @@
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+
+.venv/
+venv/
+
+.DS_Store
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+*.log
+
+# Private local inputs must never enter the public repository.
+data/private/
+data/local/

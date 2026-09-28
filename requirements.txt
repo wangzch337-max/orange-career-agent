@@ -1,0 +1,5 @@
+# Phase 2 的轻量运行时与测试依赖；OpenAI SDK 仅作为 Qwen 兼容传输层。
+pydantic>=2.7,<3
+pytest>=8,<9
+openai>=2.0,<3
+python-dotenv>=1.0,<2

@@ -1,0 +1,14 @@
+{
+  "persona": "anonymous_demo_student",
+  "program": "AI-related master's degree",
+  "career_interest": "AI 产品与 AI 应用方向",
+  "career_goal": "比较三类 AI 相关实习并识别下一步能力证据",
+  "career_values": [
+    "持续学习",
+    "实际影响"
+  ],
+  "project_experience": {
+    "name": "Campus Helper Prototype",
+    "summary": "完成一个使用公开模拟数据的校园信息问答原型"
+  }
+}

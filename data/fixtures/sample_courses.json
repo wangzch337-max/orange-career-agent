@@ -1,0 +1,23 @@
+[
+  {
+    "course_id": "course_ai_intro",
+    "title": "Introduction to Artificial Intelligence",
+    "summary": "使用公开教学案例学习基础 AI 概念与问题建模。",
+    "tags": ["AI", "problem-solving"],
+    "source": "phase_1_fixture"
+  },
+  {
+    "course_id": "course_ai_innovation",
+    "title": "AI-Driven Innovation",
+    "summary": "使用虚构案例练习从用户问题到 AI 产品概念的映射。",
+    "tags": ["AI product", "innovation"],
+    "source": "phase_1_fixture"
+  },
+  {
+    "course_id": "course_data_analytics",
+    "title": "Data Analytics for Smart Applications",
+    "summary": "使用公开模拟数据练习分析、解释和展示。",
+    "tags": ["analytics", "data"],
+    "source": "phase_1_fixture"
+  }
+]
