@@ -5,7 +5,8 @@ from types import SimpleNamespace
 import httpx
 import openai
 import pytest
-from pydantic import SecretStr
+from openai.lib._pydantic import to_strict_json_schema
+from pydantic import SecretStr, ValidationError
 
 from providers.demo import offline_response
 from providers.errors import (
@@ -25,6 +26,10 @@ from providers.models import (
 from providers.qwen import QwenProvider
 from agents.self_discovery import public_offline_extraction
 from agents.self_discovery_models import SelfDiscoveryExtraction
+from agents.match_context import MatchContextBuilder
+from agents.match_insight import public_offline_match_extraction
+from agents.match_insight_demo import build_offline_job_intelligence, load_public_profile
+from agents.match_insight_models import build_match_insight_response_model
 
 
 class ParseEndpoint:
@@ -123,8 +128,14 @@ def test_pydantic_parse_success_and_request_id() -> None:
 
 def test_malformed_parsed_result_is_structured_error() -> None:
     invalid = {"candidate_skills": [{"label": "AI", "confidence": 8, "evidence_ids": ["x"]}]}
-    with pytest.raises(LLMStructuredOutputError):
+    with pytest.raises(LLMStructuredOutputError) as caught:
         generate(provider(ClientStub([completion(invalid)])))
+    assert isinstance(caught.value.__cause__, ValidationError)
+    diagnostic = caught.value.safe_diagnostics()[0]
+    assert diagnostic["stage"] == "ProfileSignalExtraction"
+    assert diagnostic["loc"] == "candidate_skills.0.confidence"
+    assert diagnostic["type"] == "less_than_equal"
+    assert "input" not in diagnostic
 
 
 def test_empty_response_is_structured_error() -> None:
@@ -230,3 +241,36 @@ def test_qwen_transport_supports_phase3_self_discovery_schema() -> None:
     assert isinstance(response.data, SelfDiscoveryExtraction)
     assert client.endpoint.calls[0]["response_format"] is SelfDiscoveryExtraction
     assert client.endpoint.calls[0]["extra_body"] == {"enable_thinking": False}
+
+
+def test_qwen_transport_accepts_request_scoped_match_schema_without_network() -> None:
+    profile = load_public_profile()
+    intelligence = next(
+        item
+        for item in build_offline_job_intelligence()
+        if item.role_title == "AI Product Intern"
+    )
+    context = MatchContextBuilder().build(profile, intelligence)
+    response_model = build_match_insight_response_model(context)
+    parsed = public_offline_match_extraction(context).model_dump()
+    client = ClientStub([completion(parsed)])
+    response = provider(client).generate_structured(
+        [LLMMessage(role=MessageRole.USER, content="sanitized match context")],
+        response_model,
+        GenerationOptions(max_output_tokens=4096, max_retries=0),
+        prompt_name="match_insight",
+        prompt_version="v5",
+    )
+    assert isinstance(response.data, response_model)
+    assert client.endpoint.calls[0]["response_format"] is response_model
+    assert client.endpoint.calls[0]["extra_body"] == {"enable_thinking": False}
+    strict_schema = to_strict_json_schema(response_model)
+    properties = strict_schema["$defs"][
+        "RequestScopedBilateralMatchCandidate"
+    ]["properties"]
+    assert properties["profile_signal_ids"]["items"]["enum"] == [
+        item.signal_id for item in context.profile_signals
+    ]
+    assert properties["job_signal_ids"]["items"]["enum"] == [
+        item.signal_id for item in context.job_signals
+    ]

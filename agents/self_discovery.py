@@ -21,6 +21,7 @@ from data.models import (
     AgentName,
     ClarificationQuestion,
     EventType,
+    GoalType,
     InferenceType,
     ProfileUncertainty,
     Severity,
@@ -54,7 +55,7 @@ def public_offline_extraction() -> SelfDiscoveryExtraction:
             ValueExtractionSignal(label="持续学习", description="用户明确列出的职业价值。", confidence=1.0, evidence_ids=["value_001"], inference_type=explicit),
             ValueExtractionSignal(label="实际影响", description="用户明确列出的职业价值。", confidence=1.0, evidence_ids=["value_002"], inference_type=explicit),
         ],
-        goals=[GoalExtractionSignal(label="比较三类 AI 相关实习并识别下一步能力证据", description="用户明确陈述的短期探索目标。", confidence=1.0, evidence_ids=["career_002"], inference_type=explicit)],
+        goals=[GoalExtractionSignal(goal_type=GoalType.CAREER_GOAL, label="比较三类 AI 相关实习并识别下一步能力证据", description="用户明确陈述的短期探索目标。", confidence=1.0, evidence_ids=["career_002"], inference_type=explicit)],
         strengths=[StrengthSignal(label="AI 应用原型实践", description="项目证据支持完成小型 AI 应用原型的实践模式。", confidence=0.78, evidence_ids=["project_001"], inference_type=inferred)],
         development_areas=[],
         career_preferences=[CareerPreferenceSignal(label="探索 AI 产品与应用角色", description="来自用户明确的职业兴趣范围，尚未固定单一岗位。", confidence=0.95, evidence_ids=["career_001", "career_002"], inference_type=explicit)],
@@ -73,7 +74,7 @@ class SelfDiscoveryAgent(BaseAgent):
         self.llm_provider = llm_provider
         self.evidence_builder = evidence_builder or SourceEvidenceBuilder()
         self.profile_assembler = profile_assembler or ProfileAssembler()
-        self.generation_options = generation_options or GenerationOptions(model="fake-self-discovery-v1", max_retries=0)
+        self.generation_options = generation_options or GenerationOptions(model="fake-self-discovery-v2", max_retries=0)
 
     def discover(self, user_input: Dict[str, object], courses: list) -> SelfDiscoveryResult:
         evidence = self.evidence_builder.build(user_input, courses)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Dict, List, Literal, Optional, Sequence, Set
 
 from pydantic import Field, JsonValue, field_validator, model_validator
@@ -11,6 +12,7 @@ from data.models import (
     DomainModel,
     EvidenceItem,
     EvidenceSourceType,
+    GoalType,
     InferenceType,
     ProfileUncertainty,
     Severity,
@@ -59,7 +61,7 @@ class ValueExtractionSignal(SelfDiscoverySignal):
 
 
 class GoalExtractionSignal(SelfDiscoverySignal):
-    pass
+    goal_type: GoalType
 
 
 class StrengthSignal(SelfDiscoverySignal):
@@ -128,7 +130,58 @@ class SelfDiscoveryExtraction(ProviderModel):
             raise LLMStructuredOutputError(
                 f"Self-Discovery 输出引用了未知 evidence IDs: {sorted(unknown)}"
             )
+        self._validate_professional_label_grounding(source_evidence)
         return self
+
+    def _validate_professional_label_grounding(
+        self,
+        source_evidence: Sequence[SelfDiscoverySourceEvidence],
+    ) -> None:
+        """Reject broad capability labels whose linked evidence supports only a subset."""
+
+        evidence_by_id = {item.id: item.text for item in source_evidence}
+        rules = (
+            (
+                re.compile(r"\bdevops\b", re.IGNORECASE),
+                re.compile(
+                    r"\bdevops\b|ci\s*/?\s*cd|continuous (?:integration|delivery|deployment)|"
+                    r"deployment pipeline|infrastructure|container(?:ization| orchestration)?|"
+                    r"docker|kubernetes|cloud operations|部署流水线|基础设施|容器编排|云运维",
+                    re.IGNORECASE,
+                ),
+                "DevOps",
+            ),
+            (
+                re.compile(r"\bfull[ -]?stack\b|全栈", re.IGNORECASE),
+                re.compile(
+                    r"\bfull[ -]?stack\b|全栈|(?:frontend|前端).*(?:backend|后端)|"
+                    r"(?:backend|后端).*(?:frontend|前端)",
+                    re.IGNORECASE,
+                ),
+                "full-stack",
+            ),
+            (
+                re.compile(r"\bbackend\s+(?:capabilit|ownership)|后端(?:能力|所有权)", re.IGNORECASE),
+                re.compile(
+                    r"backend (?:service|development|system|ownership)|server-side|"
+                    r"后端(?:服务|开发|系统)|服务端(?:开发|系统)",
+                    re.IGNORECASE,
+                ),
+                "backend ownership",
+            ),
+        )
+        for signal in [*self.skills, *self.strengths]:
+            claim = f"{signal.label} {signal.description}"
+            evidence_text = " ".join(
+                evidence_by_id[evidence_id]
+                for evidence_id in signal.evidence_ids
+                if evidence_id in evidence_by_id
+            )
+            for claim_pattern, support_pattern, category in rules:
+                if claim_pattern.search(claim) and not support_pattern.search(evidence_text):
+                    raise LLMStructuredOutputError(
+                        f"专业能力标签超出证据范围：{category} 缺少直接支持。"
+                    )
 
     def signal_counts(self) -> Dict[str, int]:
         return {

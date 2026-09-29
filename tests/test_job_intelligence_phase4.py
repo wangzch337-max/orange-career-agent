@@ -104,7 +104,7 @@ def test_assembler_preserves_signals_links_confidence_and_type(job_and_bundle) -
     record = JobIntelligenceAssembler().assemble(
         job=job, extraction=extraction, evidence=bundle, analysis_metadata={"provider": "fake"}
     )
-    assert record.actual_work[0].model_dump() == extraction.actual_work[0].model_dump()
+    assert record.actual_work[0].model_dump(exclude={"signal_id"}) == extraction.actual_work[0].model_dump()
     assert record.growth_exposure[0].confidence == extraction.growth_exposure[0].confidence
     assert record.growth_exposure[0].inference_type == extraction.growth_exposure[0].inference_type
     assert set(record.evidence_ids) == {

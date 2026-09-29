@@ -40,10 +40,5 @@ def test_observability_contains_counts_but_no_raw_description_or_secret(complete
     assert "Authorization" not in serialized
 
 
-def test_match_agent_remains_exact_overlap_stub(completed_state) -> None:
-    assert all(
-        dimension.method.value == "exact_overlap"
-        for match in completed_state.match_results
-        for dimension in match.dimensions
-    )
+def test_match_agent_has_no_overall_score(completed_state) -> None:
     assert all("overall_score" not in match.model_dump() for match in completed_state.match_results)

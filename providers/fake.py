@@ -60,7 +60,10 @@ class FakeLLMProvider(LLMProvider):
         try:
             data = response_model.model_validate(raw)
         except ValidationError as exc:
-            raise LLMStructuredOutputError("Fake provider 响应不符合 Pydantic schema。") from exc
+            raise LLMStructuredOutputError.from_pydantic(
+                stage=response_model.__name__,
+                error=exc,
+            ) from exc
         latency_ms = max(0, round((perf_counter() - started) * 1000))
         return StructuredLLMResponse[ResponseT](
             data=data,

@@ -17,12 +17,27 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_self_discovery_prompt_is_versioned_and_grounded() -> None:
-    assert SELF_DISCOVERY_PROMPT_PATH.name == "self_discovery_v1.md"
+    assert SELF_DISCOVERY_PROMPT_PATH.name == "self_discovery_v2.md"
     assert SELF_DISCOVERY_PROMPT_NAME == "self_discovery"
-    assert SELF_DISCOVERY_PROMPT_VERSION == "v1"
+    assert SELF_DISCOVERY_PROMPT_VERSION == "v2"
     prompt = load_self_discovery_prompt()
-    for phrase in ("不得虚构", "explicit_fact", "缺少证据不等于弱点", "0–5", "chain-of-thought"):
+    for phrase in (
+        "不得虚构",
+        "explicit_fact",
+        "缺少证据不等于弱点",
+        "0–5",
+        "最窄范围",
+        "career_goal",
+        "project_goal",
+        "learning_goal",
+        "chain-of-thought",
+    ):
         assert phrase in prompt
+
+
+def test_self_discovery_v1_prompt_remains_byte_for_byte_unchanged() -> None:
+    payload = (ROOT / "config" / "prompts" / "self_discovery_v1.md").read_bytes()
+    assert hashlib.sha256(payload).hexdigest() == "27ce461b5c1a6b1f062f24f04dfa42aaa90e0d00803d41d579b2ba475134eacb"
 
 
 def test_phase2_prompt_remains_byte_for_byte_unchanged() -> None:

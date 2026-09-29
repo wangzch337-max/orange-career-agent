@@ -74,13 +74,13 @@
 
 ## Phase 5 — Match & Insight Engine
 
-**范围：**实现 skills、interests、values、experience、growth fit 等可解释维度，输出 fit、friction、gaps 和 actions。
+**范围：**以 confirmed profile 与 Job Intelligence 的双向证据关系实现 alignment、evidence gap、confirmed gap、depth gap、friction、unknown 和 issue-linked actions；不计算总体分或岗位排名。
 
-**Exit criteria：**确定性部分可复算、缺失数据不被当作负面事实、语义推理有 schema 与证据、报告含局限且不承诺结果。
+**Exit criteria：**所有双域 ID 与 action policy 可确定性验证、缺失证据不被当作能力弱、20 roles 离线通过、报告含局限且没有总体分或排名。
 
-**用户学习检查：**开发者手算一个维度并做权重敏感性解释。
+**可选用户参与：**开发者可修改一个公开合成偏好并观察 preference alignment／friction 的变化；正式 quiz 不作为完成门。
 
-**主要风险与 fallback：**伪精确分数掩盖不确定性。Fallback 是取消总分，仅展示维度标签、证据和不确定性。
+**主要风险与 fallback：**语义关系越界、把 evidence gap 当作 capability gap。Fallback 是拒绝无效关系／行动，并只展示通过确定性 evidence validation 的分类、证据与不确定性。
 
 ## Phase 6 — LangGraph Full Workflow Integration
 

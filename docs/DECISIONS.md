@@ -192,3 +192,22 @@ Job Intelligence 不接收 `UserProfile`，不计算 fit、排名、推荐、gap
 
 **Status**
 Accepted — Phase 4
+
+## ADR-012 — Evidence-first Match、确认门与 issue-linked actions
+
+**Context**
+把职业探索压缩成总体匹配分会隐藏能力、兴趣、偏好、经验深度与未知信息之间的差异。更危险的是：模型可能把没有证据误写成能力不足，把未确认画像推断递归放大，或生成与已识别问题无关的流行技能建议。
+
+**Decision**
+Phase 5 不计算 overall score、fit percentage、weighted sum 或 role ranking。确定性 `MatchContextBuilder` 只接受 confirmed profile，并最小化用户／岗位 signals 与 evidence。注入的 `LLMProvider` 只提出 `MatchInsightExtraction`；`MatchInsightAssembler` 验证所有双域 ID、引用归属和 relation-specific 规则后构造权威 `MatchResult`。
+
+`EVIDENCE_MISSING` 与 `CONFIRMED_GAP` 永久分离：前者只说明当前画像缺少验证材料；后者必须引用用户确认的 development-area 证据。每个 `ActionItem` 必须引用 validated issue，relation/action 允许表禁止 evidence missing 直接触发 deepen capability，action target 还必须存在于已验证 signal 中。`MatchContextBuilder`、Agent 和 assembler 三层都执行 confirmed-profile gate；私有 profile 只能由开发者本人在默认 N 的本地交互门中确认。
+
+**Reason**
+证据关系比单一分数更能解释为什么某条结论成立、哪里仍未知以及下一步为何合理。多层确定性校验阻止未确认推断、未知 ID、错误 gap 类型和不受支持建议进入权威状态，同时保留 LLM 处理跨表达语义关联的价值。
+
+**Tradeoffs**
+输出比一个分数更复杂，调用方需要按 relation type 展示；严格规则会拒绝部分可读但证据结构不完整的响应。Phase 5 也无法替用户选择最佳职业。作为回报，结果可审计、可纠正，并避免虚假精确性与证据缺失造成的伤害性判断。
+
+**Status**
+Accepted — Phase 5

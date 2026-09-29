@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 4 Job Intelligence Agent + Demo Role Taxonomy；LangGraph、Memory 和 UI 仍未实现。**
+**状态：Phase 5 Evidence-Based Match & Insight Engine；LangGraph、Memory 和 UI 仍未实现。**
 
 ## 1. 架构目标
 
@@ -79,7 +79,7 @@ stateDiagram-v2
 
 ### 4.4 Match & Insight Agent
 
-比较已确认的 `UserProfile` 与 `JobIntelligenceRecord`。字段校验、权重、阈值和可确定的计算由代码完成；跨表达方式的语义关联、证据综合与自然语言解释可由 LLM 辅助。输出 `MatchResult`、`GapItem` 与 `ActionItem`，同时呈现适配依据和潜在摩擦。
+只比较已确认的 `UserProfile` 与单条 `JobIntelligenceRecord`。确定性 `MatchContextBuilder` 最小化双边信号与证据；LLM 只提出关系／行动候选；确定性 `MatchInsightAssembler` 校验所有 signal/evidence ID、relation-specific 规则和 action policy 后构造 `MatchResult`。Phase 5 不使用权重、总分、适配百分比或跨岗位排名。
 
 ### 4.5 Report Builder
 
@@ -265,3 +265,37 @@ flowchart LR
 岗位路径的完整边界是：`JobRecord → JobEvidenceBuilder → JobSourceEvidence[] → JobIntelligenceAgent → LLMProvider → JobIntelligenceExtraction → evidence validation → JobIntelligenceAssembler → JobIntelligenceRecord`。LLM 负责有限的语义解释；Python 决定哪些有合法证据引用的字段进入权威记录。
 
 两条分析路径在 Phase 4 刻意独立：`JobIntelligenceAgent.analyze()` 不接收 `UserProfile`。工作流中的画像确认门仍是编排顺序要求，而不是岗位理解的领域依赖。`FakeLLMProvider` 可离线运行全部 20 个 Demo archetype；只有显式 live Demo 构造 `QwenProvider`。缺失的薪资、晋升、work-life、remote policy、team size 或完整技术栈保留为 `JobUncertainty`，不得由模型常识补齐。
+
+## 17. Phase 5 evidence-first Match pipeline
+
+```mermaid
+flowchart TB
+    UE[User Evidence] --> SD[SelfDiscoveryAgent]
+    SD --> UP[Confirmed UserProfile]
+    JE[Job Evidence] --> JI[JobIntelligenceAgent]
+    JI --> JR[JobIntelligenceRecord]
+    UP --> MC[Deterministic MatchContextBuilder]
+    JR --> MC
+    MC --> MA[MatchInsightAgent]
+    MA --> LP[LLMProvider]
+    LP --> MX[MatchInsightExtraction]
+    MX --> MV[Deterministic evidence and action validation]
+    MV --> MR[MatchResult]
+    MR --> RB[Deterministic ReportBuilder]
+```
+
+### 17.1 为什么确认画像是硬门
+
+`MatchContextBuilder`、`MatchInsightAgent` 与 `MatchInsightAssembler` 都拒绝 `confirmed=false` 的画像。这样 Self-Discovery 的未确认推断不会在下游被递归放大为职业结论。确认发生在领域边界，而不依赖未来 UI。
+
+### 17.2 为什么没有 overall score
+
+职业关系包含能力、兴趣、偏好、价值观、经验深度、成长暴露与未知信息；把它们隐藏加权为一个数字会制造不可验证的精确感。Phase 5 只提供按 relation type 分组的洞察与命名清晰的 coverage counts，不求和、不排序、不选择最佳角色。
+
+### 17.3 evidence missing 不等于 confirmed gap
+
+`evidence_missing` 表示确认画像目前没有足够材料判断岗位要求，可以触发“验证现有能力”或“建立作品证据”。`confirmed_gap` 必须引用用户明确确认的 development-area 证据，才允许深化能力或获得实践经验。两者在 schema、assembler validation 和 action policy 中分离。
+
+### 17.4 Action 与安全边界
+
+每个 `ActionItem` 必须引用至少一个已验证 issue。action type 与 relation type 存在确定性允许表，target 必须精确出现在用户或岗位 signal 中，因此模型不能凭趋势自由推荐技术。公开 Demo 使用合成 confirmed profile 和 `FakeLLMProvider`；私有 profile 只有开发者在本地 `[y/N]` 门中输入明确 `y` 后才保存到 Git-ignored 路径。

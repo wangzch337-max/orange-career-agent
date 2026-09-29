@@ -162,31 +162,31 @@ taxonomy 设计、结构化岗位数据、语义规范化、evidence-backed infe
 
 ### 1. 学习目标
 
-组合确定性比较与有限语义推理，生成平衡、可行动的洞察。
+用跨领域 evidence links 组合有限语义比较与确定性验证，生成可审计且可行动的关系洞察。
 
 ### 2. 需要理解的概念
 
-多维评分、缺失数据、权重敏感性、evidence linking、反证、recommendation calibration。
+cross-domain evidence linking、semantic comparison、evidence gap 与 capability gap、experience-depth gap、不确定性、human confirmation、LLM 输出外围的 deterministic validation、explainability，以及为何推迟 scoring／ranking。
 
 ### 3. Codex 负责
 
-设计规则测试、分数免责声明、缺口／行动 schema 与极端案例评审。
+实现 `MatchContextBuilder`、relation taxonomy、严格 extraction、双域 ID 校验、`MatchInsightAssembler`、action policy、confirmed-profile hard gate、all-20 offline Demo 与安全测试。
 
-### 4. 开发者亲手完成
+### 4. OPTIONAL DEVELOPER HANDS-ON TASK
 
-实现至少一个确定性维度，手算一个案例并与程序结果比较；解释权重变化的影响。
+可选且不作为 Phase gate：修改一个 PUBLIC synthetic confirmed-profile preference，运行 `.venv/bin/python -m agents.match_insight_demo`，观察 preference alignment 或 potential friction 是否变化。
 
 ### 5. 验收问题
 
-同一总分为何可能对应完全不同的建议？没有证据应记为“不匹配”还是“不确定”？
+为什么 evidence missing 不能写成 confirmed gap？为什么 private profile 必须由用户本人确认？为什么 Phase 5 不计算 overall score？
 
 ### 6. 面试中应该能如何解释
 
-展示规则负责什么、LLM 负责什么，以及结果为何同时包含 fit 与 friction。
+展示 LLM 如何提出跨域关系，Python 如何验证 signal/evidence IDs、relation rules 与 actions；解释为什么按岗位独立展示而不排名。
 
 ### 7. 完成标准
 
-分数可复算，证据引用完整，缺失值策略明确，输出含局限与行动而非单一排名。
+所有关系证据可解析、action 均关联 validated issue、20 roles 离线通过、没有 overall score／ranking；private live validation 必须等待开发者本地明确确认。
 
 ## Phase 6 — LangGraph Full Workflow Integration
 

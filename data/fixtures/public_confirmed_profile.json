@@ -1,0 +1,140 @@
+{
+  "profile_id": "profile_public_match_demo_001",
+  "version": 1,
+  "status": "confirmed",
+  "education_summary": "Anonymous AI-related master's student using fictional sanitized evidence.",
+  "skills": [
+    {
+      "skill_id": "skill_python_001",
+      "label": "Python",
+      "description": "A sanitized project demonstrates basic Python implementation.",
+      "level": "basic project use",
+      "confidence": 0.9,
+      "evidence_ids": ["ev_public_python_001"],
+      "source_type": "model_inference",
+      "inference_type": "evidence_supported_inference",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    },
+    {
+      "skill_id": "skill_ai_application_001",
+      "label": "Basic AI application development",
+      "description": "A sanitized prototype supports introductory AI application experience.",
+      "level": "prototype",
+      "confidence": 0.86,
+      "evidence_ids": ["ev_public_ai_application_001"],
+      "source_type": "model_inference",
+      "inference_type": "evidence_supported_inference",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    }
+  ],
+  "interests": [
+    {
+      "interest_id": "interest_ai_applications_001",
+      "label": "AI applications",
+      "description": "The synthetic user explicitly chose this exploration interest.",
+      "strength": "strong",
+      "confidence": 1.0,
+      "evidence_ids": ["ev_public_interest_001"],
+      "source_type": "explicit_user_input",
+      "inference_type": "explicit_fact",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    }
+  ],
+  "values": [
+    {
+      "value_id": "value_practical_impact_001",
+      "label": "Practical impact",
+      "description": "The synthetic user values visible practical outcomes.",
+      "importance": 4,
+      "confidence": 1.0,
+      "evidence_ids": ["ev_public_value_001"],
+      "source_type": "explicit_user_input",
+      "inference_type": "explicit_fact",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    }
+  ],
+  "goals": [
+    {
+      "goal_id": "goal_llm_experience_001",
+      "goal_type": "learning_goal",
+      "label": "Gain hands-on LLM application experience",
+      "description": "Build verifiable experience through a bounded project.",
+      "horizon": "short",
+      "status": "confirmed",
+      "success_signal": "A reviewable LLM application artifact",
+      "evidence_ids": ["ev_public_goal_001"],
+      "confidence": 1.0,
+      "source_type": "explicit_user_input",
+      "inference_type": "explicit_fact",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    }
+  ],
+  "strengths": [
+    {
+      "statement_id": "strength_prototyping_001",
+      "text": "AI application prototyping",
+      "confidence": 0.85,
+      "evidence_ids": ["ev_public_strength_001"],
+      "source_type": "model_inference",
+      "inference_type": "evidence_supported_inference",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    }
+  ],
+  "development_areas": [
+    {
+      "statement_id": "development_sql_001",
+      "text": "Limited SQL experience",
+      "confidence": 1.0,
+      "evidence_ids": ["ev_public_sql_limit_001"],
+      "source_type": "explicit_user_input",
+      "inference_type": "explicit_fact",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    }
+  ],
+  "career_preferences": [
+    {
+      "preference_id": "preference_hands_on_001",
+      "label": "Hands-on implementation",
+      "description": "The synthetic user explicitly prefers implementation-oriented work.",
+      "confidence": 1.0,
+      "evidence_ids": ["ev_public_hands_on_001"],
+      "source_type": "explicit_user_input",
+      "inference_type": "explicit_fact",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    },
+    {
+      "preference_id": "preference_limited_client_001",
+      "label": "Prefer limited client-facing work",
+      "description": "The synthetic user explicitly prefers limited client-facing responsibilities.",
+      "confidence": 1.0,
+      "evidence_ids": ["ev_public_client_preference_001"],
+      "source_type": "explicit_user_input",
+      "inference_type": "explicit_fact",
+      "needs_confirmation": true,
+      "confirmed_by_user": true
+    }
+  ],
+  "evidence": [
+    {"id": "ev_public_python_001", "source_type": "project", "source_name": "Synthetic Python Prototype", "statement": "Implemented a small Python prototype using fictional data.", "confidence": 1.0, "metadata": {"public_fixture": true}},
+    {"id": "ev_public_ai_application_001", "source_type": "project", "source_name": "Synthetic AI Application Prototype", "statement": "Built a basic AI application prototype with a bounded demo workflow.", "confidence": 1.0, "metadata": {"public_fixture": true}},
+    {"id": "ev_public_interest_001", "source_type": "explicit_user_input", "source_name": "Synthetic Confirmed Input", "statement": "I am interested in AI applications.", "confidence": 1.0, "metadata": {"public_fixture": true}},
+    {"id": "ev_public_value_001", "source_type": "explicit_user_input", "source_name": "Synthetic Confirmed Input", "statement": "I value practical impact.", "confidence": 1.0, "metadata": {"public_fixture": true}},
+    {"id": "ev_public_goal_001", "source_type": "explicit_user_input", "source_name": "Synthetic Confirmed Input", "statement": "I want hands-on LLM application experience.", "confidence": 1.0, "metadata": {"public_fixture": true}},
+    {"id": "ev_public_strength_001", "source_type": "project", "source_name": "Synthetic Prototype Evidence", "statement": "Completed a small AI application prototype.", "confidence": 1.0, "metadata": {"public_fixture": true}},
+    {"id": "ev_public_sql_limit_001", "source_type": "explicit_user_input", "source_name": "Synthetic Confirmed Input", "statement": "My SQL experience is currently limited.", "confidence": 1.0, "metadata": {"public_fixture": true, "supports_development_area": true}},
+    {"id": "ev_public_hands_on_001", "source_type": "explicit_user_input", "source_name": "Synthetic Confirmed Input", "statement": "I prefer hands-on implementation work.", "confidence": 1.0, "metadata": {"public_fixture": true}},
+    {"id": "ev_public_client_preference_001", "source_type": "explicit_user_input", "source_name": "Synthetic Confirmed Input", "statement": "I prefer roles with limited client-facing work.", "confidence": 1.0, "metadata": {"public_fixture": true}}
+  ],
+  "confirmed": true,
+  "created_at": "2026-01-01T00:00:00Z",
+  "updated_at": "2026-01-01T00:00:00Z",
+  "confirmed_at": "2026-01-01T00:00:00Z"
+}

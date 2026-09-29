@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
+from pydantic_core import PydanticCustomError
 
 
 def utc_now() -> datetime:
@@ -59,6 +60,22 @@ class GoalHorizon(str, Enum):
     SHORT = "short"
     MEDIUM = "medium"
     LONG = "long"
+
+
+class GoalType(str, Enum):
+    """目标的语义范围；项目目标不能静默变成职业偏好。"""
+
+    CAREER_GOAL = "career_goal"
+    PROJECT_GOAL = "project_goal"
+    LEARNING_GOAL = "learning_goal"
+
+    @property
+    def display_name_zh(self) -> str:
+        return {
+            self.CAREER_GOAL: "职业目标",
+            self.PROJECT_GOAL: "项目目标",
+            self.LEARNING_GOAL: "学习目标",
+        }[self]
 
 
 class GoalStatus(str, Enum):
@@ -113,10 +130,57 @@ class JobSignalInferenceType(str, Enum):
     EVIDENCE_SUPPORTED_JOB_INFERENCE = "evidence_supported_job_inference"
 
 
-class MatchMethod(str, Enum):
-    """Phase 1 仅允许精确标签重合。"""
+class MatchDimension(str, Enum):
+    CAPABILITY_ALIGNMENT = "capability_alignment"
+    INTEREST_ALIGNMENT = "interest_alignment"
+    CAREER_PREFERENCE_ALIGNMENT = "career_preference_alignment"
+    VALUE_WORKSTYLE_ALIGNMENT = "value_workstyle_alignment"
+    EXPERIENCE_EVIDENCE = "experience_evidence"
+    GROWTH_OPPORTUNITY = "growth_opportunity"
 
-    EXACT_OVERLAP = "exact_overlap"
+    @property
+    def display_name_zh(self) -> str:
+        return {
+            self.CAPABILITY_ALIGNMENT: "能力匹配",
+            self.INTEREST_ALIGNMENT: "兴趣匹配",
+            self.CAREER_PREFERENCE_ALIGNMENT: "职业偏好匹配",
+            self.VALUE_WORKSTYLE_ALIGNMENT: "价值观 / 工作方式匹配",
+            self.EXPERIENCE_EVIDENCE: "经验与证据",
+            self.GROWTH_OPPORTUNITY: "成长机会",
+        }[self]
+
+
+class MatchRelationType(str, Enum):
+    STRONG_ALIGNMENT = "strong_alignment"
+    PARTIAL_ALIGNMENT = "partial_alignment"
+    EVIDENCE_MISSING = "evidence_missing"
+    CONFIRMED_GAP = "confirmed_gap"
+    EXPERIENCE_DEPTH_GAP = "experience_depth_gap"
+    PREFERENCE_ALIGNMENT = "preference_alignment"
+    POTENTIAL_FRICTION = "potential_friction"
+    UNKNOWN = "unknown"
+
+    @property
+    def display_name_zh(self) -> str:
+        return {
+            self.STRONG_ALIGNMENT: "强证据匹配",
+            self.PARTIAL_ALIGNMENT: "部分匹配",
+            self.EVIDENCE_MISSING: "证据不足",
+            self.CONFIRMED_GAP: "已确认能力缺口",
+            self.EXPERIENCE_DEPTH_GAP: "经验深度差距",
+            self.PREFERENCE_ALIGNMENT: "偏好匹配",
+            self.POTENTIAL_FRICTION: "潜在摩擦",
+            self.UNKNOWN: "仍未知",
+        }[self]
+
+
+class ActionType(str, Enum):
+    VERIFY_EXISTING_CAPABILITY = "verify_existing_capability"
+    BUILD_PORTFOLIO_EVIDENCE = "build_portfolio_evidence"
+    DEEPEN_CAPABILITY = "deepen_capability"
+    GAIN_PRACTICAL_EXPERIENCE = "gain_practical_experience"
+    CLARIFY_PREFERENCE = "clarify_preference"
+    INVESTIGATE_JOB_UNKNOWN = "investigate_job_unknown"
 
 
 class Severity(str, Enum):
@@ -147,6 +211,14 @@ class EventType(str, Enum):
     JOB_INTELLIGENCE_ASSEMBLED = "job_intelligence_assembled"
     JOB_UNCERTAINTIES_IDENTIFIED = "job_uncertainties_identified"
     JOB_INTELLIGENCE_COMPLETED = "job_intelligence_completed"
+    MATCH_INSIGHT_STARTED = "match_insight_started"
+    MATCH_CONTEXT_BUILT = "match_context_built"
+    MATCH_LLM_EXTRACTION_COMPLETED = "match_llm_extraction_completed"
+    MATCH_EVIDENCE_VALIDATION_COMPLETED = "match_evidence_validation_completed"
+    MATCH_RESULT_ASSEMBLED = "match_result_assembled"
+    MATCH_ACTIONS_VALIDATED = "match_actions_validated"
+    MATCH_INSIGHT_COMPLETED = "match_insight_completed"
+    PROFILE_CONFIRMATION_BLOCKED_MATCH = "profile_confirmation_blocked_match"
 
 
 class AgentName(str, Enum):
@@ -209,6 +281,7 @@ class ValueSignal(EvidenceLinkedModel):
 
 class Goal(DomainModel):
     goal_id: str = Field(min_length=1)
+    goal_type: GoalType
     label: str = Field(min_length=1)
     description: Optional[str] = None
     horizon: GoalHorizon = GoalHorizon.SHORT
@@ -223,6 +296,7 @@ class Goal(DomainModel):
 
 
 class EvidenceBackedStatement(EvidenceLinkedModel):
+    statement_id: str = Field(min_length=1)
     text: str = Field(min_length=1)
 
 
@@ -364,12 +438,11 @@ class JobRecord(DomainModel):
     source_type: EvidenceSourceType = EvidenceSourceType.SYSTEM_FIXTURE
     source_name: str = Field(min_length=1)
     source_url: Optional[str] = None
-    # Phase 1 exact-overlap compatibility only; Phase 5 will replace this stub input.
-    skills: List[str] = Field(default_factory=list)
     metadata: Dict[str, JsonValue] = Field(default_factory=dict)
 
 
 class JobIntelligenceSignal(DomainModel):
+    signal_id: str = Field(min_length=1)
     label: str = Field(min_length=1)
     description: str = Field(min_length=1)
     confidence: float = Field(ge=0.0, le=1.0)
@@ -378,6 +451,7 @@ class JobIntelligenceSignal(DomainModel):
 
 
 class JobUncertainty(DomainModel):
+    uncertainty_id: Optional[str] = None
     topic: str = Field(min_length=1)
     reason: str = Field(min_length=1)
     importance: Severity = Severity.MEDIUM
@@ -388,6 +462,7 @@ class JobUncertainty(DomainModel):
 class JobIntelligenceRecord(DomainModel):
     intelligence_id: str = Field(min_length=1)
     job_id: str = Field(min_length=1)
+    role_title: str = Field(min_length=1)
     role_family: RoleFamily
     actual_work: List[JobIntelligenceSignal] = Field(default_factory=list)
     required_capabilities: List[JobIntelligenceSignal] = Field(default_factory=list)
@@ -422,38 +497,127 @@ class JobIntelligenceRecord(DomainModel):
             raise ValueError(f"岗位情报引用了不存在的 evidence IDs: {sorted(missing)}")
         if len(self.evidence_ids) != len(set(self.evidence_ids)):
             raise ValueError("岗位情报 evidence_ids 不能重复")
+        signal_ids = [item.signal_id for item in linked_items if isinstance(item, JobIntelligenceSignal)]
+        uncertainty_ids = [item.uncertainty_id for item in self.uncertainties]
+        if len(signal_ids) != len(set(signal_ids)):
+            raise ValueError("岗位情报 signal IDs 不能重复")
+        if any(value is None for value in uncertainty_ids):
+            raise ValueError("权威岗位情报 uncertainty 必须包含稳定 ID")
+        if len(uncertainty_ids) != len(set(uncertainty_ids)):
+            raise ValueError("岗位情报 uncertainty IDs 不能重复")
         return self
 
 
-class MatchDimension(DomainModel):
-    name: str = Field(min_length=1)
-    method: MatchMethod = MatchMethod.EXACT_OVERLAP
-    summary: str = Field(min_length=1)
-    matched_items: List[str] = Field(default_factory=list)
-    evidence_ids: List[str] = Field(default_factory=list)
+class MatchEvidenceLink(DomainModel):
+    profile_signal_ids: List[str] = Field(default_factory=list)
+    profile_evidence_ids: List[str] = Field(default_factory=list)
+    job_signal_ids: List[str] = Field(default_factory=list)
+    job_evidence_ids: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def ensure_unique_ids(self) -> "MatchEvidenceLink":
+        for field_name in type(self).model_fields:
+            values = getattr(self, field_name)
+            if len(values) != len(set(values)):
+                raise PydanticCustomError(
+                    "duplicate_identifier",
+                    f"{field_name} 不能包含重复 ID",
+                )
+        return self
 
 
-class GapItem(DomainModel):
-    gap_id: str = Field(min_length=1)
-    capability: str = Field(min_length=1)
-    current_evidence_ids: List[str] = Field(default_factory=list)
-    required_evidence_ids: List[str] = Field(default_factory=list)
-    severity: Severity = Severity.MEDIUM
-    interpretation: str = Field(min_length=1)
+class MatchInsight(DomainModel):
+    insight_id: str = Field(min_length=1)
+    dimension: MatchDimension
+    relation_type: MatchRelationType
+    title: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence_link: MatchEvidenceLink
+    needs_user_review: bool = True
+
+    @model_validator(mode="after")
+    def validate_relation_evidence(self) -> "MatchInsight":
+        both_sides = {
+            MatchRelationType.STRONG_ALIGNMENT,
+            MatchRelationType.PARTIAL_ALIGNMENT,
+            MatchRelationType.CONFIRMED_GAP,
+            MatchRelationType.EXPERIENCE_DEPTH_GAP,
+            MatchRelationType.PREFERENCE_ALIGNMENT,
+            MatchRelationType.POTENTIAL_FRICTION,
+        }
+        if self.relation_type in both_sides and not (
+            self.evidence_link.profile_evidence_ids
+            and self.evidence_link.job_evidence_ids
+        ):
+            raise ValueError(f"{self.relation_type.value} 必须同时包含用户与岗位证据")
+        if (
+            self.relation_type == MatchRelationType.EVIDENCE_MISSING
+            and not self.evidence_link.job_evidence_ids
+        ):
+            raise ValueError("evidence_missing 必须包含岗位证据")
+        if self.relation_type == MatchRelationType.UNKNOWN and not any(
+            (
+                self.evidence_link.profile_signal_ids,
+                self.evidence_link.profile_evidence_ids,
+                self.evidence_link.job_signal_ids,
+                self.evidence_link.job_evidence_ids,
+            )
+        ):
+            raise ValueError("unknown 必须至少关联一侧的信号或证据")
+        return self
+
+
+class EvidenceGap(MatchInsight):
+    @model_validator(mode="after")
+    def require_evidence_missing(self) -> "EvidenceGap":
+        if self.relation_type != MatchRelationType.EVIDENCE_MISSING:
+            raise ValueError("EvidenceGap 必须使用 evidence_missing")
+        return self
+
+
+class ConfirmedGap(MatchInsight):
+    @model_validator(mode="after")
+    def require_confirmed_gap(self) -> "ConfirmedGap":
+        if self.relation_type != MatchRelationType.CONFIRMED_GAP:
+            raise ValueError("ConfirmedGap 必须使用 confirmed_gap")
+        return self
+
+
+class ExperienceDepthGap(MatchInsight):
+    @model_validator(mode="after")
+    def require_experience_depth_gap(self) -> "ExperienceDepthGap":
+        if self.relation_type != MatchRelationType.EXPERIENCE_DEPTH_GAP:
+            raise ValueError("ExperienceDepthGap 必须使用 experience_depth_gap")
+        return self
 
 
 class ActionItem(DomainModel):
     action_id: str = Field(min_length=1)
+    action_type: ActionType
     description: str = Field(min_length=1)
     rationale: str = Field(min_length=1)
     priority: Severity = Severity.MEDIUM
-    time_horizon: Optional[str] = None
-    success_criteria: str = Field(min_length=1)
-    related_gap_ids: List[str] = Field(default_factory=list)
+    expected_evidence: str = Field(min_length=1)
+    target_label: str = Field(min_length=1)
+    related_insight_ids: List[str] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def ensure_unique_related_insights(self) -> "ActionItem":
+        if len(self.related_insight_ids) != len(set(self.related_insight_ids)):
+            raise ValueError("ActionItem related_insight_ids 不能重复")
+        return self
+
+
+class MatchCoverageMetrics(DomainModel):
+    required_capabilities_total: int = Field(ge=0)
+    required_capabilities_with_user_evidence: int = Field(ge=0)
+    required_capabilities_evidence_missing: int = Field(ge=0)
+    confirmed_gap_count: int = Field(ge=0)
 
 
 class MatchResult(DomainModel):
-    """Phase 1 exact-overlap 数据流结果；不包含真实质量分数。"""
+    """Evidence-first Phase 5 result; deliberately has no overall score."""
 
     match_id: str = Field(min_length=1)
     profile_id: str = Field(min_length=1)
@@ -461,15 +625,32 @@ class MatchResult(DomainModel):
     intelligence_id: str = Field(min_length=1)
     job_id: str = Field(min_length=1)
     role_title: str = Field(min_length=1)
-    dimensions: List[MatchDimension] = Field(default_factory=list)
-    why_it_may_fit: List[str] = Field(default_factory=list)
-    evidence_of_fit: List[str] = Field(default_factory=list)
-    potential_friction: List[str] = Field(default_factory=list)
-    capability_gaps: List[GapItem] = Field(default_factory=list)
-    suggested_actions: List[ActionItem] = Field(default_factory=list)
+    alignments: List[MatchInsight] = Field(default_factory=list)
+    partial_alignments: List[MatchInsight] = Field(default_factory=list)
+    evidence_gaps: List[EvidenceGap] = Field(default_factory=list)
+    confirmed_gaps: List[ConfirmedGap] = Field(default_factory=list)
+    experience_depth_gaps: List[ExperienceDepthGap] = Field(default_factory=list)
+    preference_alignments: List[MatchInsight] = Field(default_factory=list)
+    potential_frictions: List[MatchInsight] = Field(default_factory=list)
+    unknowns: List[MatchInsight] = Field(default_factory=list)
+    action_items: List[ActionItem] = Field(default_factory=list)
+    coverage_metrics: MatchCoverageMetrics
+    analysis_metadata: Dict[str, JsonValue] = Field(default_factory=dict)
     limitations: List[str] = Field(
-        default_factory=lambda: ["Phase 1 仅使用精确标签重合验证数据流，不代表真实职业适配度。"]
+        default_factory=lambda: ["这是证据关系说明，不是职业适配分数、岗位排名或录用预测。"]
     )
+
+    def insights(self) -> List[MatchInsight]:
+        return [
+            *self.alignments,
+            *self.partial_alignments,
+            *self.evidence_gaps,
+            *self.confirmed_gaps,
+            *self.experience_depth_gaps,
+            *self.preference_alignments,
+            *self.potential_frictions,
+            *self.unknowns,
+        ]
 
 
 class BaseEvent(DomainModel):
@@ -500,10 +681,13 @@ class CareerReport(DomainModel):
     user_profile_summary: str = Field(min_length=1)
     role_insights: List[MatchResult] = Field(default_factory=list)
     actual_work: Dict[str, List[str]] = Field(default_factory=dict)
-    evidence_of_fit: Dict[str, List[str]] = Field(default_factory=dict)
+    why_it_may_fit: Dict[str, List[str]] = Field(default_factory=dict)
+    evidence_missing: Dict[str, List[str]] = Field(default_factory=dict)
+    confirmed_gaps: Dict[str, List[str]] = Field(default_factory=dict)
+    experience_depth_gaps: Dict[str, List[str]] = Field(default_factory=dict)
     potential_friction: Dict[str, List[str]] = Field(default_factory=dict)
-    capability_gaps: List[GapItem] = Field(default_factory=list)
-    suggested_actions: List[ActionItem] = Field(default_factory=list)
+    unknowns: Dict[str, List[str]] = Field(default_factory=dict)
+    next_actions: Dict[str, List[str]] = Field(default_factory=dict)
     workflow_summary: str = Field(min_length=1)
     limitations: List[str] = Field(default_factory=list)
     generated_at: datetime = Field(default_factory=utc_now)

@@ -70,14 +70,14 @@ class DeterministicWorkflowEngine:
                     state = self.transition(
                         state,
                         WorkflowStage.MATCH_INSIGHT,
-                        "岗位情报结构已验证，进入精确标签重合阶段。",
+                        "岗位情报结构已验证，进入 evidence-first Match & Insight。",
                     )
                 elif state.stage == WorkflowStage.MATCH_INSIGHT:
                     state = self.match_insight_agent.run(state)
                     state = self.transition(
                         state,
                         WorkflowStage.REPORT,
-                        "Demo 匹配结构已验证，进入报告组装阶段。",
+                        "Match evidence links 已验证，进入报告组装阶段。",
                     )
                 elif state.stage == WorkflowStage.REPORT:
                     state = self._build_report(state)

@@ -88,6 +88,7 @@
 | `description` | `str` | 目标描述 | 用户 | 是 | `比较三类 AI 相关职业方向` |
 | `horizon` | `enum` | short/medium/long term | 用户 | 是 | `short` |
 | `status` | `enum` | draft/confirmed/completed/paused | 用户／系统 | 是 | `confirmed` |
+| `goal_type` | `GoalType` | career_goal/project_goal/learning_goal | 用户／模型候选 | 是 | `career_goal` |
 | `success_signal` | `str?` | 可观察的完成迹象 | 用户 | 否 | `完成三次从业者访谈` |
 | `evidence_ids` | `list[str]` | 目标来源证据 | 系统 | 否 | `["ev_statement_04"]` |
 
@@ -161,65 +162,39 @@ Job Intelligence Agent 对一个角色的结构化理解。
 
 `JobIntelligenceSignal` 包含 `label`、`description`、0–1 `confidence`、非空唯一 `evidence_ids` 与 `inference_type`。岗位推断类型仅允许 `explicit_job_fact` 或 `evidence_supported_job_inference`。
 
-## 10. `MatchDimension`
+## 10. Phase 5 Match taxonomy
 
-一个可解释的匹配维度，不单独等价于推荐。
+`MatchDimension` 是无权重的解释维度：`CAPABILITY_ALIGNMENT`、`INTEREST_ALIGNMENT`、`CAREER_PREFERENCE_ALIGNMENT`、`VALUE_WORKSTYLE_ALIGNMENT`、`EXPERIENCE_EVIDENCE`、`GROWTH_OPPORTUNITY`。
 
-| 字段 | 类型 | 含义 | 来源 | 必填 | 示例 |
-|---|---|---|---|---|---|
-| `name` | `enum` | skills/interests/values/experience/growth_fit | 配置 | 是 | `skills` |
-| `score` | `float?` | 规范化解释分，不是客观真理 | 确定性规则 | 否 | `0.68` |
-| `method` | `enum` | rule/semantic/hybrid | 系统 | 是 | `hybrid` |
-| `summary` | `str` | 适配与限制说明 | 规则／模型 | 是 | `已有相邻能力，但缺少用户研究证据` |
-| `evidence_ids` | `list[str]` | 双方证据引用 | 系统 | 是 | `["ev_project_01", "ev_job_01"]` |
-| `confidence` | `float` | 本维度判断信心 | 系统 | 是 | `0.72` |
+`MatchRelationType` 明确区分：`STRONG_ALIGNMENT`、`PARTIAL_ALIGNMENT`、`EVIDENCE_MISSING`、`CONFIRMED_GAP`、`EXPERIENCE_DEPTH_GAP`、`PREFERENCE_ALIGNMENT`、`POTENTIAL_FRICTION`、`UNKNOWN`。confidence 只说明单条关系的证据支持强度，不是适配概率。
 
-## 11. `GapItem`
+## 11. `MatchEvidenceLink` 与 `MatchContext`
 
-用户当前证据与角色要求之间的可行动差距。
+`MatchEvidenceLink` 保存四组唯一 ID：`profile_signal_ids`、`profile_evidence_ids`、`job_signal_ids`、`job_evidence_ids`。强／部分匹配、confirmed/depth gap、preference alignment 与 friction 必须同时有用户和岗位证据；evidence missing 必须有岗位证据，但允许用户侧为空。
 
-| 字段 | 类型 | 含义 | 来源 | 必填 | 示例 |
-|---|---|---|---|---|---|
-| `gap_id` | `str` | 缺口标识 | 系统 | 是 | `gap_user_research` |
-| `capability` | `str` | 目标能力 | Job Intelligence | 是 | `User Research` |
-| `current_evidence` | `list[str]` | 已有证据 id | UserProfile | 是 | `[]` |
-| `required_evidence` | `list[str]` | 角色需求证据 id | Job record | 是 | `["ev_job_02"]` |
-| `severity` | `enum` | low/medium/high | 规则＋校验 | 是 | `medium` |
-| `interpretation` | `str` | 不夸大的缺口解释 | 规则／模型 | 是 | `目前缺少可展示的用户研究经历` |
+`MatchContext` 只包含已确认 profile 的必要 signals/evidence 以及一条 Job Intelligence 的 signals/evidence。它保留稳定语义 ID，不使用 `skills[2]` 一类位置引用，也不携带未关联的私人历史。
 
-## 12. `ActionItem`
+## 12. Gap contracts
 
-与目标／缺口相关、可执行且可验证的下一步。
+- `EvidenceGap`：岗位有明确要求，但当前画像缺少验证材料；不是能力弱。
+- `ConfirmedGap`：必须引用已确认 development-area 证据和岗位证据。
+- `ExperienceDepthGap`：用户已有相关经验，但证据不足以证明岗位期待的深度／范围。
 
-| 字段 | 类型 | 含义 | 来源 | 必填 | 示例 |
-|---|---|---|---|---|---|
-| `action_id` | `str` | 行动标识 | 系统 | 是 | `action_interview_03` |
-| `description` | `str` | 具体行动 | 规则／模型建议 | 是 | `访谈 3 位目标用户并整理洞察` |
-| `rationale` | `str` | 与缺口／目标的关系 | 系统 | 是 | `补充用户研究证据` |
-| `priority` | `enum` | low/medium/high | 规则／用户 | 是 | `high` |
-| `time_horizon` | `str?` | 建议时间窗口 | 用户／系统 | 否 | `2 周` |
-| `success_criteria` | `str` | 可验证完成条件 | 规则／用户 | 是 | `形成访谈记录与 5 条洞察` |
-| `related_gap_ids` | `list[str]` | 关联缺口 | 系统 | 否 | `["gap_user_research"]` |
+三类 gap 是独立 Pydantic 类型，不能相互伪装。
 
-## 13. `MatchResult`
+## 13. `ActionItem` 与 `ActionType`
 
-一个用户画像版本与一个职业解释版本之间的整体洞察。
+`ActionType` 仅支持 `VERIFY_EXISTING_CAPABILITY`、`BUILD_PORTFOLIO_EVIDENCE`、`DEEPEN_CAPABILITY`、`GAIN_PRACTICAL_EXPERIENCE`、`CLARIFY_PREFERENCE`、`INVESTIGATE_JOB_UNKNOWN`。
 
-| 字段 | 类型 | 含义 | 来源 | 必填 | 示例 |
-|---|---|---|---|---|---|
-| `match_id` | `str` | 结果标识 | 系统 | 是 | `match_demo_001` |
-| `profile_id` / `profile_version` | `str` / `int` | 已确认画像版本 | Profile Store | 是 | `profile_demo_001 / 2` |
-| `intelligence_id` | `str` | 职业解释版本 | Job Intelligence | 是 | `ji_ai_pm_001` |
-| `dimensions` | `list[MatchDimension]` | 多维解释 | Match Agent | 是 | `[]` |
-| `why_it_may_fit` | `list[str]` | 可能适配原因 | 综合 | 是 | `["有跨技术沟通证据"]` |
-| `evidence_of_fit` | `list[str]` | 证据 id | 系统 | 是 | `["ev_project_01"]` |
-| `potential_friction` | `list[str]` | 可能摩擦 | 综合 | 是 | `["偏好深度独立工作"]` |
-| `capability_gaps` | `list[GapItem]` | 能力／证据缺口 | 综合 | 是 | `[]` |
-| `suggested_actions` | `list[ActionItem]` | 下一步建议 | 综合 | 是 | `[]` |
-| `overall_score` | `float?` | 可选解释辅助 | 确定性配置 | 否 | `0.64` |
-| `limitations` | `list[str]` | 不确定性与数据限制 | 系统 | 是 | `["基于有限 demo 证据"]` |
+每个 `ActionItem` 包含 `action_id`、type、description、非空 `related_insight_ids`、priority、`expected_evidence`、rationale 与 `target_label`。确定性 assembler 校验 relation/action 允许表，并要求 target 精确出现在已验证的用户或岗位 signal 中。Evidence gap 不能直接触发 deepen capability。
 
-## 14. `WorkflowState`
+## 14. Phase 5 `MatchResult`
+
+权威结果按查询友好的独立集合保存：`alignments`、`partial_alignments`、`evidence_gaps`、`confirmed_gaps`、`experience_depth_gaps`、`preference_alignments`、`potential_frictions`、`unknowns`、`action_items`。
+
+`MatchCoverageMetrics` 只包含 `required_capabilities_total`、`required_capabilities_with_user_evidence`、`required_capabilities_evidence_missing` 与 `confirmed_gap_count`。不存在 overall score、fit percentage、weighted sum、role rank 或 best-role 字段。
+
+## 15. `WorkflowState`
 
 Orchestrator Agent 管理的可序列化工作流状态。
 
@@ -235,7 +210,7 @@ Orchestrator Agent 管理的可序列化工作流状态。
 | `errors` | `list[ErrorRecord]` | 结构化错误 | 系统 | 是 | `[]` |
 | `retry_counts` | `map[str,int]` | 各步骤重试次数 | Orchestrator | 是 | `{}` |
 
-## 15. `AgentEvent`
+## 16. `AgentEvent`
 
 面向可观测性的安全 Agent 生命周期事件，不含隐藏 chain-of-thought。
 
@@ -250,7 +225,7 @@ Orchestrator Agent 管理的可序列化工作流状态。
 | `latency_ms` | `int?` | 延迟 | 系统 | 否 | `820` |
 | `model_usage` | `ModelUsage?` | 可用时的模型／token 摘要 | Provider | 否 | `null` |
 
-## 16. `ToolEvent`
+## 17. `ToolEvent`
 
 Tool 调用的安全审计事件。
 
@@ -264,7 +239,7 @@ Tool 调用的安全审计事件。
 | `latency_ms` | `int?` | 延迟 | 系统 | 否 | `42` |
 | `error_code` | `str?` | 可分类错误 | 系统 | 否 | `null` |
 
-## 17. `MemoryRecord`
+## 18. `MemoryRecord`
 
 非权威的可检索历史记录；结构化画像应通过引用关联而非复制为真相。
 
@@ -281,7 +256,7 @@ Tool 调用的安全审计事件。
 
 检索到的 `MemoryRecord` 只是上下文候选，必须检查来源、时效和与当前画像的冲突。
 
-## 18. `Report`
+## 19. `Report`
 
 Report Builder 对已校验结构的展示聚合。
 
@@ -296,7 +271,7 @@ Report Builder 对已校验结构的展示聚合。
 | `limitations` | `list[str]` | 数据／模型限制 | 系统 | 是 | `["不是就业结果保证"]` |
 | `generated_at` | `datetime` | 生成时间 | 系统 | 是 | `2026-03-01T10:05:00+08:00` |
 
-## 19. 校验与演进原则
+## 20. 校验与演进原则
 
 - 所有跨组件输入输出在边界校验；无效对象不得进入 Shared State。
 - schema 需要显式版本，迁移不能静默丢失用户确认状态或 provenance。
@@ -305,7 +280,7 @@ Report Builder 对已校验结构的展示聚合。
 - score 的算法、权重和缺失值策略必须版本化、可测试、可解释。
 - Phase 1 才决定具体 Python/Pydantic 实现；Phase 0 不包含代码模型。
 
-## 20. Phase 2 Provider Extraction Contracts
+## 21. Phase 2 Provider Extraction Contracts
 
 Phase 2 新增的结构只用于 provider-level Demo，不替代或直接生成 `UserProfile`：
 
@@ -316,10 +291,11 @@ Phase 2 新增的结构只用于 provider-level Demo，不替代或直接生成 
 
 Pydantic 首先验证结构和 confidence 范围；随后确定性 evidence whitelist 验证每个返回 ID 都存在于该请求的 `SourceEvidence`。未知 ID 会使整个结果失败，不能静默删除。
 
-## 21. Phase 3 Self-Discovery Contracts
+## 22. Phase 3 Self-Discovery Contracts
 
 - `SelfDiscoverySourceEvidence`：由 Python 确定性创建，包含稳定 ID、最小文本、来源类型、来源名和是否能支持 development area 的布尔标记。LLM 不创建证据。
 - `SelfDiscoveryExtraction`：只保存候选 `skills`、`interests`、`values`、`goals`、`strengths`、`development_areas`、`career_preferences`、`profile_uncertainties` 和最多五个 `clarification_questions`，不是权威画像。
+- `GoalType`：显式区分 `career_goal`、`project_goal` 与 `learning_goal`；组装器只复制经 schema 验证的类型，不把项目目标改写为职业目标。
 - 通用 signal：包含 `label`、简短 `description`、`confidence`、非空且不重复的 `evidence_ids`、`inference_type` 和 `needs_confirmation`。技能 `level` 可以保持未知。
 - `inference_type`：仅允许 `explicit_fact` 或 `evidence_supported_inference`。组装后继续保留该区别；推断的领域 `source_type` 为 `model_inference`，实际证据仍由 ID 解析。
 - `CareerPreference`：进入 `UserProfile` 的可确认偏好；没有证据时可以为空。
@@ -327,9 +303,9 @@ Pydantic 首先验证结构和 confidence 范围；随后确定性 evidence whit
 - `ClarificationQuestion`：结构化记录问题、主题、原因、优先级和相关证据；一次最多五个。
 - `SelfDiscoveryResult`：包含 draft `user_profile`、uncertainties、clarification questions、安全 extraction metadata 与 usage。
 
-`ProfileAssembler` 先执行完整 evidence whitelist 校验，再执行 development-area 专用规则：只有引用明确有限经验或直接能力缺口证据的项才能进入画像。absence of evidence 永远不自动转换为 weakness。组装器不调用 LLM、不创建额外信号，生成的 `UserProfile` 固定从 v1/draft/unconfirmed 开始。
+`ProfileAssembler` 先执行完整 evidence whitelist 与保守专业标签校验，再执行 development-area 专用规则：只有引用明确有限经验或直接能力缺口证据的项才能进入画像。absence of evidence 永远不自动转换为 weakness。组装器不调用 LLM、不创建额外信号、不重写 `GoalType`，生成的 `UserProfile` 固定从 v1/draft/unconfirmed 开始。
 
-## 22. Phase 4 Job Intelligence Contracts
+## 23. Phase 4 Job Intelligence Contracts
 
 - `JobSourceEvidence`：包含稳定 `id`、`job_id`、category、最小 `text` 与 `source_type`。category 支持 title、summary、responsibility、requirement、preferred qualification、technology、location 与 employment type；ID 只能由 `JobEvidenceBuilder` 创建。
 - `JobIntelligenceExtraction`：provider-facing 候选结构，包含 actual work、required/preferred capabilities、technology、work style、collaboration context、growth exposure、potential friction 与 job uncertainties。它不是权威领域记录。
@@ -338,3 +314,12 @@ Pydantic 首先验证结构和 confidence 范围；随后确定性 evidence whit
 - `JobIntelligenceAgent`：只依赖 `LLMProvider`，可在没有 `UserProfile` 时独立分析 `JobRecord`。Phase 4 不包含 fit score、ranking、recommendation、gap analysis 或 user-specific action plan。
 
 公开 `MockJobDataProvider` 只加载 20 条 `system_fixture` Fictional Demo Job Records；没有真实招聘 URL、招聘联系人、薪资情报或实时市场主张。
+
+## 24. Phase 5 extraction and assembly contracts
+
+- `MatchInsightExtraction`：provider-facing 候选结构，分为 alignments、gaps、frictions、unknowns 与 actions；不包含总分、排名或推荐字段。
+- `MatchInsightCandidate`：包含稳定 candidate ID、dimension、relation type、title、短 description、0–1 confidence、`MatchEvidenceLink` 与 review 标记。
+- `MatchInsightAssembler`：要求 confirmed profile，验证双域 signal/evidence 白名单、引用归属、relation-specific 证据、action/issue 允许表与 target 支持，然后构造权威 `MatchResult`。
+- `MatchInsightAgent`：只依赖 `LLMProvider`；profile confirmation 是 Agent、context builder 和 assembler 三层共同执行的 hard gate。
+
+Public offline Demo 使用完全合成、已确认且无个人身份信息的 profile fixture。私有 Golden Case 必须由开发者在交互命令中亲自输入 `y`，才能在 `data/private/` 下建立 ignored `confirmed_profile.json`；自动测试不读取该目录。

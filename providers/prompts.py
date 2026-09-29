@@ -19,12 +19,12 @@ PROMPT_PATH = (
 )
 
 SELF_DISCOVERY_PROMPT_NAME = "self_discovery"
-SELF_DISCOVERY_PROMPT_VERSION = "v1"
+SELF_DISCOVERY_PROMPT_VERSION = "v2"
 SELF_DISCOVERY_PROMPT_PATH = (
     Path(__file__).resolve().parents[1]
     / "config"
     / "prompts"
-    / "self_discovery_v1.md"
+    / "self_discovery_v2.md"
 )
 
 JOB_INTELLIGENCE_PROMPT_NAME = "job_intelligence"
@@ -34,6 +34,15 @@ JOB_INTELLIGENCE_PROMPT_PATH = (
     / "config"
     / "prompts"
     / "job_intelligence_v1.md"
+)
+
+MATCH_INSIGHT_PROMPT_NAME = "match_insight"
+MATCH_INSIGHT_PROMPT_VERSION = "v5"
+MATCH_INSIGHT_PROMPT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "config"
+    / "prompts"
+    / "match_insight_v5.md"
 )
 
 
@@ -47,6 +56,10 @@ def load_self_discovery_prompt() -> str:
 
 def load_job_intelligence_prompt() -> str:
     return JOB_INTELLIGENCE_PROMPT_PATH.read_text(encoding="utf-8").strip()
+
+
+def load_match_insight_prompt() -> str:
+    return MATCH_INSIGHT_PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 
 def build_profile_signal_messages(
@@ -94,6 +107,23 @@ def build_job_intelligence_messages(
             role=MessageRole.USER,
             content=json.dumps(
                 {"job_evidence": [item.model_dump(mode="json") for item in job_evidence]},
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ),
+        ),
+    ]
+
+
+def build_match_insight_messages(
+    prompt: str,
+    match_context: BaseModel,
+) -> list[LLMMessage]:
+    return [
+        LLMMessage(role=MessageRole.SYSTEM, content=prompt),
+        LLMMessage(
+            role=MessageRole.USER,
+            content=json.dumps(
+                {"match_context": match_context.model_dump(mode="json")},
                 ensure_ascii=False,
                 separators=(",", ":"),
             ),

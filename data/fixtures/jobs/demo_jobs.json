@@ -16,7 +16,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["AI Product Thinking", "Artificial Intelligence"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -36,7 +35,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["AI Product Thinking", "Data Analytics"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -56,7 +54,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["AI Product Thinking", "Artificial Intelligence"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -76,7 +73,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Communication"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -96,7 +92,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Data Analytics", "Communication"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -116,7 +111,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Data Analytics", "AI Product Thinking"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -136,7 +130,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -156,7 +149,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -176,7 +168,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -196,7 +187,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Communication"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -216,7 +206,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -236,7 +225,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Data Analytics", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -256,7 +244,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Data Analytics", "SQL"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -276,7 +263,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Data Analytics", "SQL"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -296,7 +282,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -316,7 +301,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -336,7 +320,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Communication"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -356,7 +339,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -376,7 +358,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   },
   {
@@ -396,7 +377,6 @@
     "source_type": "system_fixture",
     "source_name": "Orange Phase 4 Demo Role Archetypes",
     "source_url": null,
-    "skills": ["Artificial Intelligence", "Python"],
     "metadata": {"fictional": true, "dataset": "demo_role_archetypes_v1"}
   }
 ]

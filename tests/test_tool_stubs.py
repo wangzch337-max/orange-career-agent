@@ -20,4 +20,4 @@ def test_job_provider_loads_exactly_twenty_records() -> None:
 def test_career_report_is_generated(completed_state) -> None:
     assert isinstance(completed_state.report, CareerReport)
     assert len(completed_state.report.role_insights) == 20
-    assert "精确标签重合" in completed_state.report.workflow_summary
+    assert "未计算总体分或岗位排名" in completed_state.report.workflow_summary

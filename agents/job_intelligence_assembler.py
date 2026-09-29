@@ -55,21 +55,35 @@ class JobIntelligenceAssembler:
         return JobIntelligenceRecord(
             intelligence_id=f"intelligence_{job.job_id}",
             job_id=job.job_id,
+            role_title=job.title,
             role_family=job.role_family,
-            actual_work=self._map(extraction.actual_work),
-            required_capabilities=self._map(extraction.required_capabilities),
-            preferred_capabilities=self._map(extraction.preferred_capabilities),
-            technology_signals=self._map(extraction.technology_signals),
-            work_style=self._map(extraction.work_style_signals),
-            collaboration_context=self._map(extraction.collaboration_context),
-            growth_exposure=self._map(extraction.growth_exposure),
-            potential_friction=self._map(extraction.potential_friction),
-            uncertainties=extraction.job_uncertainties,
+            actual_work=self._map(job.job_id, "actual", extraction.actual_work),
+            required_capabilities=self._map(job.job_id, "required", extraction.required_capabilities),
+            preferred_capabilities=self._map(job.job_id, "preferred", extraction.preferred_capabilities),
+            technology_signals=self._map(job.job_id, "technology", extraction.technology_signals),
+            work_style=self._map(job.job_id, "work_style", extraction.work_style_signals),
+            collaboration_context=self._map(job.job_id, "collaboration", extraction.collaboration_context),
+            growth_exposure=self._map(job.job_id, "growth", extraction.growth_exposure),
+            potential_friction=self._map(job.job_id, "friction", extraction.potential_friction),
+            uncertainties=[
+                item.model_copy(update={"uncertainty_id": f"{job.job_id}_uncertainty_{index:03d}"})
+                for index, item in enumerate(extraction.job_uncertainties, start=1)
+            ],
             evidence=domain_evidence,
             evidence_ids=referenced_ids,
             analysis_metadata=analysis_metadata,
         )
 
     @staticmethod
-    def _map(items: list[JobExtractionSignal]) -> list[JobIntelligenceSignal]:
-        return [JobIntelligenceSignal.model_validate(item.model_dump()) for item in items]
+    def _map(
+        job_id: str,
+        category: str,
+        items: list[JobExtractionSignal],
+    ) -> list[JobIntelligenceSignal]:
+        return [
+            JobIntelligenceSignal(
+                signal_id=f"{job_id}_{category}_{index:03d}",
+                **item.model_dump(),
+            )
+            for index, item in enumerate(items, start=1)
+        ]

@@ -96,11 +96,16 @@ class QwenProvider(LLMProvider):
                     retry_count=retry_count,
                 )
             except Exception as exc:
-                mapped = self._map_exception(exc)
+                mapped = self._map_exception(
+                    exc,
+                    validation_stage=response_model.__name__,
+                )
                 if mapped.retryable and retry_count < options.max_retries:
                     self._sleep(min(0.25 * (2**retry_count), 1.0))
                     continue
-                raise mapped from None
+                if mapped is exc:
+                    raise
+                raise mapped from exc
 
         raise LLMProviderError("Qwen 请求未返回结果。")
 
@@ -128,7 +133,10 @@ class QwenProvider(LLMProvider):
                 return parsed
             return response_model.model_validate(parsed)
         except ValidationError as exc:
-            raise LLMStructuredOutputError("Qwen 结构化数据未通过 Pydantic 验证。") from exc
+            raise LLMStructuredOutputError.from_pydantic(
+                stage=response_model.__name__,
+                error=exc,
+            ) from exc
 
     @staticmethod
     def _normalize_usage(usage: object) -> LLMUsage:
@@ -141,7 +149,11 @@ class QwenProvider(LLMProvider):
         )
 
     @staticmethod
-    def _map_exception(exc: Exception) -> LLMError:
+    def _map_exception(
+        exc: Exception,
+        *,
+        validation_stage: str = "structured_output",
+    ) -> LLMError:
         if isinstance(exc, LLMError):
             return exc
         if isinstance(exc, openai.AuthenticationError):
@@ -166,5 +178,8 @@ class QwenProvider(LLMProvider):
                 status_code=status_code,
             )
         if isinstance(exc, ValidationError):
-            return LLMStructuredOutputError("结构化响应未通过 Pydantic 验证。")
+            return LLMStructuredOutputError.from_pydantic(
+                stage=validation_stage,
+                error=exc,
+            )
         return LLMProviderError("Qwen provider 调用失败。", retryable=False)

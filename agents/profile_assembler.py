@@ -77,6 +77,7 @@ class ProfileAssembler:
             goals=[
                 Goal(
                     goal_id=f"goal_{index:03d}",
+                    goal_type=signal.goal_type,
                     label=signal.label,
                     description=signal.description,
                     **self._linked_fields(signal, evidence.domain_evidence),
@@ -85,17 +86,19 @@ class ProfileAssembler:
             ],
             strengths=[
                 EvidenceBackedStatement(
+                    statement_id=f"strength_{index:03d}",
                     text=signal.label,
                     **self._linked_fields(signal, evidence.domain_evidence),
                 )
-                for signal in extraction.strengths
+                for index, signal in enumerate(extraction.strengths, start=1)
             ],
             development_areas=[
                 EvidenceBackedStatement(
+                    statement_id=f"development_area_{index:03d}",
                     text=signal.label,
                     **self._linked_fields(signal, evidence.domain_evidence),
                 )
-                for signal in extraction.development_areas
+                for index, signal in enumerate(extraction.development_areas, start=1)
             ],
             career_preferences=[
                 CareerPreference(

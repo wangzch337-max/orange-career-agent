@@ -55,7 +55,7 @@ def run_demo(*, live: bool, fixture: str) -> SelfDiscoveryResult:
     else:
         response = public_offline_extraction() if fixture == "public" else SelfDiscoveryExtraction()
         provider = FakeLLMProvider(response)
-        options = GenerationOptions(model="fake-self-discovery-v1", max_retries=0)
+        options = GenerationOptions(model="fake-self-discovery-v2", max_retries=0)
     agent = SelfDiscoveryAgent(
         MockCourseDataProvider(),
         provider,
@@ -73,7 +73,7 @@ def print_safe_summary(result: SelfDiscoveryResult, *, live: bool, fixture: str)
     print(f"Provider：{metadata.get('provider')}")
     print(f"Model：{metadata.get('model')}")
     print("Thinking：disabled")
-    print("Prompt：self_discovery@v1")
+    print(f"Prompt：{metadata.get('prompt_name')}@{metadata.get('prompt_version')}")
     print(f"Evidence count：{metadata.get('evidence_count')}")
     print("✓ Strict structured parsing / Pydantic validation passed")
     print("✓ Evidence-ID validation passed")
@@ -107,9 +107,12 @@ def print_safe_summary(result: SelfDiscoveryResult, *, live: bool, fixture: str)
         for group_name, items in groups:
             for item in items:
                 label = getattr(item, "label", getattr(item, "text", "signal"))
+                goal_type = getattr(item, "goal_type", None)
+                goal_suffix = f" | goal_type={goal_type.value}" if goal_type else ""
                 print(
                     f"- {group_name}: {label} | confidence={item.confidence:.2f} "
-                    f"| inference={item.inference_type.value} | evidence={','.join(item.evidence_ids)}"
+                    f"| inference={item.inference_type.value}{goal_suffix} "
+                    f"| evidence={','.join(item.evidence_ids)}"
                 )
         for uncertainty in result.uncertainties:
             print(

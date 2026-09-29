@@ -1,10 +1,10 @@
-"""三个推理 Agent stub 与 Orchestrator 概念测试。"""
+"""三个推理 Agent 与 Orchestrator 概念测试。"""
 
 from agents.job_intelligence import JobIntelligenceAgent
 from agents.match_insight import MatchInsightAgent
 from agents.orchestrator import OrchestratorAgent
 from agents.self_discovery import SelfDiscoveryAgent
-from data.models import MatchMethod, MatchResult, UserProfile
+from data.models import MatchRelationType, MatchResult, UserProfile
 
 
 def test_four_agent_concepts_exist(orchestrator) -> None:
@@ -25,17 +25,13 @@ def test_job_intelligence_agent_returns_valid_records(completed_state) -> None:
     assert all(record.evidence_ids for record in completed_state.job_intelligence)
 
 
-def test_match_stub_uses_exact_overlap_without_score(completed_state) -> None:
+def test_match_agent_uses_evidence_relations_without_score(completed_state) -> None:
     assert "overall_score" not in MatchResult.model_fields
-    assert all(
-        dimension.method == MatchMethod.EXACT_OVERLAP
-        for match in completed_state.match_results
-        for dimension in match.dimensions
-    )
+    assert all(match.insights() for match in completed_state.match_results)
     product_match = next(
         item for item in completed_state.match_results if item.job_id == "job_001"
     )
-    assert product_match.dimensions[0].matched_items == [
-        "AI Product Thinking",
-        "Artificial Intelligence",
-    ]
+    assert any(
+        item.relation_type == MatchRelationType.STRONG_ALIGNMENT
+        for item in product_match.alignments
+    )

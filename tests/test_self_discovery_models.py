@@ -17,6 +17,7 @@ from agents.self_discovery_models import (
 from data.models import (
     ClarificationQuestion,
     EvidenceSourceType,
+    GoalType,
     InferenceType,
     ProfileUncertainty,
 )
@@ -76,6 +77,7 @@ def test_strength_requires_positive_evidence_reference() -> None:
     [InterestExtractionSignal, ValueExtractionSignal, GoalExtractionSignal, CareerPreferenceSignal],
 )
 def test_each_profile_signal_type_requires_grounding(signal_type) -> None:
+    extras = {"goal_type": GoalType.CAREER_GOAL} if signal_type is GoalExtractionSignal else {}
     with pytest.raises(ValidationError):
         signal_type(
             label="Synthetic",
@@ -83,6 +85,7 @@ def test_each_profile_signal_type_requires_grounding(signal_type) -> None:
             confidence=0.7,
             evidence_ids=[],
             inference_type=InferenceType.EXPLICIT_FACT,
+            **extras,
         )
 
 

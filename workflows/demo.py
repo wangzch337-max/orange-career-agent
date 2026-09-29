@@ -29,7 +29,7 @@ def run_demo_to_completion(paused_state: WorkflowState) -> WorkflowState:
 
 
 def main() -> None:
-    print("Orange Phase 4 Offline Workflow Demo")
+    print("Orange Phase 5 Offline Workflow Demo")
     print("\nSTEP 1 — 生成并暂停在画像确认节点")
     paused = run_demo_until_confirmation()
     print("✓ 已加载匿名用户输入")
@@ -44,7 +44,7 @@ def main() -> None:
     completed = run_demo_to_completion(paused)
     print("✓ 用户画像已确认")
     print(f"✓ 已分析 {len(completed.job_intelligence)} 个虚构岗位")
-    print(f"✓ 已生成 {len(completed.match_results)} 条 exact-overlap Demo 结果")
+    print(f"✓ 已生成 {len(completed.match_results)} 条 evidence-first Match 结果")
     print("✓ CareerReport 已组装")
     print(f"\n最终状态：{completed.stage.value}")
     print("说明：本 Demo 使用 FakeLLMProvider，无 live API、无真实评分、无网络调用。")
