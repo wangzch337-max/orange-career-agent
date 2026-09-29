@@ -323,3 +323,37 @@ Pydantic 首先验证结构和 confidence 范围；随后确定性 evidence whit
 - `MatchInsightAgent`：只依赖 `LLMProvider`；profile confirmation 是 Agent、context builder 和 assembler 三层共同执行的 hard gate。
 
 Public offline Demo 使用完全合成、已确认且无个人身份信息的 profile fixture。私有 Golden Case 必须由开发者在交互命令中亲自输入 `y`，才能在 `data/private/` 下建立 ignored `confirmed_profile.json`；自动测试不读取该目录。
+
+## 25. Phase 6 LangGraph orchestration contracts
+
+### `OrangeGraphState`
+
+Checkpoint-safe `TypedDict`，只包含：opaque `workflow_id`、`workflow_status`、checkpoint mode、bounded selected job IDs、序列化 `UserProfile`、profile uncertainties／clarification questions、安全 Self-Discovery metadata、selected `JobRecord`、`JobIntelligenceRecord`、`MatchResult`、`CareerReport`、safe graph events、sanitized error、review outcome 和 Self-Discovery call count。
+
+State 不包含 provider／client／SQLite connection、API key、Authorization、raw prompt、message history、完整 source input 或 hidden reasoning。所有领域对象写入前使用 `model_dump(mode="json")`，读取后用既有 Pydantic domain model 重新验证。依赖通过 graph builder 注入并留在 state 外。
+
+### `GraphWorkflowStatus`
+
+- `running`：节点可继续执行；
+- `waiting_for_human`：已 checkpoint 并等待 profile review interrupt；
+- `completed`：deterministic report 已创建且图到达 `END`；
+- `failed`：provider、validation 或 unexpected failure 已安全归类。
+
+`waiting_for_human` 永远不等于 `failed`。
+
+### `ProfileReviewDecision`
+
+严格、禁止额外字段的 resume contract，只接受：
+
+- `confirm`：不接受 profile change；调用 `UserProfile.confirm()`；
+- `revise`：Phase 6 只运输一个非空 `education_summary`，调用 `UserProfile.create_revision()`，生成递增版本且保持 unconfirmed。
+
+该 contract 不是对话式 profile editor，也不改变既有领域 revision 语义。
+
+### `SafeGraphError`
+
+只保存 `category`、`node_name`、固定安全 message 与 `retryable`。category 区分 `provider_failure`、`validation_failure` 和 `unexpected_failure`；不得复制 raw exception、provider payload 或私有 evidence。
+
+### Checkpoint identity metadata
+
+随机生成的 `orange_<uuid>` 同时作为 workflow ID 和 LangGraph thread ID，不来自 email、student ID 或其他个人标识。内存 checkpointer 用于测试／短期 Demo；SQLite checkpointer 仅用于本地 workflow restart/resume，默认路径为 `data/private/runtime/orange_workflow.sqlite3`。Checkpoint 是执行状态，不是长期记忆。

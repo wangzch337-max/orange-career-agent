@@ -3,7 +3,7 @@
 > AI Career Discovery Agent for University Students
 > 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 5 — Evidence-Based Match & Insight Engine**
+**当前状态：Phase 6 — LangGraph Workflow Integration + Human-in-the-Loop Orchestration**
 
 Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
 
@@ -34,7 +34,8 @@ Orange 计划把用户陈述、课程与项目证据整理成可确认的结构�
 
 ```mermaid
 flowchart TD
-    UI[Future Streamlit UI] --> O[Orchestrator Agent<br/>deterministic-first]
+    UI[Future UI] --> LG[LangGraph orchestration<br/>state / routing / interrupt / checkpoint]
+    LG --> O[Orchestrator Agent<br/>deterministic-first]
     O --> S[Self-Discovery Agent]
     O --> J[Job Intelligence Agent]
     O --> M[Match & Insight Agent]
@@ -104,6 +105,11 @@ flowchart TD
 - 确定性 `MatchInsightAssembler` 与 evidence-linked `ActionItem` 安全策略；
 - 仅描述覆盖情况的 metrics，不计算 overall match score、适配百分比或岗位排名；
 - 使用公开合成 confirmed profile 的 all-20 offline Match Demo。
+- LangGraph 编排层与显式 `OrangeGraphState`，同时保留原有确定性 workflow engine；
+- 真实 `interrupt`／`Command(resume=...)` 画像审阅门、同一 thread identity 恢复和领域模型确认／修订语义；
+- 自动测试／短期 Demo 使用内存 checkpoint，手动本地恢复使用 Git-ignored SQLite checkpoint；
+- provider-independent Agent nodes、确定性 routing、安全失败状态与 graph execution events；
+- public FakeLLMProvider Demo 可在暂停后恢复，并可跨 SQLite runner 重建继续执行。
 
 Phase 5 的 Match & Insight 从证据关系开始，不从分数开始。`evidence_missing` 只表示当前画像缺少验证材料，绝不自动变成能力弱或 `confirmed_gap`。结果保持原始 dataset／用户选择顺序，不选择最佳角色。
 
@@ -113,7 +119,7 @@ Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取
 
 ### 计划中 Planned
 
-- LangGraph、Memory Layer、Vector Memory；
+- Memory Layer、Vector Memory；
 - Streamlit UI；
 - 真实职位来源和脱敏课程导出 adapter。
 
@@ -123,13 +129,13 @@ Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取
 - Phase 2：LLM Provider 抽象与首次结构化调用（完成）
 - Phase 3：Evidence-Backed Self-Discovery Agent（完成）
 - Phase 4：Job Intelligence Agent + Demo Role Taxonomy（完成）
-- Phase 5：Evidence-Based Match & Insight Engine（当前已实现；private live gate 待用户本人确认）
-- Phase 6：LangGraph 完整工作流
+- Phase 5：Evidence-Based Match & Insight Engine（完成）
+- Phase 6：LangGraph Workflow Integration + Human-in-the-Loop Orchestration（当前已实现）
 - Phase 7–8：Memory 与 Observability
 - Phase 9–10：Streamlit UI 与课程数据适配器
 - Phase 11–13：测试、成本控制、演示案例与最终打磨
 
-约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Phase 6。
+约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Phase 7。
 
 ## 本地验证 Local Validation
 
@@ -145,6 +151,10 @@ python3 -m venv .venv
 .venv/bin/python -m agents.self_discovery_demo
 .venv/bin/python -m agents.job_intelligence_demo
 .venv/bin/python -m agents.match_insight_demo
+.venv/bin/python -m workflows.langgraph_demo
+.venv/bin/python -m workflows.langgraph_demo --checkpoint sqlite --sqlite-action start
+# 使用上一条命令输出的 workflow_id：
+.venv/bin/python -m workflows.langgraph_demo --checkpoint sqlite --sqlite-action resume --workflow-id <workflow_id>
 ```
 
-上述默认验证全部离线。私有 Match live validation 只有在开发者亲自运行 `.venv/bin/python -m agents.match_insight_demo --prepare-private-profile`、审阅安全摘要并在 `[y/N]` 提示中明确确认后才可进行。当前文档不声称该 private live gate 已完成。不得打印完整私有输入、raw request、完整 Prompt 或配置值。
+Phase 6 LangGraph Demo 默认使用公开 fixture、`FakeLLMProvider` 和内存 checkpoint，全程离线。SQLite 模式只保存恢复当前工作流所需的执行状态到 `data/private/runtime/orange_workflow.sqlite3`；它不是长期记忆、向量记忆或用户历史检索。不得打印完整私有输入、raw request、完整 Prompt 或配置值。

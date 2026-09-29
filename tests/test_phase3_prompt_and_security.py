@@ -86,7 +86,9 @@ def test_public_tests_do_not_reference_private_fixture_contents() -> None:
 
 
 def test_phase3_has_no_forbidden_framework_or_external_data_imports() -> None:
-    forbidden = {"langgraph", "langchain", "streamlit", "chromadb", "sqlite3", "canvasapi"}
+    # Phase 6 explicitly permits LangGraph and its local SQLite checkpointer;
+    # the repository-wide exclusions below remain in force for other frameworks.
+    forbidden = {"langchain", "streamlit", "chromadb", "canvasapi"}
     imported = set()
     for path in ROOT.rglob("*.py"):
         if ".venv" in path.parts or "data/private" in path.as_posix():

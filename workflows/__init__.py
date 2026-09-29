@@ -1,1 +1,1 @@
-"""Orange Phase 1 确定性工作流。"""
+"""Orange deterministic baseline and Phase 6 LangGraph orchestration."""

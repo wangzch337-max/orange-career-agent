@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 5 Evidence-Based Match & Insight Engine；LangGraph、Memory 和 UI 仍未实现。**
+**状态：Phase 6 LangGraph Workflow Integration + Human-in-the-Loop Orchestration；长期 Memory 和 UI 仍未实现。**
 
 ## 1. 架构目标
 
@@ -10,7 +10,8 @@ Orange 的架构服务于五个目标：用户保持最终决定权；重要结�
 
 ```mermaid
 flowchart TB
-    UI[Interface<br/>future Streamlit] --> O[Orchestrator Agent<br/>deterministic-first]
+    UI[Interface<br/>future] --> LG[LangGraph Orchestration Layer<br/>state / deterministic edges / interrupt / checkpoint]
+    LG --> O[Orchestrator Agent<br/>deterministic-first]
 
     subgraph Reasoning[Reasoning Agents]
       S[Self-Discovery Agent]
@@ -28,8 +29,10 @@ flowchart TB
     M --> RB[Report Builder]
     RB --> O
 
-    O <--> SS[(Shared State)]
-    O <--> ML[Memory Layer]
+    LG <--> GS[(OrangeGraphState)]
+    LG <--> CP[(Workflow Checkpoint<br/>memory or local SQLite)]
+    O <--> SS[(Domain WorkflowState)]
+    O -. future .-> ML[Long-term Memory Layer]
     O <--> TL[Tool Layer]
     O --> OB[Observability]
     S --> OB
@@ -59,7 +62,7 @@ stateDiagram-v2
     Matching --> Failed: retries exhausted
 ```
 
-`AwaitingProfileConfirmation` 是强制门。未经用户确认，工作流不得把草案画像用于最终匹配。未来 LangGraph 应把这些状态和边显式建模，而不是依赖 prompt 暗示流程。
+`AwaitingProfileConfirmation` 是强制门。未经用户确认，工作流不得把草案画像用于最终匹配。Phase 6 LangGraph 已把这些状态和边显式建模，而不是依赖 prompt 暗示流程。
 
 ## 4. 核心组件
 
@@ -87,7 +90,7 @@ stateDiagram-v2
 
 ### 4.6 Shared State
 
-`WorkflowState` 是单次工作流的显式状态容器，预计包含 workflow id、阶段、输入摘要、画像版本／确认状态、候选角色、Agent 输出引用、错误和事件引用。状态应可序列化、可测试，并由 Orchestrator 控制变更。
+`WorkflowState` 仍是原有确定性 engine 的显式状态容器。Phase 6 另有 checkpoint-safe `OrangeGraphState`，只保存恢复当前图执行所需的已序列化 profile、selected job IDs、Job Intelligence、MatchResult、CareerReport、安全事件、状态与错误；provider、client、数据库连接、凭据、raw prompt 和完整 source input 均不进入图状态。
 
 ## 5. Memory Layer
 
@@ -104,7 +107,7 @@ flowchart LR
 - **Structured Profile Store**：权威、可编辑、可版本化的用户画像；早期可用 JSON，之后可迁移至 SQLite 等结构化存储。
 - **Vector Memory**：用于检索历史对话片段、课程／项目描述、职位描述和历史决定等非结构化内容；未来可能使用 Chroma。
 
-**为什么 Structured Profile 与 Vector Memory 分离：**画像字段需要确定类型、版本、用户确认状态和精确更新；向量检索只返回语义近似片段，可能遗漏、过时或排序变化，不能成为权威记录。向量记忆可提供背景证据，但不得覆盖用户确认的结构化事实。Phase 0 不实现任何记忆系统或 Chroma。
+**为什么 Structured Profile 与 Vector Memory 分离：**画像字段需要确定类型、版本、用户确认状态和精确更新；向量检索只返回语义近似片段，可能遗漏、过时或排序变化，不能成为权威记录。向量记忆可提供背景证据，但不得覆盖用户确认的结构化事实。Phase 6 的 SQLite checkpoint 仅保存可恢复的工作流执行状态，不实现这里描述的任何长期记忆或 Chroma。
 
 ## 6. Tool Layer
 
@@ -229,7 +232,7 @@ Phase 1 当时没有 LLM provider／调用、LangGraph、LangChain、Chroma／�
 
 Phase 2 已实现 provider contract、Fake／Qwen adapter、版本化 Prompt、严格 `ProfileSignalExtraction`、evidence-ID 验证、有限重试和安全 usage/latency metadata，并已完成一次 live structured smoke validation。
 
-仍未实现：LLM 驱动的 Match & Insight、LangGraph、Memory、Streamlit、Canvas／job API 与 tool calling。
+Phase 2 当时仍未实现：LLM 驱动的 Match & Insight、LangGraph、Memory、Streamlit、Canvas／job API 与 tool calling；后续 Phase 3–6 已分别实现受控领域语义与 LangGraph 编排。
 
 ## 15. Phase 3 语义／确定性边界
 
@@ -299,3 +302,38 @@ flowchart TB
 ### 17.4 Action 与安全边界
 
 每个 `ActionItem` 必须引用至少一个已验证 issue。action type 与 relation type 存在确定性允许表，target 必须精确出现在用户或岗位 signal 中，因此模型不能凭趋势自由推荐技术。公开 Demo 使用合成 confirmed profile 和 `FakeLLMProvider`；私有 profile 只有开发者在本地 `[y/N]` 门中输入明确 `y` 后才保存到 Git-ignored 路径。
+
+## 18. Phase 6 orchestration-only LangGraph layer
+
+```mermaid
+flowchart TD
+    START --> SD[Self-Discovery node]
+    SD --> PR[Profile review gate<br/>LangGraph interrupt]
+    PR -->|CONFIRM| JI[Job Intelligence node]
+    PR -->|REVISE via UserProfile.create_revision| PR
+    JI --> MI[Match Insight node]
+    MI --> RP[Deterministic Report node]
+    RP --> DONE[COMPLETED]
+    SD -->|safe failure| FAIL[FAILED]
+    JI -->|safe failure| FAIL
+    MI -->|safe failure| FAIL
+    RP -->|safe failure| FAIL
+```
+
+### 18.1 两层权威边界
+
+**Domain / Agent layer** 继续拥有 Self-Discovery evidence building 与 profile assembly、Job Intelligence semantics、Match relation/evidence/action validation，以及 deterministic report assembly。**Orchestration layer** 只拥有 node sequencing、确定性 edges、`interrupt`／`Command(resume=...)`、stable opaque thread ID、checkpoint、execution status 与 sanitized failure routing。图不构造 `QwenProvider`，不让 LLM 选择边，也不重新实现 Agent 语义规则。
+
+原有 `DeterministicWorkflowEngine` 被保留为 framework-independent 回归基线。LangGraph 和旧 engine 调用相同领域组件，不维护两份业务逻辑。
+
+### 18.2 Human-in-the-loop 与恢复
+
+Self-Discovery 完成后，图状态变为 `WAITING_FOR_HUMAN` 并在 `profile_review_gate` 触发真实 LangGraph interrupt。安全 payload 只有 profile labels、goal types、不确定性和澄清问题，没有 evidence 原文、source input、prompt、凭据或隐藏推理。`CONFIRM` 调用既有 `UserProfile.confirm()`；`REVISE` 只运输最小 `education_summary` 变化并调用既有 `UserProfile.create_revision()`，因此旧版本不变、新版本递增且保持 unconfirmed，再次进入 review interrupt。
+
+### 18.3 Checkpoint 不是长期记忆
+
+自动测试和短期 public Demo 使用 `InMemorySaver`。手动本地 restart/resume 使用同步 `SqliteSaver`，路径为 Git-ignored 的 `data/private/runtime/orange_workflow.sqlite3`，连接通过 context manager 打开和关闭。SQLite 中的是当前 workflow execution state；它不是 session history、structured profile store、vector memory、semantic retrieval 或 Phase 7 Memory Layer。
+
+### 18.4 可恢复性与调用所有权
+
+同一 opaque `workflow_id` 同时作为 LangGraph `thread_id`。恢复前 runner 验证 checkpoint 存在、状态为 `WAITING_FOR_HUMAN` 且确有 interrupt，避免错误 thread 静默继续。节点不添加 graph-level semantic retry；provider retry 所有权仍在既有 provider policy。SQLite runner 重建后从 review checkpoint 继续，Self-Discovery 不会因确认恢复而再次调用。

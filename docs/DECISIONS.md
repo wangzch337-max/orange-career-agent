@@ -211,3 +211,24 @@ Phase 5 不计算 overall score、fit percentage、weighted sum 或 role ranking
 
 **Status**
 Accepted — Phase 5
+
+## ADR-013 — LangGraph 仅作编排层，使用 interrupt 与本地 workflow checkpoint
+
+**Context**
+Phase 3–5 已分别验证 Self-Discovery、Job Intelligence、Match & Insight 与 deterministic ReportBuilder 的领域语义。Phase 6 需要让 Golden Flow 可暂停、人工审阅并跨 runner 恢复，但如果把 evidence、gap、action 或报告判断搬进 graph nodes，会产生第二份业务逻辑；如果把 SQLite checkpoint 称为 memory，也会提前混淆 Phase 7 的长期记忆边界。
+
+**Decision**
+LangGraph 只负责显式 `OrangeGraphState`、node sequencing、deterministic edges、execution status、safe failure routing、graph events 和 checkpoint。所有 nodes 调用现有 Agents／ReportBuilder；不使用 LLM router，不增加 graph-level semantic retry，也不实现并行 20-role fan-out。原有 `DeterministicWorkflowEngine` 保留为框架无关的回归基线。
+
+画像确认使用 LangGraph `interrupt` 与同一 opaque thread ID 上的 `Command(resume=...)`。`CONFIRM` 复用 `UserProfile.confirm()`；`REVISE` 复用 `UserProfile.create_revision()`，之后再次 interrupt。自动测试使用 in-memory checkpointer；本地 restart/resume 使用 `data/private/runtime/orange_workflow.sqlite3` 的同步 SQLite checkpointer，并通过 context manager 管理连接。
+
+SQLite 只保存恢复当前 workflow 所需的执行状态。它不是 long-term memory、vector memory、semantic retrieval、conversation history 或 multi-user profile store；Phase 7 仍未开始。
+
+**Reason**
+薄编排层使已经 live／offline 验证的语义保持单一权威来源，并让确认门、状态、失败和恢复路径可以独立测试。真实 interrupt/checkpoint 提供进程边界恢复能力；stable opaque identity 避免使用个人标识；保留旧 engine 证明领域代码不依赖 LangGraph。
+
+**Tradeoffs**
+项目暂时维护两个 orchestration entry points，但不维护两份 semantic logic。SQLite saver 适合本地同步 Demo，不适合多进程、云服务或 multi-user scale。Graph state 必须显式序列化／重新验证，增加少量 adapter code；换来的是 checkpoint 可移植性、隐私边界和可审计 routing。当前兼容的 SQLite checkpoint package 会安装其上游所需的 transitive packages，但 Orange 不使用任何 vector store 或 LangSmith service。
+
+**Status**
+Accepted — Phase 6

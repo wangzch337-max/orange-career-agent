@@ -84,11 +84,11 @@
 
 ## Phase 6 — LangGraph Full Workflow Integration
 
-**范围：**用 LangGraph 表达完整状态图、条件路由、画像确认 interrupt/checkpoint、有限重试与恢复。
+**范围：**用 LangGraph 表达完整状态图、确定性条件路由、画像确认 interrupt/resume，以及内存与本地 SQLite workflow checkpoint；provider 重试所有权保持在既有 provider policy。
 
-**Exit criteria：**Golden Flow 端到端通过；确认前暂停；编辑后使旧匹配失效；失败路径、重跑幂等性有测试。
+**Exit criteria：**Golden Flow 端到端通过；确认前暂停；修订后增加 profile version 并再次暂停；SQLite runner 重建后从同一 thread 恢复且 Self-Discovery 不重跑；安全失败路径有测试；旧 deterministic engine 保持回归通过。
 
-**用户学习检查：**开发者亲手连接确认节点并解释为何图结构优于隐式长函数。
+**可选用户参与：**运行 public SQLite offline Demo，在 profile interrupt 后退出，再用相同 workflow ID 恢复并确认，观察 Self-Discovery call count 前后仍为 1。此任务不是考试或 Phase 完成门。
 
 **主要风险与 fallback：**框架复杂度超出 Demo 价值。Fallback 是只把高价值状态与确认门放入 LangGraph，纯函数继续保留为独立 service。
 

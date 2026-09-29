@@ -192,31 +192,31 @@ cross-domain evidence linking、semantic comparison、evidence gap 与 capabilit
 
 ### 1. 学习目标
 
-把独立能力组装成可暂停、恢复、分支和测试的图工作流。
+把独立能力组装成可暂停、恢复、分支和测试的图工作流，同时保持领域语义不依赖编排框架。
 
 ### 2. 需要理解的概念
 
-node、edge、state、conditional routing、checkpoint、人机协作门、幂等性。
+graph state、node、deterministic edge、interrupt/resume、checkpoint、thread identity、orchestration 与 domain logic 的边界、checkpoint 与 long-term memory 的边界、dependency injection，以及 idempotent/resumable workflow thinking。
 
 ### 3. Codex 负责
 
-提供图设计审查、集成测试骨架和错误路径建议，避免把所有逻辑塞进 node。
+实现薄 LangGraph orchestration layer、显式 checkpoint-safe state、真实 profile-review interrupt、同 thread resume、内存／SQLite checkpointer、安全失败状态和 graph events；复用现有 Agents 与 ReportBuilder。
 
-### 4. 开发者亲手完成
+### 4. OPTIONAL DEVELOPER HANDS-ON TASK
 
-亲手连接关键节点与画像确认 conditional edge，并画出实际运行 trace。
+可选且不作为 Phase gate：运行 public SQLite offline Demo，在 profile interrupt 后退出 runner，再用输出的同一 workflow ID 恢复并确认；观察 Self-Discovery call count 在恢复前后都为 1。
 
 ### 5. 验收问题
 
-哪些步骤可安全重跑？用户编辑画像后从哪里恢复，哪些结果必须失效？
+为什么 `interrupt` 节点恢复时会从节点开头重新执行？哪些 side effect 必须放在 interrupt 之前或之后？为什么 SQLite checkpoint 不是长期记忆？
 
 ### 6. 面试中应该能如何解释
 
-从 Python 函数骨架迁移到 LangGraph 的实际收益，而不是只说“更适合 Agent”。
+说明 LangGraph 只负责状态、边、interrupt/resume 与 checkpoint，Agent／validator 继续拥有语义；解释 stable thread identity 和 idempotent node 设计如何避免重复 LLM 调用。
 
 ### 7. 完成标准
 
-Golden Flow、确认暂停、失败与恢复路径均有集成测试，状态无隐式全局依赖。
+Golden Flow、确认／修订 interrupt、失败与恢复路径均有集成测试；SQLite runner 重建后从同一 checkpoint 继续；Self-Discovery 不重跑；state 无 provider、client、credential 或隐式全局依赖。
 
 ## Phase 7 — Memory Layer
 

@@ -219,6 +219,15 @@ class EventType(str, Enum):
     MATCH_ACTIONS_VALIDATED = "match_actions_validated"
     MATCH_INSIGHT_COMPLETED = "match_insight_completed"
     PROFILE_CONFIRMATION_BLOCKED_MATCH = "profile_confirmation_blocked_match"
+    GRAPH_RUN_STARTED = "graph_run_started"
+    GRAPH_NODE_STARTED = "graph_node_started"
+    GRAPH_NODE_COMPLETED = "graph_node_completed"
+    GRAPH_INTERRUPTED = "graph_interrupted"
+    GRAPH_RESUMED = "graph_resumed"
+    GRAPH_FAILED = "graph_failed"
+    GRAPH_COMPLETED = "graph_completed"
+    CHECKPOINT_CREATED = "checkpoint_created"
+    CHECKPOINT_RESUMED = "checkpoint_resumed"
 
 
 class AgentName(str, Enum):
@@ -671,6 +680,13 @@ class AgentEvent(BaseEvent):
 class ToolEvent(BaseEvent):
     tool_name: str = Field(min_length=1)
     error_code: Optional[str] = None
+
+
+class GraphEvent(BaseEvent):
+    """Safe orchestration event; semantic Agent events remain separate."""
+
+    workflow_id: str = Field(min_length=1)
+    node_name: Optional[str] = None
 
 
 class CareerReport(DomainModel):

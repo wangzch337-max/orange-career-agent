@@ -53,7 +53,6 @@ def test_fixtures_have_exact_record_counts_and_no_obvious_identifiers() -> None:
 
 def test_python_imports_exclude_unapproved_frameworks() -> None:
     forbidden_roots = {
-        "langgraph",
         "langchain",
         "chromadb",
         "streamlit",
@@ -71,6 +70,26 @@ def test_python_imports_exclude_unapproved_frameworks() -> None:
             elif isinstance(node, ast.ImportFrom) and node.module:
                 imported_roots.add(node.module.split(".")[0])
     assert imported_roots.isdisjoint(forbidden_roots)
+
+
+def test_langgraph_imports_are_confined_to_phase_6_workflow_modules() -> None:
+    importers = []
+    for path in PROJECT_ROOT.rglob("*.py"):
+        if ".venv" in path.parts or "tests" in path.parts:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        roots = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                roots.update(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                roots.add(node.module.split(".")[0])
+        if "langgraph" in roots:
+            importers.append(path.relative_to(PROJECT_ROOT).as_posix())
+    assert set(importers) == {
+        "workflows/langgraph_checkpoint.py",
+        "workflows/langgraph_workflow.py",
+    }
 
 
 def test_openai_transport_import_is_confined_to_qwen_provider() -> None:
