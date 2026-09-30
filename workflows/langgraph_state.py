@@ -64,10 +64,12 @@ class OrangeGraphState(TypedDict):
     """Minimal JSON-compatible execution state persisted by LangGraph."""
 
     workflow_id: str
+    subject_id: str
     workflow_status: str
     checkpoint_mode: str
     selected_job_ids: List[str]
     profile: Optional[Dict[str, JsonValue]]
+    current_profile_ref: Optional[Dict[str, JsonValue]]
     profile_uncertainties: List[Dict[str, JsonValue]]
     clarification_questions: List[Dict[str, JsonValue]]
     self_discovery_metadata: Dict[str, JsonValue]

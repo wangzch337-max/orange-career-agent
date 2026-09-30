@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 6 LangGraph Workflow Integration + Human-in-the-Loop Orchestration；长期 Memory 和 UI 仍未实现。**
+**状态：Phase 7A Structured & Persistent Memory；Phase 7B vector retrieval 和 UI 仍未实现。**
 
 ## 1. 架构目标
 
@@ -32,7 +32,7 @@ flowchart TB
     LG <--> GS[(OrangeGraphState)]
     LG <--> CP[(Workflow Checkpoint<br/>memory or local SQLite)]
     O <--> SS[(Domain WorkflowState)]
-    O -. future .-> ML[Long-term Memory Layer]
+    O --> ML[Curated Long-term Memory Layer]
     O <--> TL[Tool Layer]
     O --> OB[Observability]
     S --> OB
@@ -92,22 +92,26 @@ stateDiagram-v2
 
 `WorkflowState` 仍是原有确定性 engine 的显式状态容器。Phase 6 另有 checkpoint-safe `OrangeGraphState`，只保存恢复当前图执行所需的已序列化 profile、selected job IDs、Job Intelligence、MatchResult、CareerReport、安全事件、状态与错误；provider、client、数据库连接、凭据、raw prompt 和完整 source input 均不进入图状态。
 
-## 5. Memory Layer
+## 5. Long-term Memory Layer
 
 ```mermaid
 flowchart LR
-    C[Current Workflow] --> SM[Session Memory<br/>temporary context]
-    C --> PS[Structured Profile Store<br/>authoritative fields]
-    C --> VM[Vector Memory<br/>semantic retrieval]
-    PS -. selected text + metadata .-> VM
-    VM -. retrieved context, not truth .-> C
+    C[Current Workflow] --> CP[(Workflow checkpoint<br/>execution state)]
+    C --> PS[StructuredProfileStore<br/>authoritative confirmed versions]
+    C --> MS[MemoryStore<br/>curated durable records]
+    MS --> LR[Deterministic lexical retriever]
+    LR -. relevant context, not authority .-> C
+    PS --> DB[(Separate private memory SQLite DB)]
+    MS --> DB
 ```
 
-- **Session Memory**：当前会话与工作流上下文，生命周期短。
-- **Structured Profile Store**：权威、可编辑、可版本化的用户画像；早期可用 JSON，之后可迁移至 SQLite 等结构化存储。
-- **Vector Memory**：用于检索历史对话片段、课程／项目描述、职位描述和历史决定等非结构化内容；未来可能使用 Chroma。
+- **Workflow checkpoint**：Phase 6 的可恢复执行状态，使用独立数据库；不是长期记忆。
+- **StructuredProfileStore**：confirmed `UserProfile` 的权威、不可变版本历史和显式 current pointer。
+- **MemoryStore**：少量 curated facts／feedback／evidence references／insights；不是 conversation transcript。
+- **MemoryRetriever**：Phase 7A 只做 subject-scoped exact／lexical relevance，结果始终保留 status 与 provenance。
+- **Phase 7B vector retrieval**：尚未实现，也不使用已安装的 transitive `sqlite-vec`。
 
-**为什么 Structured Profile 与 Vector Memory 分离：**画像字段需要确定类型、版本、用户确认状态和精确更新；向量检索只返回语义近似片段，可能遗漏、过时或排序变化，不能成为权威记录。向量记忆可提供背景证据，但不得覆盖用户确认的结构化事实。Phase 6 的 SQLite checkpoint 仅保存可恢复的工作流执行状态，不实现这里描述的任何长期记忆或 Chroma。
+**为什么 persistence、checkpoint 与 retrieval 分离：**画像字段需要确定类型、版本、用户确认状态和精确更新；workflow checkpoint 只恢复当前执行；retrieval 只回答“什么可能相关”，不能回答“什么是真的”。任何候选或模型推断都不会因 confidence 或 relevance 自动成为 authoritative confirmed memory。
 
 ## 6. Tool Layer
 
@@ -337,3 +341,55 @@ Self-Discovery 完成后，图状态变为 `WAITING_FOR_HUMAN` 并在 `profile_r
 ### 18.4 可恢复性与调用所有权
 
 同一 opaque `workflow_id` 同时作为 LangGraph `thread_id`。恢复前 runner 验证 checkpoint 存在、状态为 `WAITING_FOR_HUMAN` 且确有 interrupt，避免错误 thread 静默继续。节点不添加 graph-level semantic retry；provider retry 所有权仍在既有 provider policy。SQLite runner 重建后从 review checkpoint 继续，Self-Discovery 不会因确认恢复而再次调用。
+
+## 19. Phase 7A structured and persistent memory
+
+```mermaid
+flowchart TB
+    subgraph Orchestration
+      LG[LangGraph]
+      WC[(Workflow checkpoint DB)]
+      LG <--> WC
+    end
+    subgraph Domain
+      SD[SelfDiscoveryAgent]
+      JI[JobIntelligenceAgent]
+      MI[MatchInsightAgent]
+      RB[ReportBuilder]
+    end
+    subgraph LongTermMemory
+      SVC[MemoryService]
+      PS[StructuredProfileStore]
+      MS[MemoryStore]
+      RET[DeterministicMemoryRetriever]
+      MDB[(Long-term memory DB)]
+      SVC --> PS
+      SVC --> MS
+      SVC --> RET
+      PS --> MDB
+      MS --> MDB
+      RET --> MS
+    end
+    LG --> Domain
+    LG -. explicit confirmed profile .-> SVC
+```
+
+### 19.1 数据库与职责边界
+
+Workflow checkpoint 位于 `data/private/runtime/orange_workflow.sqlite3`，只恢复图执行。Long-term memory 位于独立的 `data/private/memory/orange_memory.sqlite3`，保存 confirmed profile versions 与 curated MemoryRecords。两个数据库不共享 schema；`purge_subject()` 只清除 long-term memory，绝不静默删除 workflow checkpoint。
+
+### 19.2 Profile authority 与 immutable history
+
+只有 confirmed `UserProfile` 可以进入 `StructuredProfileStore`。`(subject_id, profile_id, version)` 是不可变唯一身份，current pointer 单独保存；新版本移动 pointer 而不覆盖旧版本。相同语义版本重复写入是幂等操作，冲突 payload 或 version regression 会安全失败。读取时必须重新通过当前 `UserProfile` schema。
+
+### 19.3 Curated MemoryRecord lifecycle
+
+`MemoryStore` 只保存明确创建的 durable records，不自动复制完整 profile、MatchResult 或 chat transcript。`CANDIDATE → CONFIRMED` 需要显式 user confirmation；confidence 不影响 authority。`CONFIRMED → SUPERSEDED` 保留旧记录与 replacement link；`CANDIDATE／CONFIRMED → ARCHIVED` 保留历史但退出 active retrieval；hard purge 才实际删除 subject-owned rows。
+
+### 19.4 Retrieval relevance 不等于 factual authority
+
+Phase 7A retriever 先执行 subject、status、type 与 exact metadata filter，再按规范化 phrase／token overlap 确定性排序。默认只读取 active `CONFIRMED` records，并在结果中保留完整 status、source type、confidence、timestamps 与 supersedes relation。Candidate、superseded 与 archived history 只有显式 history request 才可检索。Phase 7A 没有 embeddings、vector index、sqlite-vec 使用或 LLM reranking。
+
+### 19.5 最小 workflow integration
+
+`MemoryService` 通过 graph dependencies 注入，不进入 `OrangeGraphState` 或 checkpoint。显式 `CONFIRM` 后，graph 可幂等保存 active profile，并仅在 state 中保留 opaque `subject_id` 和小型 profile reference。Persisted profile 不会自动跳过下一次 Self-Discovery／profile review；未来产品 policy 必须另行明确决定是否加载。

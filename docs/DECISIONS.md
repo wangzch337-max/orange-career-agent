@@ -232,3 +232,24 @@ SQLite 只保存恢复当前 workflow 所需的执行状态。它不是 long-ter
 
 **Status**
 Accepted — Phase 6
+
+## ADR-014 — 分离 checkpoint 与 curated long-term memory，并延后 vector retrieval
+
+**Context**
+Phase 6 的 SQLite checkpoint 保存一次 LangGraph execution 的可恢复状态，但不能因此成为跨 workflow 的事实来源。Phase 7A 需要持久化已确认画像和少量长期有用记录，同时避免把整段对话、模型推断或高相关度检索结果升级为用户事实。可恢复节点也可能 replay confirmation side effect，因此写入必须可安全重复。
+
+**Decision**
+Workflow checkpoint 与 long-term memory 使用两个独立 SQLite 数据库。`data/private/runtime/orange_workflow.sqlite3` 只负责 graph resume；schema-versioned `data/private/memory/orange_memory.sqlite3` 只负责 confirmed `UserProfile` versions/current pointer 与 curated `MemoryRecord` history。
+
+`StructuredProfileStore` 是完整 confirmed profile 的权威来源，保存不可变版本并拒绝 unconfirmed、version regression 和同 identity 冲突；相同语义版本 replay 幂等。`MemoryRecord` 使用 candidate、confirmed、superseded、archived lifecycle。LLM/model inference 默认只能成为 candidate；confidence 与 retrieval score 都不授予 authority。显式 supersede/archive 保留历史，subject purge 则在 transaction 中 hard-delete 该 subject 的 long-term rows，但不碰 workflow checkpoint。
+
+Phase 7A retrieval 仅使用 subject/type/status/metadata filtering 与 deterministic lexical ranking。默认只返回 active confirmed records，并保留 status/provenance/relevance metadata。不开启 transcript storage、embedding、sqlite-vec、Chroma、vector similarity 或 LLM memory extraction；semantic/vector retrieval 留给 Phase 7B 的独立需求与隐私评估。
+
+**Reason**
+分离 execution recovery 与 durable knowledge，能让 retention、purge、authority 和 replay 语义各自清晰。Curated records 减少隐私与过时信息污染；显式 confirmation 避免模型 confidence 或相似度被误解为事实。不可变 identity 与 current pointer 使审计、history 和 resumable graph side effect 可确定性测试。Lexical retrieval 已足够验证 Phase 7A 的接口与 authority boundary，不需要提前引入 vector 依赖。
+
+**Tradeoffs**
+两个数据库与 profile/record 两套 store 增加少量 wiring，lexical overlap 也无法覆盖所有同义表达。Hard purge 不等于产品级“删除一切”，调用方未来若要同时删除 checkpoint 必须显式协调两个系统。Curated lifecycle 需要 caller 明确确认与 supersede，自动化程度较低；作为回报，历史、隐私、来源和事实权威保持可审计。
+
+**Status**
+Accepted — Phase 7A

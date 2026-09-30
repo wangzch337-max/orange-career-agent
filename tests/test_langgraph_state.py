@@ -28,10 +28,12 @@ def test_orange_graph_state_is_explicit_and_excludes_runtime_objects() -> None:
     fields = set(get_type_hints(OrangeGraphState))
     assert fields == {
         "workflow_id",
+        "subject_id",
         "workflow_status",
         "checkpoint_mode",
         "selected_job_ids",
         "profile",
+        "current_profile_ref",
         "profile_uncertainties",
         "clarification_questions",
         "self_discovery_metadata",
@@ -44,7 +46,7 @@ def test_orange_graph_state_is_explicit_and_excludes_runtime_objects() -> None:
         "review_outcome",
         "self_discovery_call_count",
     }
-    forbidden = {"provider", "client", "connection", "credentials", "api_key", "prompt", "messages", "user_input"}
+    forbidden = {"provider", "client", "connection", "credentials", "api_key", "prompt", "messages", "user_input", "memory_service", "memory_store", "retriever"}
     assert fields.isdisjoint(forbidden)
 
 

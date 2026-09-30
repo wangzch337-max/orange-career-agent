@@ -218,35 +218,39 @@ graph state、node、deterministic edge、interrupt/resume、checkpoint、thread
 
 Golden Flow、确认／修订 interrupt、失败与恢复路径均有集成测试；SQLite runner 重建后从同一 checkpoint 继续；Self-Discovery 不重跑；state 无 provider、client、credential 或隐式全局依赖。
 
-## Phase 7 — Memory Layer
+## Phase 7A — Structured & Persistent Memory
 
 ### 1. 学习目标
 
-实现不同生命周期和权威级别的记忆，而非把所有内容向量化。
+建立可恢复但不会把推断误当事实的长期记忆：清楚区分 workflow checkpoint、权威 confirmed profile、curated memory record 与 retrieval result。
 
 ### 2. 需要理解的概念
 
-session state、structured store、vector retrieval、embedding、metadata filter、retention、删除与冲突处理。
+persistence vs checkpoint、authoritative profile vs memory record、candidate vs confirmed knowledge、immutable version history、supersession、archival、privacy purge、retrieval relevance vs factual authority、subject isolation、idempotent side effects，以及 lexical vs semantic retrieval。
 
 ### 3. Codex 负责
 
-设计接口、迁移与检索评估；审查最小化存储和隐私边界。
+实现 store/retriever/service 抽象、schema v1、SQLite lifecycle、显式 authority rule、最小 graph confirmation boundary、离线测试和隐私审查；不迁移 private profile，不启动 semantic/vector retrieval。
 
-### 4. 开发者亲手完成
+### 4. OPTIONAL DEVELOPER HANDS-ON TASK
 
-实现结构化画像持久化或迁移的一部分，并设计一组检索相关性测试。
+可选且不作为 Phase gate：运行 public synthetic memory Demo；创建 confirmed preference，用新的 confirmed preference supersede 它，分别查询 active memory 与 history，并观察 active 只有新记录而 history 同时保留新旧记录。
 
 ### 5. 验收问题
 
-当向量检索片段与用户最新确认画像冲突时，谁优先？如何删除用户长期记忆？
+为什么 workflow checkpoint 不等于 long-term memory？为什么 retrieval relevance 不能决定某项内容是否为真？为什么 resumable workflow 附近的 profile/memory side effect 必须幂等？
 
 ### 6. 面试中应该能如何解释
 
-用实际对象说明三层记忆的职责、生命周期与权威顺序。
+用实际对象解释两个 SQLite DB 的不同生命周期；说明 confirmed profile、candidate/confirmed/superseded/archived record 的权威顺序，以及 lexical ranking 为什么只影响顺序、不修改真值状态。
 
 ### 7. 完成标准
 
-三层接口分离，冲突与删除策略测试通过，向量结果不会覆盖权威画像。
+profile immutable history/current pointer、curated lifecycle、subject isolation、transactional purge、deterministic lexical retrieval 与 replay idempotency 均通过；没有 transcript、embedding、vector retrieval 或自动 authority。
+
+## Phase 7B — Semantic/Vector Retrieval（未开始）
+
+未来单独学习 embedding、semantic similarity、vector metadata filter、retrieval evaluation 与隐私/retention tradeoff。开始前必须先证明 lexical retrieval 不足，并重新确认：semantic relevance 仍不能覆盖 explicit confirmation。
 
 ## Phase 8 — Observability
 

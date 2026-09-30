@@ -3,7 +3,7 @@
 > AI Career Discovery Agent for University Students
 > 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 6 — LangGraph Workflow Integration + Human-in-the-Loop Orchestration**
+**当前状态：Phase 7A — Structured & Persistent Memory**
 
 Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
 
@@ -15,7 +15,7 @@ Orange 不是香港城市大学官方产品。首个演示场景计划使用经�
 
 ## 产品概念 Product Concept
 
-Orange 计划把用户陈述、课程与项目证据整理成可确认的结构化画像，再以一致方式解释候选角色，最后生成带证据的适配洞察、能力缺口和行动建议。用户始终可以确认、修改或补充画像；匹配分数只作为解释辅助，不代表客观真理。
+Orange 计划把用户陈述、课程与项目证据整理成可确认的结构化画像，再以一致方式解释候选角色，最后生成带证据的适配洞察、能力缺口和行动建议。用户始终可以确认、修改或补充画像；系统展示多维证据关系，不用总体匹配分数或岗位排名替用户做决定。
 
 ## 预期工作流 Intended Workflow
 
@@ -45,7 +45,7 @@ flowchart TD
     R --> M
     M --> B[Report Builder]
     O -. events .-> OBS[Observability]
-    O --- MEM[Memory Layer]
+    O --> MEM[Curated Long-term Memory<br/>profile / records / lexical retrieval]
     O --- T[Tool Layer]
 ```
 
@@ -110,6 +110,12 @@ flowchart TD
 - 自动测试／短期 Demo 使用内存 checkpoint，手动本地恢复使用 Git-ignored SQLite checkpoint；
 - provider-independent Agent nodes、确定性 routing、安全失败状态与 graph execution events；
 - public FakeLLMProvider Demo 可在暂停后恢复，并可跨 SQLite runner 重建继续执行。
+- 独立 `StructuredProfileStore`，只保存 confirmed `UserProfile`，保留不可变版本历史与显式 current pointer；
+- curated `MemoryRecord`、candidate／confirmed／superseded／archived lifecycle，以及显式 user-feedback confirmation；
+- 独立 Git-ignored SQLite long-term memory DB、subject isolation、transactional hard purge；
+- deterministic exact／lexical retrieval，结果保留 authority、provenance、confidence 与 supersedes metadata；
+- LangGraph 在显式 profile confirmation 后可通过注入的 `MemoryService` 幂等保存画像；默认 workflow policy 不自动跳过 review；
+- 不保存完整 chat transcript，不使用 embedding、sqlite-vec、Chroma 或任何 vector retrieval。
 
 Phase 5 的 Match & Insight 从证据关系开始，不从分数开始。`evidence_missing` 只表示当前画像缺少验证材料，绝不自动变成能力弱或 `confirmed_gap`。结果保持原始 dataset／用户选择顺序，不选择最佳角色。
 
@@ -119,7 +125,7 @@ Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取
 
 ### 计划中 Planned
 
-- Memory Layer、Vector Memory；
+- Phase 7B semantic/vector retrieval；
 - Streamlit UI；
 - 真实职位来源和脱敏课程导出 adapter。
 
@@ -130,12 +136,14 @@ Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取
 - Phase 3：Evidence-Backed Self-Discovery Agent（完成）
 - Phase 4：Job Intelligence Agent + Demo Role Taxonomy（完成）
 - Phase 5：Evidence-Based Match & Insight Engine（完成）
-- Phase 6：LangGraph Workflow Integration + Human-in-the-Loop Orchestration（当前已实现）
-- Phase 7–8：Memory 与 Observability
+- Phase 6：LangGraph Workflow Integration + Human-in-the-Loop Orchestration（完成）
+- Phase 7A：Structured & Persistent Memory（当前已实现）
+- Phase 7B：Semantic／Vector Retrieval（计划中）
+- Phase 8：Observability
 - Phase 9–10：Streamlit UI 与课程数据适配器
 - Phase 11–13：测试、成本控制、演示案例与最终打磨
 
-约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Phase 7。
+约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Phase 7B。
 
 ## 本地验证 Local Validation
 
@@ -155,6 +163,9 @@ python3 -m venv .venv
 .venv/bin/python -m workflows.langgraph_demo --checkpoint sqlite --sqlite-action start
 # 使用上一条命令输出的 workflow_id：
 .venv/bin/python -m workflows.langgraph_demo --checkpoint sqlite --sqlite-action resume --workflow-id <workflow_id>
+.venv/bin/python -m memory.demo
 ```
 
 Phase 6 LangGraph Demo 默认使用公开 fixture、`FakeLLMProvider` 和内存 checkpoint，全程离线。SQLite 模式只保存恢复当前工作流所需的执行状态到 `data/private/runtime/orange_workflow.sqlite3`；它不是长期记忆、向量记忆或用户历史检索。不得打印完整私有输入、raw request、完整 Prompt 或配置值。
+
+Phase 7A public memory Demo 默认使用临时 SQLite 文件、synthetic subject、公开合成 confirmed profile 与 synthetic MemoryRecords，不读取或迁移 private Golden Case。显式 `--persistent-memory` 才会使用 `data/private/memory/orange_memory.sqlite3`。Workflow checkpoint 和 long-term memory 使用不同数据库；memory retrieval 的相关性不会改变记录的 authority status。

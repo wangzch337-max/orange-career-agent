@@ -241,20 +241,24 @@ Tool 调用的安全审计事件。
 
 ## 18. `MemoryRecord`
 
-非权威的可检索历史记录；结构化画像应通过引用关联而非复制为真相。
+Phase 7A 的 curated long-term record；它不是聊天记录，也不复制完整 `UserProfile`。权威状态由显式 lifecycle 决定，检索相关度不能改变权威状态。
 
 | 字段 | 类型 | 含义 | 来源 | 必填 | 示例 |
 |---|---|---|---|---|---|
-| `memory_id` | `str` | 记录标识 | 系统 | 是 | `mem_001` |
-| `memory_type` | `enum` | conversation/course/project/job/decision | 系统 | 是 | `conversation` |
-| `content` | `str` | 经授权且最小化的非结构化内容 | 来源 | 是 | `用户希望探索跨职能角色` |
+| `memory_id` | `str` | 与内容无关的 opaque 记录标识 | 系统 | 是 | `memory_<uuid>` |
+| `subject_id` | `str` | 与 PII 无关的 opaque subject 标识 | 系统 | 是 | `subject_<uuid>` |
+| `memory_type` | `MemoryType` | 小型、稳定的记录分类 | 系统／调用方 | 是 | `career_preference` |
+| `status` | `MemoryStatus` | candidate/confirmed/superseded/archived | 明确 lifecycle 操作 | 是 | `confirmed` |
+| `content` | `str` | 经授权、最小化且可独立理解的内容 | 来源 | 是 | `希望比较 AI 应用与 AI 产品方向` |
 | `source_type` | `enum` | provenance | 来源 | 是 | `conversation` |
-| `source_ref` | `str` | 原记录引用 | 系统 | 是 | `session_demo_01` |
-| `created_at` | `datetime` | 建立时间 | 系统 | 是 | `2026-03-01T10:00:00+08:00` |
-| `retention` | `enum` | session/persistent | 用户／政策 | 是 | `session` |
-| `embedding_ref` | `str?` | 未来向量索引引用 | Vector Store | 否 | `null` |
+| `evidence_refs` | `list[str]` | 稳定、去重的 evidence ID 引用；不复制证据文本 | 调用方 | 否 | `["ev_project_01"]` |
+| `confidence` | `float?` | 0–1 的不确定性摘要；不决定 status | 来源／模型 | 否 | `0.82` |
+| `created_at` | aware `datetime` | UTC-aware 建立时间 | 系统 | 是 | `2026-03-01T02:00:00+00:00` |
+| `updated_at` | aware `datetime` | UTC-aware lifecycle 更新时间 | 系统 | 是 | `2026-03-01T02:05:00+00:00` |
+| `supersedes_memory_id` | `str?` | 新记录所替代的旧记录；旧记录仍保留 | 调用方／store | 否 | `memory_<uuid>` |
+| `metadata` | `map[str, JSON]` | 可 exact-filter 的最小结构化 metadata | 调用方 | 否 | `{"topic":"direction"}` |
 
-检索到的 `MemoryRecord` 只是上下文候选，必须检查来源、时效和与当前画像的冲突。
+`MemoryType` 固定为 `profile_signal`、`career_preference`、`goal`、`project_evidence`、`course_evidence`、`user_feedback`、`career_insight`。`MemoryStatus` 固定为 `candidate`、`confirmed`、`superseded`、`archived`。模型推断默认只能建立 `candidate`；即使 confidence 很高，也必须通过显式确认操作才能成为 `confirmed`。
 
 ## 19. `Report`
 
@@ -328,7 +332,7 @@ Public offline Demo 使用完全合成、已确认且无个人身份信息的 pr
 
 ### `OrangeGraphState`
 
-Checkpoint-safe `TypedDict`，只包含：opaque `workflow_id`、`workflow_status`、checkpoint mode、bounded selected job IDs、序列化 `UserProfile`、profile uncertainties／clarification questions、安全 Self-Discovery metadata、selected `JobRecord`、`JobIntelligenceRecord`、`MatchResult`、`CareerReport`、safe graph events、sanitized error、review outcome 和 Self-Discovery call count。
+Checkpoint-safe `TypedDict`，只包含：opaque `workflow_id` 与 `subject_id`、`workflow_status`、checkpoint mode、bounded selected job IDs、序列化 `UserProfile`、可选 current profile reference、profile uncertainties／clarification questions、安全 Self-Discovery metadata、selected `JobRecord`、`JobIntelligenceRecord`、`MatchResult`、`CareerReport`、safe graph events、sanitized error、review outcome 和 Self-Discovery call count。
 
 State 不包含 provider／client／SQLite connection、API key、Authorization、raw prompt、message history、完整 source input 或 hidden reasoning。所有领域对象写入前使用 `model_dump(mode="json")`，读取后用既有 Pydantic domain model 重新验证。依赖通过 graph builder 注入并留在 state 外。
 
@@ -357,3 +361,37 @@ State 不包含 provider／client／SQLite connection、API key、Authorization�
 ### Checkpoint identity metadata
 
 随机生成的 `orange_<uuid>` 同时作为 workflow ID 和 LangGraph thread ID，不来自 email、student ID 或其他个人标识。内存 checkpointer 用于测试／短期 Demo；SQLite checkpointer 仅用于本地 workflow restart/resume，默认路径为 `data/private/runtime/orange_workflow.sqlite3`。Checkpoint 是执行状态，不是长期记忆。
+
+## 26. Phase 7A structured and persistent memory contracts
+
+### Subject identity
+
+所有 profile 与 memory API 都必须接收 opaque `subject_id` 并在 SQL query 中显式限定该 subject。ID 使用随机生成值，不使用姓名、email、Student ID、phone 或 credential。相同 query、type 或内容不能跨 subject 返回记录。
+
+### Authoritative structured profile persistence
+
+`StructuredProfileStore` 只接受 `confirmed=true` 且 status 为 `confirmed` 的既有 `UserProfile`，不重新定义画像字段。SQLite 以 `(subject_id, profile_id, version)` 保存不可变版本，并用独立 `current_profiles` pointer 标识当前版本；读取后必须重新通过 `UserProfile` 验证。
+
+完全相同的已确认版本可安全 replay，且不会新增 history row。相同 identity 若 content 冲突必须失败；current pointer 不接受 version regression。后续版本成为 current 时，旧版本保持可查询且不被覆盖。
+
+### Curated lifecycle and supersession
+
+- `candidate → confirmed` 只通过显式 confirmation；confirmation 不改写内容语义。
+- `confirmed → superseded` 发生在新的 confirmed record 显式替代旧记录时；新记录保存 `supersedes_memory_id`，旧记录仍在 history。
+- `confirmed` 或 `candidate` 可进入 `archived`；archive 保留记录但排除默认 active context。
+- `superseded → confirmed` 等反向转换无效；需要新记录表达新事实。
+- 完整 confirmed profile 不自动拆成多条 `MemoryRecord`；Match insight 也不自动持久化。
+
+### Retrieval result
+
+`MemoryRetrievalResult` 包含完整结构化 `MemoryRecord` 与 `MemoryRelevance`：整数 score、exact-phrase flag、stable matched tokens。默认只检索 active `confirmed` 记录；candidate、superseded、archived 必须由 caller 明确选择 history/status 才可返回。相同 DB state 与 query 使用规范化 lexical overlap 和 stable tie-break 得到同序结果；Phase 7A 没有 embedding、vector index 或 LLM reranking。
+
+相关度只表示“适合取回”，不会改变 status，也不能覆盖当前 confirmed profile 的事实权威。
+
+### Hard privacy purge
+
+`purge_subject(subject_id)` 在一个 transaction 中 hard-delete 该 subject 的 current-profile pointer、所有 profile versions、所有 `MemoryRecord` 及其关系。成功后 current profile、active records 与 history 均为空，其他 subject 不受影响。purge 不用 `deleted` status 模拟，也不删除独立的 LangGraph workflow checkpoint database。
+
+### Database and state boundary
+
+Long-term memory 使用 schema version 1 的 `data/private/memory/orange_memory.sqlite3`；workflow checkpoint 继续使用 `data/private/runtime/orange_workflow.sqlite3`。Graph state 最多保存 `subject_id` 与当前 profile reference，不保存 store、retriever、SQLite connection、全部 memory history 或 credential。

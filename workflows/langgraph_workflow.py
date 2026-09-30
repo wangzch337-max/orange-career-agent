@@ -26,6 +26,8 @@ from data.models import (
     UserProfile,
 )
 from providers.errors import LLMError, LLMStructuredOutputError
+from memory.models import new_subject_id
+from memory.service import MemoryService
 from tools.report import DeterministicReportBuilder
 from workflows.langgraph_state import (
     GraphErrorCategory,
@@ -48,6 +50,7 @@ class OrangeGraphDependencies:
     match_insight_agent: MatchInsightAgent
     report_builder: DeterministicReportBuilder
     self_discovery_input: Mapping[str, object]
+    memory_service: MemoryService | None = None
 
 
 def new_workflow_id() -> str:
@@ -167,6 +170,7 @@ def create_initial_graph_state(
     selected_job_ids: Sequence[str],
     checkpoint_mode: str,
     workflow_id: str | None = None,
+    subject_id: str | None = None,
 ) -> OrangeGraphState:
     if not selected_job_ids:
         raise ValueError("At least one selected job ID is required.")
@@ -175,10 +179,12 @@ def create_initial_graph_state(
     identifier = workflow_id or new_workflow_id()
     state: OrangeGraphState = {
         "workflow_id": identifier,
+        "subject_id": subject_id or new_subject_id(),
         "workflow_status": GraphWorkflowStatus.RUNNING.value,
         "checkpoint_mode": checkpoint_mode,
         "selected_job_ids": list(selected_job_ids),
         "profile": None,
+        "current_profile_ref": None,
         "profile_uncertainties": [],
         "clarification_questions": [],
         "self_discovery_metadata": {},
@@ -319,6 +325,12 @@ def build_orange_graph(
             current_state = {**state, "graph_events": current_events}
             if decision.action == ProfileReviewAction.CONFIRM:
                 active_profile = profile.confirm()
+                profile_reference = state.get("current_profile_ref")
+                if dependencies.memory_service is not None:
+                    saved = dependencies.memory_service.save_confirmed_profile(
+                        state["subject_id"], active_profile
+                    )
+                    profile_reference = saved.reference.model_dump(mode="json")
                 completed = _event(
                     current_state,
                     EventType.GRAPH_NODE_COMPLETED,
@@ -329,6 +341,7 @@ def build_orange_graph(
                 return {
                     "workflow_status": GraphWorkflowStatus.RUNNING.value,
                     "profile": active_profile.model_dump(mode="json"),
+                    "current_profile_ref": profile_reference,
                     "review_outcome": ProfileReviewAction.CONFIRM.value,
                     "graph_events": _append_events(current_state, completed),
                 }

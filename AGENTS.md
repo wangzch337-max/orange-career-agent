@@ -17,8 +17,8 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 ## 阶段式开发
 
 - 严格按 `IMPLEMENTATION_PLAN.md` 推进，不跨阶段实现。
-- 当前 Phase 6 允许在现有 evidence-backed Self-Discovery、Job Intelligence、Match & Insight 与 ReportBuilder 外增加 LangGraph 编排、真实画像审阅 interrupt/resume、内存／本地 SQLite workflow checkpoint 和安全 graph events。
-- LangGraph 只拥有状态、确定性路由、暂停／恢复与 checkpoint，不得接管 Agent 语义规则。不得实现 overall match score、岗位排名、LLM routing、Streamlit、Chroma、Canvas API、职位抓取、长期记忆或 Phase 7 能力。
+- 当前 Phase 7A 允许 authoritative `StructuredProfileStore`、curated `MemoryRecord` lifecycle、独立本地 SQLite long-term memory、确定性 lexical retrieval、subject isolation、hard purge，以及显式确认后的最小 LangGraph persistence boundary。
+- Phase 7A 不得实现 vector／semantic retrieval、embedding、sqlite-vec 使用、transcript dumping、LLM memory extraction 或 automatic authority。LangGraph checkpoint 与 long-term memory 必须保持独立；不得实现 overall match score、岗位排名、Streamlit、Canvas API、职位抓取、Phase 7B 或 Phase 8 能力。
 - 不得静默改变四个核心 Agent、Golden Flow、数据边界或目录结构。必要变更必须先记录理由、影响和取舍，并取得确认。
 - 每个阶段结束时运行与风险相称的测试；测试失败不得伪装为完成。
 
@@ -38,7 +38,7 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 - 优先结构化输出和可验证 schema，避免把关键状态隐藏在自由文本中。
 - Deterministic before LLM：校验、状态转换、路由、重试、错误处理、规范化和可确定的计分优先使用确定性代码。
 - Evidence first：重要结论区分明确事实、观察证据、模型推断和建议，并通过 `evidence_ids` 等方式保留来源。
-- 分数只是解释辅助，绝不宣称客观真相或保证就业结果。
+- 不以总体匹配分数或岗位排名替用户做决定；只展示可验证的多维证据关系，且不保证就业结果。
 - 用户画像必须经过用户确认、修改或补充；不得让 AI 单方面定义用户。
 - 可观测性展示 execution trace、decision summary、evidence、tool/workflow event，不展示或声称展示隐藏 chain-of-thought。
 

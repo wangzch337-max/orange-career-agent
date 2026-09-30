@@ -228,6 +228,13 @@ class EventType(str, Enum):
     GRAPH_COMPLETED = "graph_completed"
     CHECKPOINT_CREATED = "checkpoint_created"
     CHECKPOINT_RESUMED = "checkpoint_resumed"
+    MEMORY_PROFILE_SAVED = "memory_profile_saved"
+    MEMORY_CANDIDATE_CREATED = "memory_candidate_created"
+    MEMORY_CONFIRMED = "memory_confirmed"
+    MEMORY_SUPERSEDED = "memory_superseded"
+    MEMORY_ARCHIVED = "memory_archived"
+    MEMORY_RETRIEVED = "memory_retrieved"
+    MEMORY_SUBJECT_PURGED = "memory_subject_purged"
 
 
 class AgentName(str, Enum):

@@ -14,7 +14,8 @@
 | Day 6 | 4 | Job Intelligence | 角色规范化、15–20 个脱敏 Demo 角色草案 |
 | Day 7 | 5 | Match & Insight Engine | 多维解释、friction、gap、actions |
 | Day 8 | 6 | LangGraph Integration | 可暂停／恢复的 Golden Flow |
-| Day 9 | 7 | Memory Layer | session、structured profile、vector retrieval 边界 |
+| Day 9 | 7A | Structured & Persistent Memory | confirmed profile versions、curated records、lexical retrieval、purge |
+| Later | 7B | Semantic/Vector Retrieval | 单独评估 embedding、vector backend 与检索质量；未开始 |
 | Day 10 | 8 | Observability | Agent/Tool/workflow events 与脱敏 trace |
 | Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
 | Day 12 | 10 | Course Data Adapter | mock + sanitized export provider |
@@ -92,15 +93,23 @@
 
 **主要风险与 fallback：**框架复杂度超出 Demo 价值。Fallback 是只把高价值状态与确认门放入 LangGraph，纯函数继续保留为独立 service。
 
-## Phase 7 — Memory Layer
+## Phase 7A — Structured & Persistent Memory
 
-**范围：**分离 Session Memory、Structured Profile Store 与 Vector Memory；定义权威顺序、保留期和删除策略。
+**范围：**把 workflow checkpoint 与 long-term memory 分开；实现 confirmed `StructuredProfileStore`、curated `MemoryRecord` lifecycle、subject isolation、不可变版本历史、current pointer、idempotent replay、supersede/archive、transactional hard purge 和 deterministic lexical retrieval。
 
-**Exit criteria：**最新确认画像为权威；向量检索带 metadata 和来源；冲突、过时、删除场景有测试。
+**Exit criteria：**只有 confirmed profile 能进入权威 store；重复写入幂等而冲突写入失败；active retrieval 默认只含 confirmed records；history、purge、subject isolation、graph confirmation replay 和 separate SQLite boundaries 都有离线测试；没有 transcript dump、embedding 或 vector retrieval。
 
-**用户学习检查：**开发者实现结构化存储或检索评估中的一个关键部分，并解释两者不同。
+**可选用户参与：**运行 public synthetic memory Demo，观察 preference 被新 confirmed record supersede 后，active query 只有新记录而 history 保留两条。此任务不是考试或 Phase 完成门。
 
-**主要风险与 fallback：**Chroma 与检索调参消耗过多时间。Fallback 是 V1 只用 session + JSON/SQLite 画像，暂缓 Vector Memory 而不损害核心 Demo。
+**主要风险与 fallback：**把 relevant 当 true、把 checkpoint 当 memory 或在 resume 时重复写入。Fallback 是把 authority 固定在显式 confirmation/lifecycle、保持两个 DB，并让确认 side effect 使用 immutable identity 幂等。
+
+## Phase 7B — Semantic/Vector Retrieval（未开始）
+
+**范围：**另行评估 semantic retrieval 的实际需求、embedding 模型、local vector backend、privacy/retention、版本兼容和 retrieval evaluation；Phase 7A 不预选 Chroma、sqlite-vec 或其他 vector store。
+
+**Exit criteria：**尚未定义为已实现。必须在新的明确授权与设计审查后确定，且 semantic relevance 不得获得事实权威。
+
+**主要风险与 fallback：**vector similarity 可能召回语义相近但过时或非权威记录，并增加依赖与隐私面。Fallback 是保留已验证的 metadata + deterministic lexical retrieval。
 
 ## Phase 8 — Observability
 
