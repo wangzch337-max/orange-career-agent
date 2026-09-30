@@ -1,4 +1,4 @@
-"""Orange Interactive Demo v0.1 — public synthetic, offline Streamlit UI."""
+"""Orange Interactive Demo v0.2 — conversation-first public offline workspace."""
 
 from __future__ import annotations
 
@@ -10,22 +10,37 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
+
 from ui.components import (
+    apply_demo_style,
     render_actions,
     render_developer_trace,
+    render_dynamic_profile,
+    render_exploration_map,
     render_job_intelligence,
     render_match_insights,
+    render_memory_summary,
     render_profile_review,
-    render_progress,
     render_public_demo_banner,
     render_role_card,
 )
+from ui.conversation import QuestionKind, conversation_progress
 from ui.demo_controller import (
     APPROVED_ROLE_IDS,
+    PROFILE_CALIBRATION_OPTIONS,
+    ROLE_DEPRIORITIZATION_REASONS,
+    ROLE_EXPLORATION_OPTIONS,
     DemoController,
     DemoControllerError,
 )
-from ui.presentation import safe_error_message
+from ui.presentation import (
+    ASK_ORANGE_QUESTIONS,
+    ROLE_CLARIFICATION_OPTIONS,
+    ask_orange_answer,
+    career_direction_card_view,
+    memory_summary_view,
+    safe_error_message,
+)
 from workflows.langgraph_state import GraphErrorCategory, GraphWorkflowStatus
 
 
@@ -33,17 +48,6 @@ SESSION_CONTROLLER = "orange_demo_controller"
 SESSION_PAGE = "orange_demo_page"
 SESSION_SELECTED_ROLE = "orange_selected_role"
 SESSION_ERROR = "orange_demo_error"
-
-PAGE_STEPS = {
-    "welcome": 1,
-    "about": 2,
-    "profile": 3,
-    "roles": 4,
-    "match": 5,
-    "actions": 6,
-    "memory": 7,
-    "error": 1,
-}
 
 
 def _initialize_session() -> DemoController:
@@ -83,32 +87,38 @@ def _workflow_complete(controller: DemoController) -> bool:
 def _sidebar(controller: DemoController) -> None:
     with st.sidebar:
         st.markdown("## 🍊 Orange")
-        st.caption("Interactive Demo v0.1")
+        st.caption("Interactive Demo v0.2")
         state = controller.state
         if state is None:
-            st.caption("画像：尚未分析")
+            st.caption("职业理解：正在通过对话形成")
         elif state["workflow_status"] == GraphWorkflowStatus.WAITING_FOR_HUMAN.value:
-            st.caption("画像：等待确认")
+            st.caption("职业画像：等待你的确认")
         elif state["workflow_status"] == GraphWorkflowStatus.COMPLETED.value:
-            st.caption("画像：已确认 · 岗位与匹配已完成")
+            st.caption("职业画像：已确认")
         else:
             st.caption("流程：需要处理")
 
         if st.button("欢迎", key="nav_welcome", use_container_width=True):
             _go("welcome")
-        if st.button("关于你", key="nav_about", use_container_width=True):
-            _go("about")
+        if not _workflow_complete(controller):
+            if st.button("引导对话", key="nav_conversation", use_container_width=True):
+                _go("profile" if state else "conversation")
         if state and state["workflow_status"] == GraphWorkflowStatus.WAITING_FOR_HUMAN.value:
             if st.button("画像确认", key="nav_profile", use_container_width=True):
                 _go("profile")
         if _workflow_complete(controller):
-            if st.button("岗位探索", key="nav_roles", use_container_width=True):
-                _go("roles")
-            if st.button("匹配洞察", key="nav_match", use_container_width=True):
-                _go("match")
-            if st.button("行动计划", key="nav_actions", use_container_width=True):
-                _go("actions")
-            if st.button("Orange Memory", key="nav_memory", use_container_width=True):
+            if st.button("值得探索的方向", key="nav_directions", use_container_width=True):
+                _go("directions")
+            if st.session_state.get(SESSION_SELECTED_ROLE):
+                if st.button("岗位深入了解", key="nav_role", use_container_width=True):
+                    _go("role")
+                if st.button("Match Insights", key="nav_match", use_container_width=True):
+                    _go("match")
+                if st.button("行动计划", key="nav_actions", use_container_width=True):
+                    _go("actions")
+            if st.button("Career Exploration Map", key="nav_map", use_container_width=True):
+                _go("map")
+            if st.button("Orange 对你的长期理解", key="nav_memory", use_container_width=True):
                 _go("memory")
         st.divider()
         if st.button("重新开始 Demo", key="reset_demo", use_container_width=True):
@@ -116,142 +126,286 @@ def _sidebar(controller: DemoController) -> None:
 
 
 def _welcome() -> None:
-    render_progress(1)
     st.title("🍊 Orange")
-    st.subheader("AI Career Discovery Agent for University Students")
-    st.markdown("### 理解自己。理解岗位。基于证据做职业选择。")
+    st.subheader("通过对话理解自己，再用证据探索职业方向")
     st.write(
-        "这是一条完整但克制的职业探索演示：从合成学生背景出发，经过画像确认，"
-        "再查看三个代表岗位的证据关系与行动。"
+        "Orange 不会替你决定应该做什么工作。它会帮助你梳理经历与偏好、"
+        "看见仍需验证的问题，并规划下一轮职业探索。"
     )
     badges = st.columns(3)
-    badges[0].success("Public Demo")
-    badges[1].success("Synthetic Data")
-    badges[2].success("Offline AI Demo")
-    if st.button("开始职业探索", type="primary", use_container_width=True):
-        _go("about")
+    badges[0].success("公开合成资料")
+    badges[1].success("离线模型")
+    badges[2].success("不做岗位排名")
+    with st.container(border=True):
+        st.markdown("#### 这次对话会做什么")
+        st.write("回答几个结构化问题 → 校准职业画像 → 探索三个方向 → 制定验证行动。")
+    if st.button("开始和 Orange 对话", type="primary", use_container_width=True):
+        _go("conversation")
 
 
-def _about(controller: DemoController) -> None:
-    render_progress(2)
-    st.header("关于你 · 合成演示学生")
-    persona = controller.public_persona
-    left, right = st.columns(2)
+def _conversation(controller: DemoController) -> None:
+    question = controller.conversation.current_question
+    if question is None:
+        if controller.state is None:
+            state = controller.prepare_profile_review()
+            if state["workflow_status"] == GraphWorkflowStatus.FAILED.value:
+                _set_graph_error(state)
+                return
+        _go("profile")
+        return
+
+    current, total = conversation_progress(controller.conversation.stage)
+    st.caption(f"引导对话 · {current} / {total}")
+    left, right = st.columns([1.08, 0.92], gap="large")
     with left:
-        with st.container(border=True):
-            st.markdown("#### 教育背景")
-            st.write(persona["program"])
-        with st.container(border=True):
-            st.markdown("#### 项目经历")
-            project = persona["project_experience"]
-            st.write(project["name"])
-            st.caption(project["summary"])
-    with right:
-        with st.container(border=True):
-            st.markdown("#### 职业探索方向")
-            st.write(persona["career_interest"])
-            st.caption(persona["career_goal"])
-        with st.container(border=True):
-            st.markdown("#### 目标地区")
-            st.write("中国内地代表城市 · 公开虚构岗位")
-    if st.button("分析我的职业画像", type="primary", use_container_width=True):
-        with st.spinner("正在通过 Orange 工作流整理证据…"):
-            state = controller.start()
-        if state["workflow_status"] == GraphWorkflowStatus.FAILED.value:
-            _set_graph_error(state)
-        elif state["workflow_status"] == GraphWorkflowStatus.COMPLETED.value:
-            st.session_state[SESSION_SELECTED_ROLE] = (
-                st.session_state.get(SESSION_SELECTED_ROLE) or APPROVED_ROLE_IDS[0]
-            )
-            _go("roles")
+        st.markdown('<p class="orange-kicker">ORANGE 想先了解</p>', unsafe_allow_html=True)
+        st.header(question.prompt)
+        if question.helper:
+            st.caption(question.helper)
+        widget_key = f"guided_{question.stage.value}"
+        if question.kind == QuestionKind.MULTIPLE:
+            answer = st.multiselect("请选择", question.options, key=widget_key)
         else:
-            _go("profile")
+            answer = st.radio("请选择", question.options, index=None, key=widget_key)
+        note = st.text_input(
+            "可选：再补充一句",
+            max_chars=240,
+            key=f"note_{question.stage.value}",
+        )
+        can_continue = bool(answer)
+        if st.button(
+            "继续",
+            type="primary",
+            disabled=not can_continue,
+            use_container_width=True,
+            key=f"continue_{question.stage.value}",
+        ):
+            next_stage = controller.submit_conversation_answer(
+                question.stage,
+                answer,
+                note=note,
+            )
+            if next_stage.value == "profile_review":
+                with st.spinner("正在整理公开合成证据…"):
+                    state = controller.prepare_profile_review()
+                if state["workflow_status"] == GraphWorkflowStatus.FAILED.value:
+                    _set_graph_error(state)
+                else:
+                    _go("profile")
+            else:
+                st.rerun()
+    with right:
+        render_dynamic_profile(controller.career_profile_view())
 
 
 def _profile(controller: DemoController) -> None:
-    render_progress(3)
-    render_profile_review(controller.profile_review_payload())
-    if st.button("确认画像并继续", type="primary", use_container_width=True):
-        with st.spinner("正在恢复同一工作流并分析三个岗位…"):
-            state = controller.confirm_profile()
-        if state["workflow_status"] == GraphWorkflowStatus.FAILED.value:
-            _set_graph_error(state)
-        else:
-            st.session_state[SESSION_SELECTED_ROLE] = APPROVED_ROLE_IDS[0]
-            _go("roles")
+    if controller.state is None:
+        _go("conversation")
+        return
+    left, right = st.columns([1.2, 0.8], gap="large")
+    with left:
+        render_profile_review(controller.profile_review_payload())
+        st.markdown("### 快速校准")
+        sections = ("能力", "兴趣与工作偏好", "探索方向与未知项", "当前目标")
+        calibration: dict[str, str] = {}
+        for section in sections:
+            calibration[section] = st.radio(
+                section,
+                PROFILE_CALIBRATION_OPTIONS,
+                horizontal=True,
+                key=f"calibration_{section}",
+            )
+            controller.set_profile_calibration(section, calibration[section])
+        wants_revision = "我想修改" in calibration.values()
+        if wants_revision:
+            st.info("v0.2 只使用现有 Phase 6 修订契约：可修改教育背景摘要，不开放任意画像编辑。")
+            revised_summary = st.text_input("新的教育背景摘要", max_chars=500)
+            if st.button(
+                "提交画像修订",
+                disabled=not revised_summary.strip(),
+                use_container_width=True,
+            ):
+                controller.revise_profile_summary(revised_summary)
+                st.success("已在同一工作流生成新版本，请再次校准。")
+                st.rerun()
+        if st.button(
+            "确认这版职业画像",
+            type="primary",
+            disabled=wants_revision,
+            use_container_width=True,
+        ):
+            with st.spinner("正在恢复同一工作流并整理三个探索方向…"):
+                state = controller.confirm_profile()
+            if state["workflow_status"] == GraphWorkflowStatus.FAILED.value:
+                _set_graph_error(state)
+            else:
+                _go("directions")
+    with right:
+        render_dynamic_profile(controller.career_profile_view())
 
 
-def _roles(controller: DemoController) -> None:
-    render_progress(4)
-    st.header("岗位探索")
-    st.caption("固定展示三个代表岗位；顺序不表示推荐或排名。")
+def _directions(controller: DemoController) -> None:
+    st.header("值得探索的方向")
+    st.write("下面不是排名，而是三个值得进一步了解的方向。")
     jobs = controller.job_records()
-    intelligence = {item.job_id: item for item in controller.job_intelligence()}
+    records = {item.job_id: item for item in controller.job_intelligence()}
+    results = {item.job_id: item for item in controller.match_results()}
+    profile = controller.confirmed_profile()
     columns = st.columns(3)
     for column, job in zip(columns, jobs):
         with column:
-            if render_role_card(
+            view = career_direction_card_view(
                 job,
-                intelligence[job.job_id],
-                key=f"select_{job.job_id}",
-            ):
+                records[job.job_id],
+                results[job.job_id],
+                profile,
+            )
+            if render_role_card(view, key=f"select_{job.job_id}"):
                 st.session_state[SESSION_SELECTED_ROLE] = job.job_id
-                st.rerun()
-    selected = st.session_state.get(SESSION_SELECTED_ROLE) or APPROVED_ROLE_IDS[0]
-    st.divider()
-    render_job_intelligence(
-        controller.job_record(selected),
-        controller.intelligence_for(selected),
-    )
-    if st.button("查看匹配洞察", type="primary", use_container_width=True):
+                _go("role")
+
+
+def _selected_role() -> str:
+    selected = st.session_state.get(SESSION_SELECTED_ROLE)
+    if selected not in APPROVED_ROLE_IDS:
+        raise ValueError("Select an exploration direction first.")
+    return selected
+
+
+def _role(controller: DemoController) -> None:
+    selected = _selected_role()
+    job = controller.job_record(selected)
+    record = controller.intelligence_for(selected)
+    result = controller.match_for(selected)
+    profile = controller.confirmed_profile()
+    overview, clarify, ask = st.tabs(("岗位理解", "探索澄清", "和 Orange 聊聊这个岗位"))
+    with overview:
+        st.info("这是值得了解的方向，不是适配结论。")
+        render_job_intelligence(job, record)
+    with clarify:
+        st.header("先验证你对这种工作方式的真实感受")
+        prompt = controller.role_clarification_prompt(selected)
+        answer = st.radio(
+            prompt,
+            ROLE_CLARIFICATION_OPTIONS,
+            index=None,
+            key=f"role_answer_{selected}",
+        )
+        if st.button(
+            "记录本次回答",
+            disabled=answer is None,
+            key=f"record_role_answer_{selected}",
+        ):
+            controller.answer_role_clarification(selected, answer)
+            st.rerun()
+        if selected in controller.role_clarifications:
+            st.success("回答已用于本次探索。")
+            memory_choice = st.radio(
+                "要把这个偏好记入 Orange 对你的长期理解吗？",
+                ("仅这次使用", "保存"),
+                horizontal=True,
+                key=f"memory_choice_{selected}",
+            )
+            if st.button("确认记忆方式", key=f"save_feedback_{selected}"):
+                if memory_choice == "保存":
+                    controller.save_role_clarification(selected)
+                    st.success("已作为明确确认的用户反馈保存到本次 Demo Memory。")
+                else:
+                    st.info("保持为本次会话信息，没有写入 MemoryStore。")
+        st.divider()
+        decision = st.radio(
+            "你现在想怎样安排这个方向？",
+            ROLE_EXPLORATION_OPTIONS,
+            index=None,
+            horizontal=True,
+            key=f"role_decision_{selected}",
+        )
+        reason = None
+        if decision == "暂时不考虑":
+            reason = st.radio(
+                "主要原因是什么？",
+                ROLE_DEPRIORITIZATION_REASONS,
+                index=None,
+                key=f"role_reason_{selected}",
+            )
+        if st.button(
+            "更新探索状态",
+            disabled=decision is None or (decision == "暂时不考虑" and reason is None),
+            key=f"save_role_decision_{selected}",
+        ):
+            controller.set_role_exploration(selected, decision, reason=reason)
+            st.success("已更新本次探索地图；这不是能力差距或不适合结论。")
+    with ask:
+        st.header("你想先了解哪件事？")
+        question = st.selectbox(
+            "选择一个问题",
+            ASK_ORANGE_QUESTIONS,
+            key=f"ask_orange_{selected}",
+        )
+        st.write(ask_orange_answer(question, record, result, profile))
+        st.caption("回答来自预定义菜单和已验证数据；这里没有自由聊天或在线模型。")
+    nav = st.columns(3)
+    if nav[0].button("查看 Match Insights", use_container_width=True):
         _go("match")
+    if nav[1].button("查看行动计划", use_container_width=True):
+        _go("actions")
+    if nav[2].button("回到方向", use_container_width=True):
+        _go("directions")
 
 
 def _match(controller: DemoController) -> None:
-    render_progress(5)
-    selected = st.session_state.get(SESSION_SELECTED_ROLE) or APPROVED_ROLE_IDS[0]
+    selected = _selected_role()
     render_match_insights(
         controller.match_for(selected),
         controller.confirmed_profile(),
         controller.intelligence_for(selected),
     )
-    if st.button("查看行动计划", type="primary", use_container_width=True):
+    columns = st.columns(2)
+    if columns[0].button("打开行动计划", type="primary", use_container_width=True):
         _go("actions")
+    if columns[1].button("返回岗位", use_container_width=True):
+        _go("role")
 
 
 def _actions(controller: DemoController) -> None:
-    render_progress(6)
-    selected = st.session_state.get(SESSION_SELECTED_ROLE) or APPROVED_ROLE_IDS[0]
-    render_actions(controller.match_for(selected))
-    if st.button("查看 Orange Memory", type="primary", use_container_width=True):
+    selected = _selected_role()
+    result = controller.match_for(selected)
+    events = render_actions(
+        result,
+        controller.action_statuses,
+        controller.actions_needing_evidence_review,
+    )
+    changed = False
+    for action_id, status, already_done in events:
+        if controller.action_status(action_id) != status:
+            controller.set_action_status(action_id, status)
+            changed = True
+        if already_done:
+            controller.mark_action_already_done(action_id)
+            changed = True
+    if changed:
+        st.rerun()
+    if st.button("查看 Career Exploration Map", type="primary", use_container_width=True):
+        _go("map")
+
+
+def _map(controller: DemoController) -> None:
+    render_exploration_map(controller.exploration_map())
+    if st.button("查看 Orange 对你的长期理解", type="primary", use_container_width=True):
         _go("memory")
 
 
 def _memory(controller: DemoController) -> None:
-    render_progress(7)
-    st.header("Orange Memory")
     profile = controller.current_profile_from_memory()
     if profile is None:
         st.warning("当前没有已确认画像。")
         return
-    with st.container(border=True):
-        st.markdown("#### 当前画像")
-        st.write(f"Version {profile.version} · Confirmed")
-        preferences = [item.label for item in profile.career_preferences]
-        st.write("职业偏好：" + ("、".join(preferences) or "暂无"))
-    active = controller.active_memories()
-    with st.container(border=True):
-        st.markdown("#### 长期确认信息")
-        if not active:
-            st.caption("当前没有单独保存的已确认 MemoryRecord。")
-        for memory in active:
-            st.write(f"{memory.memory_type.value} · {memory.content}")
-    with st.container(border=True):
-        st.markdown("#### 画像历史")
-        history = controller.profile_history()
-        for item in history:
-            current = "Current" if item.version == profile.version else "Historical"
-            st.write(f"v{item.version} — {current}")
+    view = memory_summary_view(
+        profile,
+        controller.active_memories(),
+        controller.profile_history(),
+    )
+    render_memory_summary(view)
 
 
 def _set_graph_error(state) -> None:
@@ -267,35 +421,36 @@ def _set_graph_error(state) -> None:
 
 
 def _error() -> None:
-    render_progress(1)
     st.header("Demo 需要重新开始")
     st.error(safe_error_message(st.session_state.get(SESSION_ERROR) or "unexpected_failure"))
 
 
 def main() -> None:
     st.set_page_config(
-        page_title="Orange Interactive Demo",
+        page_title="Orange Interactive Demo v0.2",
         page_icon="🍊",
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    apply_demo_style()
     controller = _initialize_session()
     _sidebar(controller)
     render_public_demo_banner()
     page = st.session_state[SESSION_PAGE]
-    if page in {"roles", "match", "actions", "memory"} and not _workflow_complete(
-        controller
-    ):
-        page = "profile" if controller.state else "about"
+    protected = {"directions", "role", "match", "actions", "map", "memory"}
+    if page in protected and not _workflow_complete(controller):
+        page = "profile" if controller.state else "conversation"
         st.session_state[SESSION_PAGE] = page
     try:
         {
             "welcome": _welcome,
-            "about": lambda: _about(controller),
+            "conversation": lambda: _conversation(controller),
             "profile": lambda: _profile(controller),
-            "roles": lambda: _roles(controller),
+            "directions": lambda: _directions(controller),
+            "role": lambda: _role(controller),
             "match": lambda: _match(controller),
             "actions": lambda: _actions(controller),
+            "map": lambda: _map(controller),
             "memory": lambda: _memory(controller),
             "error": _error,
         }[page]()

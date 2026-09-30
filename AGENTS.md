@@ -17,8 +17,8 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 ## 阶段式开发
 
 - 严格按 `IMPLEMENTATION_PLAN.md` 推进，不跨阶段实现。
-- 当前 Phase 7.5 只允许 public synthetic Streamlit vertical slice：薄 UI/controller adapter、session-scoped `InMemorySaver`、temporary memory DB、真实 LangGraph profile interrupt/resume、三个固定角色、validated domain output 与安全 developer trace。
-- Phase 7.5 不得实现 private mode、live provider、vector／semantic retrieval、embedding、sqlite-vec、transcript dumping、automatic authority、overall Match score、岗位排名、Canvas、职位抓取、认证、部署、Phase 7B 或 Phase 8 新能力。UI 不得拥有或复制 Agent／Match／memory 语义。
+- 当前 Phase 7.6 只允许 public synthetic conversation-first Streamlit Demo：确定性 guided conversation、动态 profile presentation、真实 LangGraph profile interrupt/resume、三个固定探索方向、role clarification、validated Match／Action views、temporary Demo Memory feedback 与安全 developer trace。
+- Phase 7.6 不得实现 private mode、live provider、free-form LLM chatbot／routing、vector／semantic retrieval、embedding、sqlite-vec、transcript dumping、automatic authority、overall Match score、岗位排名、Canvas、职位抓取、认证、部署、Phase 7B 或 Phase 8 新能力。Conversation state 只是 presentation interaction，不得拥有或复制 Agent／Match／memory 语义。
 - 不得静默改变四个核心 Agent、Golden Flow、数据边界或目录结构。必要变更必须先记录理由、影响和取舍，并取得确认。
 - 每个阶段结束时运行与风险相称的测试；测试失败不得伪装为完成。
 

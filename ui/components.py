@@ -6,14 +6,33 @@ from typing import Iterable
 
 import streamlit as st
 
-from data.models import JobIntelligenceRecord, JobRecord, MatchRelationType, MatchResult
+from data.models import JobIntelligenceRecord, JobRecord, MatchResult
 from ui.presentation import (
+    ACTION_STATUS_OPTIONS,
     GOAL_TYPE_LABELS,
-    RELATION_LABELS,
-    grouped_insights,
-    insight_view,
+    ActionTaskView,
+    CareerDirectionCardView,
+    CareerProfileView,
+    ExplorationMapView,
+    MemorySummaryView,
+    action_task_view,
+    match_insight_groups,
     role_location,
 )
+
+
+def apply_demo_style() -> None:
+    st.markdown(
+        """
+        <style>
+        .block-container {padding-top: 1.6rem; padding-bottom: 3rem;}
+        [data-testid="stSidebar"] {background: #fff8ef;}
+        div[data-testid="stVerticalBlockBorderWrapper"] {background: #fffdf9;}
+        .orange-kicker {color: #c65f13; font-weight: 700; letter-spacing: .04em;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_public_demo_banner() -> None:
@@ -24,7 +43,7 @@ def render_public_demo_banner() -> None:
 
 
 def render_progress(current_step: int, total_steps: int = 7) -> None:
-    st.caption(f"步骤 {current_step} / {total_steps}")
+    st.caption(f"探索进度 · {current_step} / {total_steps}")
     st.progress(current_step / total_steps)
 
 
@@ -39,38 +58,84 @@ def _render_labels(title: str, values: Iterable[str], *, empty: str = "暂无") 
             st.caption(empty)
 
 
+def _render_profile_chips(title: str, values, *, empty: str) -> None:
+    with st.container(border=True):
+        st.markdown(f"#### {title}")
+        if not values:
+            st.caption(empty)
+            return
+        for item in values:
+            st.markdown(f"**{item.label}**")
+            st.caption(item.authority)
+
+
+def render_dynamic_profile(view: CareerProfileView) -> None:
+    st.markdown("### 你的动态职业画像")
+    st.caption("它会随对话更新，但只有明确确认的信息才会进入长期理解。")
+    _render_profile_chips(
+        "已经表现出的能力",
+        view.demonstrated_capabilities,
+        empty="继续聊项目后，这里会出现有依据的能力或本次表达。",
+    )
+    _render_profile_chips(
+        "比较感兴趣 / 投入的事情",
+        view.interests_and_work_style,
+        empty="还没有表达具体偏好。",
+    )
+    _render_profile_chips(
+        "当前值得继续探索的方向",
+        view.exploration_directions,
+        empty="Orange 还不会过早给出方向。",
+    )
+    _render_profile_chips(
+        "还需要了解 / 证据不足",
+        view.evidence_needs,
+        empty="当前没有新增待确认项。",
+    )
+    _render_profile_chips(
+        "当前目标",
+        view.current_goals,
+        empty="目标还没有明确。",
+    )
+
+
 def render_profile_review(payload: dict[str, object]) -> None:
     profile = payload["profile"]
     if not isinstance(profile, dict):
         raise ValueError("Invalid safe profile review payload")
-    st.header("认识自己 · 画像确认")
+    st.header("这是我目前对你的理解。你觉得准确吗？")
     st.caption(f"UserProfile v{profile['version']} · 等待你的明确确认")
-    left, right = st.columns(2)
-    with left:
-        _render_labels("技能", profile.get("skills", []))
-        _render_labels("兴趣", profile.get("interests", []))
-        _render_labels("价值观", profile.get("values", []))
-        goals = [
-            f"{item['label']} · {GOAL_TYPE_LABELS.get(item['goal_type'], item['goal_type'])}"
-            for item in profile.get("goals", [])
-        ]
-        _render_labels("目标", goals)
-    with right:
-        _render_labels("优势", profile.get("strengths", []))
-        _render_labels("发展方向", profile.get("development_areas", []))
-        _render_labels("职业偏好", profile.get("career_preferences", []))
-        _render_labels("不确定项", profile.get("uncertainties", []))
-        _render_labels("澄清问题", profile.get("clarification_questions", []))
-    st.caption("这里展示的是安全画像摘要，不展示原始输入、Prompt 或隐藏推理。")
+    with st.expander("查看完整画像分类", expanded=True):
+        left, right = st.columns(2)
+        with left:
+            _render_labels("技能", profile.get("skills", []))
+            _render_labels("兴趣", profile.get("interests", []))
+            _render_labels("价值观", profile.get("values", []))
+            goals = [
+                f"{item['label']} · {GOAL_TYPE_LABELS.get(item['goal_type'], item['goal_type'])}"
+                for item in profile.get("goals", [])
+            ]
+            _render_labels("目标", goals)
+        with right:
+            _render_labels("优势", profile.get("strengths", []))
+            _render_labels("发展方向", profile.get("development_areas", []))
+            _render_labels("职业偏好", profile.get("career_preferences", []))
+            _render_labels("不确定项", profile.get("uncertainties", []))
+            _render_labels("澄清问题", profile.get("clarification_questions", []))
+    st.caption("安全摘要不展示原始输入、Prompt 或隐藏推理。")
 
 
-def render_role_card(job: JobRecord, record: JobIntelligenceRecord, *, key: str) -> bool:
+def render_role_card(view: CareerDirectionCardView, *, key: str) -> bool:
     with st.container(border=True):
-        st.subheader(job.title)
-        st.caption(f"{job.role_family.value} · {role_location(job)}")
-        if record.actual_work:
-            st.write(record.actual_work[0].label)
-        return st.button("查看岗位", key=key, use_container_width=True)
+        st.subheader(view.title)
+        st.write(view.one_line)
+        st.markdown("**为什么值得继续了解**")
+        st.write(view.why_explore)
+        st.markdown("**你已经有的交集**")
+        st.write("、".join(view.validated_overlaps) or "当前还没有直接证据")
+        st.markdown("**Orange 还想确认**")
+        st.write(view.clarification_need)
+        return st.button("深入了解", key=key, use_container_width=True)
 
 
 def render_job_intelligence(job: JobRecord, record: JobIntelligenceRecord) -> None:
@@ -95,53 +160,109 @@ def render_job_intelligence(job: JobRecord, record: JobIntelligenceRecord) -> No
 
 
 def render_match_insights(result: MatchResult, profile, record) -> None:
-    st.header(f"{result.role_title} · 匹配洞察")
-    st.caption("以下是独立的证据关系，不是总体匹配分或岗位排名。")
-    for relation, insights in grouped_insights(result):
-        st.subheader(RELATION_LABELS[relation])
-        if not insights:
-            st.caption("当前没有此类已验证关系。")
-            continue
-        if relation == MatchRelationType.EVIDENCE_MISSING:
-            st.info("当前没有足够证据证明这一能力，不代表你不具备它。")
-        for insight in insights:
-            view = insight_view(insight, profile, record)
-            with st.container(border=True):
-                st.markdown(f"#### {view.title}")
-                st.caption(f"{view.relation_label} · {view.dimension_label}")
-                st.write(view.description)
-                if view.profile_signal_labels:
-                    st.write("画像信号：" + "、".join(view.profile_signal_labels))
-                if view.job_signal_labels:
-                    st.write("岗位信号：" + "、".join(view.job_signal_labels))
-                with st.expander("查看证据来源"):
-                    st.caption(f"Insight ID：{view.insight_id}")
-                    st.write(
-                        "画像证据 ID："
-                        + ("、".join(view.profile_evidence_ids) or "无")
-                    )
-                    st.write(
-                        "岗位证据 ID：" + ("、".join(view.job_evidence_ids) or "无")
-                    )
+    st.header(f"{result.role_title} · Match Insights")
+    st.caption("这些是多维证据关系，不是结论、总体匹配分或岗位排名。")
+    for group in match_insight_groups(result, profile, record):
+        with st.expander(
+            f"{group.label} · {len(group.insights)}",
+            expanded=bool(group.insights),
+        ):
+            st.caption(group.explanation)
+            if not group.insights:
+                st.caption("当前没有此类已验证关系。")
+            for view in group.insights:
+                with st.container(border=True):
+                    st.markdown(f"#### {view.title}")
+                    st.caption(f"{view.relation_label} · {view.dimension_label}")
+                    st.write(view.description)
+                    if view.profile_signal_labels:
+                        st.write("画像信号：" + "、".join(view.profile_signal_labels))
+                    if view.job_signal_labels:
+                        st.write("岗位信号：" + "、".join(view.job_signal_labels))
+                    with st.expander("查看证据来源"):
+                        st.caption(f"Insight ID：{view.insight_id}")
+                        st.write("画像证据 ID：" + ("、".join(view.profile_evidence_ids) or "无"))
+                        st.write("岗位证据 ID：" + ("、".join(view.job_evidence_ids) or "无"))
 
 
-def render_actions(result: MatchResult) -> None:
+def render_action_task(view: ActionTaskView, *, key: str) -> tuple[str, bool]:
+    with st.container(border=True):
+        header, badge = st.columns([3, 1])
+        header.markdown(f"#### {view.target}")
+        badge.caption(view.status)
+        st.markdown("**WHY · 为什么现在做**")
+        st.write(view.why)
+        st.markdown("**WHAT · 具体怎么做**")
+        for step in view.what_to_do:
+            st.markdown(f"- {step}")
+        st.markdown("**EVIDENCE · 要留下什么证据**")
+        st.write(view.expected_evidence)
+        st.caption("关联洞察：" + "、".join(view.related_insight_ids))
+        if view.needs_evidence_review:
+            st.info("你表示已经做过；Orange 先标记为需要证据复核，不会自动确认能力。")
+        selected = st.selectbox(
+            "STATUS · 当前状态",
+            ACTION_STATUS_OPTIONS,
+            index=ACTION_STATUS_OPTIONS.index(view.status),
+            key=f"{key}_status",
+        )
+        already_done = st.button("我其实已经做过", key=f"{key}_done")
+        return selected, already_done
+
+
+def render_actions(
+    result: MatchResult,
+    statuses: dict[str, str],
+    evidence_review_ids: set[str],
+) -> list[tuple[str, str, bool]]:
     st.header(f"{result.role_title} · 行动计划")
-    st.caption("行动文字来自已验证的确定性 ActionRenderer 输出，UI 不重新生成建议。")
+    st.caption("每项任务都来自已验证 ActionItem；界面只增加确定性的执行结构。")
+    events: list[tuple[str, str, bool]] = []
     if not result.action_items:
         st.info("当前没有需要展示的已验证行动。")
-        return
+        return events
     for action in result.action_items:
-        with st.container(border=True):
-            st.markdown(f"#### {action.action_type.value}")
-            st.write(action.description)
-            st.write(f"**目标：** {action.target_label}")
-            st.write(f"**预期证据：** {action.expected_evidence}")
-            st.caption("关联洞察：" + "、".join(action.related_insight_ids))
+        view = action_task_view(
+            action,
+            result,
+            status=statuses.get(action.action_id, "未开始"),
+            needs_evidence_review=action.action_id in evidence_review_ids,
+        )
+        status, already_done = render_action_task(view, key=f"action_{action.action_id}")
+        events.append((action.action_id, status, already_done))
+    return events
+
+
+def render_exploration_map(view: ExplorationMapView) -> None:
+    st.header("你的当前 Career Exploration Map")
+    st.info("这不是最终职业决定，而是基于目前证据整理出的下一轮探索方向。")
+    columns = st.columns(3)
+    with columns[0]:
+        _render_labels("继续深入探索", view.continue_exploring)
+    with columns[1]:
+        _render_labels("保持开放", view.keep_open)
+    with columns[2]:
+        _render_labels("暂时不优先", view.deprioritized)
+    _render_labels("还需要验证的问题", view.questions_to_validate)
+
+
+def render_memory_summary(view: MemorySummaryView) -> None:
+    st.header("Orange 对你的长期理解")
+    st.info("Orange 只会把经过你明确确认的信息作为长期职业理解的一部分。")
+    left, right = st.columns(2)
+    with left:
+        _render_labels("当前职业方向", view.current_directions)
+        _render_labels("已确认能力", view.confirmed_capabilities)
+        _render_labels("工作偏好", view.work_preferences)
+        _render_labels("当前目标", view.current_goals)
+    with right:
+        _render_labels("你后来告诉 Orange", view.user_feedback, empty="还没有保存反馈")
+        _render_labels("最近发生的变化", view.recent_changes, empty="暂无已确认变化")
+        _render_labels("画像历史", view.profile_history)
 
 
 def render_developer_trace(events: list[dict[str, object]]) -> None:
-    with st.expander("开发者执行轨迹（安全）"):
+    with st.expander("开发者执行轨迹（安全）", expanded=False):
         if not events:
             st.caption("工作流尚未开始。")
             return

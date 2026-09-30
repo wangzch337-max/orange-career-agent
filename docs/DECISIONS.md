@@ -272,3 +272,22 @@ Streamlit rerun 与 server-side session object 不等于 production web architec
 
 **Status**
 Accepted — Phase 7.5
+
+## ADR-016 — Conversation-first guided UX，而不是自由聊天机器人
+
+**Context**
+Phase 7.5 已证明 Streamlit 能以真实 LangGraph interrupt/resume 展示完整 vertical slice，但页面主要以资料与结果为中心，职业画像层级较弱、actions 偏模板化，空 Memory 也不容易解释。产品需要通过对话帮助学生逐步澄清方向，同时不能让自由文本 LLM 决定 workflow、把即时回答伪装成历史证据，或绕过现有画像、Match 和 Memory authority。
+
+**Decision**
+Phase 7.6 采用 conversation-first split workspace：左侧是小型、显式、确定性的 `ConversationStage` 引导流程，右侧是随回答更新的动态职业画像。主要输入是固定单选／多选、可选短文本和确认／修订控件；conversation routing 由 Python stage contract 决定，不调用 LLM。Guided session 完成后仍由现有 LangGraph 执行 Self-Discovery、profile interrupt、same-thread confirm/revise、Job Intelligence、Match 与 Report。
+
+角色只在画像确认后作为无排名的探索方向出现。Role clarification 默认是 session-only；用户明确选择「保存」时，才通过现有 `MemoryService` 创建 confirmed `USER_FEEDBACK`，且只写当前 Demo temporary DB。Deprioritization、action status 与 exploration map 保持 session presentation state，不改变 MatchResult 或 profile authority。Action UI 使用 authoritative ActionItem 的 rationale／description／target／expected evidence，并只增加确定性的 task scaffolding。
+
+**Reason**
+结构化对话能实现 progressive disclosure、让动态画像与未知项逐步可见，并保持可预测、可测试的产品路径。它比永久自由聊天更容易说明证据、表达与确认的区别，也防止模型控制 workflow。明确的 Memory 选择保留用户控制权，并让“长期理解”只包含 confirmed information。
+
+**Tradeoffs**
+固定问题无法覆盖所有个性化追问，role Q&A 也只能使用预定义菜单；conversation state 与 graph state 需要清晰的 adapter 边界。Temporary Demo feedback 会在 reset 或 server restart 后消失，且 v0.2 不提供任意 profile field 编辑。作为回报，交互完全离线、可回归、无 provider 成本，并避免新的 LLM、private-data 和 retrieval 风险。
+
+**Status**
+Accepted — Phase 7.6

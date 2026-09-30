@@ -17,6 +17,15 @@ from data.models import (
 from memory.models import MemoryRecord, new_subject_id
 from memory.service import MemoryService, build_sqlite_memory_service
 from providers.fake import FakeLLMProvider
+from ui.conversation import ConversationStage, GuidedConversation
+from ui.presentation import (
+    ACTION_STATUS_OPTIONS,
+    ROLE_CLARIFICATION_OPTIONS,
+    ROLE_CLARIFICATION_PROMPTS,
+    CareerProfileView,
+    ExplorationMapView,
+    career_profile_view,
+)
 from workflows.langgraph_checkpoint import create_memory_checkpointer
 from workflows.langgraph_runtime import (
     DEFAULT_SELECTED_JOB_IDS,
@@ -43,6 +52,16 @@ APPROVED_ROLE_TITLES = (
     "AI Product Intern",
     "AI Application Engineer",
     "Data Analyst",
+)
+
+PROFILE_CALIBRATION_OPTIONS = ("基本准确", "我想修改", "我还不确定")
+ROLE_EXPLORATION_OPTIONS = ("继续探索", "暂时不考虑")
+ROLE_DEPRIORITIZATION_REASONS = (
+    "工作内容不感兴趣",
+    "技术方向不是我现在想发展的",
+    "工作方式不太喜欢",
+    "只是目前优先级较低",
+    "还说不清楚",
 )
 
 
@@ -87,6 +106,14 @@ class DemoController:
             )
         )
         self._state: OrangeGraphState | None = None
+        self.conversation = GuidedConversation()
+        self.profile_calibration: dict[str, str] = {}
+        self.role_clarifications: dict[str, str] = {}
+        self.saved_feedback_memory_ids: dict[str, str] = {}
+        self.role_exploration: dict[str, str] = {}
+        self.role_deprioritization_reasons: dict[str, str] = {}
+        self.action_statuses: dict[str, str] = {}
+        self.actions_needing_evidence_review: set[str] = set()
 
     @property
     def state(self) -> OrangeGraphState | None:
@@ -115,6 +142,43 @@ class DemoController:
         }:
             raise DemoWorkflowError("Public Demo did not reach the profile review gate.")
         return self._state
+
+    def submit_conversation_answer(
+        self,
+        stage: ConversationStage,
+        answer: str | tuple[str, ...] | list[str],
+        *,
+        note: str = "",
+    ) -> ConversationStage:
+        """Advance the deterministic product conversation without invoking an LLM."""
+
+        return self.conversation.submit(stage, answer, note=note)
+
+    def prepare_profile_review(self) -> OrangeGraphState:
+        """Start the real graph only after the guided discovery conversation."""
+
+        if not self.conversation.ready_for_profile_review:
+            raise DemoWorkflowError("Guided conversation is not ready for profile review.")
+        return self.start()
+
+    def career_profile_view(self) -> CareerProfileView:
+        payload: dict[str, object] | None = None
+        if self._state is not None and self._state.get("profile"):
+            profile = UserProfile.model_validate(self._state["profile"])
+            payload = {
+                "skills": [item.label for item in profile.skills],
+                "strengths": [item.text for item in profile.strengths],
+                "goals": [
+                    {"label": item.label, "goal_type": item.goal_type.value}
+                    for item in profile.goals
+                ],
+                "uncertainties": [
+                    item.get("topic", "")
+                    for item in self._state.get("profile_uncertainties", [])
+                    if isinstance(item, dict) and item.get("topic")
+                ],
+            }
+        return career_profile_view(self.conversation, payload)
 
     def profile_review_payload(self) -> dict[str, object]:
         state = self._require_state(GraphWorkflowStatus.WAITING_FOR_HUMAN)
@@ -146,6 +210,124 @@ class DemoController:
         if self._state["workflow_status"] == GraphWorkflowStatus.COMPLETED.value:
             self._validate_completed_roles()
         return self._state
+
+    def revise_profile_summary(self, education_summary: str) -> OrangeGraphState:
+        """Use the existing Phase 6 revision contract on the same graph thread."""
+
+        self._require_state(GraphWorkflowStatus.WAITING_FOR_HUMAN)
+        before_count = self.dependencies.self_discovery_agent.llm_provider.call_count
+        self._state = self.runner.resume(
+            self.workflow_id,
+            ProfileReviewDecision(
+                action=ProfileReviewAction.REVISE,
+                education_summary=education_summary,
+            ),
+        )
+        if self._state["workflow_id"] != self.workflow_id:
+            raise DemoValidationError("Workflow identity changed during revision.")
+        if self.dependencies.self_discovery_agent.llm_provider.call_count != before_count:
+            raise DemoValidationError("Self-Discovery reran during profile revision.")
+        return self._state
+
+    def set_profile_calibration(self, section: str, response: str) -> None:
+        if not section.strip() or response not in PROFILE_CALIBRATION_OPTIONS:
+            raise DemoValidationError("Invalid profile calibration response.")
+        self.profile_calibration[section] = response
+
+    def role_clarification_prompt(self, job_id: str) -> str:
+        self._require_approved_role(job_id)
+        return ROLE_CLARIFICATION_PROMPTS[job_id]
+
+    def answer_role_clarification(self, job_id: str, answer: str) -> None:
+        self._require_approved_role(job_id)
+        if answer not in ROLE_CLARIFICATION_OPTIONS:
+            raise DemoValidationError("Invalid role clarification answer.")
+        self.role_clarifications[job_id] = answer
+
+    def save_role_clarification(self, job_id: str) -> MemoryRecord:
+        """Persist only an explicitly saved answer into this Demo's temporary DB."""
+
+        self._require_approved_role(job_id)
+        if job_id not in self.role_clarifications:
+            raise DemoWorkflowError("Role clarification must be answered before saving.")
+        existing_id = self.saved_feedback_memory_ids.get(job_id)
+        if existing_id is not None:
+            records = self.active_memories()
+            for record in records:
+                if record.memory_id == existing_id:
+                    return record
+        title = APPROVED_ROLE_TITLES[APPROVED_ROLE_IDS.index(job_id)]
+        answer = self.role_clarifications[job_id]
+        record = self.memory_service.record_user_feedback(
+            self.subject_id,
+            f"对于 {title} 的工作方式，用户选择：{answer}",
+            confirmed_by_user=True,
+            metadata={
+                "demo_scope": "public_session",
+                "feedback_kind": "role_clarification",
+                "job_id": job_id,
+            },
+        )
+        self.saved_feedback_memory_ids[job_id] = record.memory_id
+        return record
+
+    def set_role_exploration(
+        self,
+        job_id: str,
+        decision: str,
+        *,
+        reason: str | None = None,
+    ) -> None:
+        self._require_approved_role(job_id)
+        if decision not in ROLE_EXPLORATION_OPTIONS:
+            raise DemoValidationError("Invalid role exploration decision.")
+        if decision == "暂时不考虑":
+            if reason not in ROLE_DEPRIORITIZATION_REASONS:
+                raise DemoValidationError("A guided deprioritization reason is required.")
+            self.role_deprioritization_reasons[job_id] = reason
+        else:
+            self.role_deprioritization_reasons.pop(job_id, None)
+        self.role_exploration[job_id] = decision
+
+    def exploration_map(self) -> ExplorationMapView:
+        """Summarize explicit exploration state without score or inferred ranking."""
+
+        continue_titles: list[str] = []
+        open_titles: list[str] = []
+        deprioritized_titles: list[str] = []
+        questions: list[str] = []
+        for job_id, title in zip(APPROVED_ROLE_IDS, APPROVED_ROLE_TITLES):
+            decision = self.role_exploration.get(job_id)
+            if decision == "继续探索":
+                continue_titles.append(title)
+            elif decision == "暂时不考虑":
+                deprioritized_titles.append(title)
+            else:
+                open_titles.append(title)
+            if job_id not in self.role_clarifications:
+                questions.append(self.role_clarification_prompt(job_id))
+        return ExplorationMapView(
+            continue_exploring=tuple(continue_titles),
+            keep_open=tuple(open_titles),
+            deprioritized=tuple(deprioritized_titles),
+            questions_to_validate=tuple(questions),
+        )
+
+    def action_status(self, action_id: str) -> str:
+        return self.action_statuses.get(action_id, "未开始")
+
+    def set_action_status(self, action_id: str, status: str) -> None:
+        if status not in ACTION_STATUS_OPTIONS:
+            raise DemoValidationError("Invalid action status.")
+        self._require_action(action_id)
+        self.action_statuses[action_id] = status
+
+    def mark_action_already_done(self, action_id: str) -> None:
+        """Request evidence review without upgrading profile authority."""
+
+        self._require_action(action_id)
+        self.actions_needing_evidence_review.add(action_id)
+        self.action_statuses[action_id] = "进行中"
 
     def confirmed_profile(self) -> UserProfile:
         state = self._require_state(GraphWorkflowStatus.COMPLETED)
@@ -211,6 +393,20 @@ class DemoController:
 
     def close(self) -> None:
         self._temporary_directory.cleanup()
+
+    def _require_approved_role(self, job_id: str) -> None:
+        if job_id not in APPROVED_ROLE_IDS:
+            raise DemoValidationError("Requested role is not part of the public Demo.")
+
+    def _require_action(self, action_id: str) -> None:
+        if not self._state or self._state["workflow_status"] != GraphWorkflowStatus.COMPLETED.value:
+            raise DemoWorkflowError("Actions are unavailable before profile confirmation.")
+        if not any(
+            action.action_id == action_id
+            for result in self.match_results()
+            for action in result.action_items
+        ):
+            raise DemoValidationError("Requested action is not part of the public Demo.")
 
     def _require_state(self, expected: GraphWorkflowStatus) -> OrangeGraphState:
         if self._state is None or self._state["workflow_status"] != expected.value:

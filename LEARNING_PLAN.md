@@ -278,6 +278,36 @@ vertical slice、UI adapter vs domain layer、Streamlit rerun model、browser se
 
 完整 UI vertical slice、same-thread confirm、rerun idempotency、三角色展示、actions/memory/trace、reset/session isolation 均有自动化与本地验证；没有 score、ranking、private data、live provider、external data 或 Phase 7B 能力。
 
+## Phase 7.6 — Conversation-First Product Redesign / Demo v0.2
+
+### 1. 学习目标
+
+把“先填表、再看结果”改造成可解释的 guided career conversation，并用 progressive disclosure 让用户先理解自己，再逐步进入岗位、证据和行动。
+
+### 2. 需要理解的概念
+
+guided conversation design、progressive disclosure、information hierarchy、session state vs domain state、product feedback → confirmed Memory、presentation transformation、task-oriented action UX，以及 career exploration vs ranking。
+
+### 3. Codex 负责
+
+实现显式 `ConversationStage`、controller-owned session interaction、动态画像 authority labels、profile calibration、role clarification、临时 confirmed feedback、Match group presentation、Action task views、Career Exploration Map、long-term understanding view、reset isolation 与离线测试；不改变 Agent／Match／Memory authority semantics。
+
+### 4. OPTIONAL DEVELOPER HANDS-ON TASK
+
+运行 Orange v0.2：从第一个引导职业问题走到画像确认；保存一条岗位澄清到 Demo Memory；完成一次 Action Plan 交互；查看 Career Exploration Map 与「Orange 对你的长期理解」；最后 Reset。
+
+### 5. 验收问题
+
+为什么 guided conversation state 不能决定 LangGraph domain routing？为什么“用户刚刚表达”不等于“已有证据”？为什么 role deprioritization 不能转成 confirmed gap？
+
+### 6. 面试中应该能如何解释
+
+用一次完整交互说明 progressive disclosure 如何降低认知负担；展示 view model 如何把 authoritative domain output 变得可读，却不改写 evidence、relation 或 action；解释显式保存如何把 session feedback 安全升级为 confirmed Memory。
+
+### 7. 完成标准
+
+Conversation、dynamic profile、role clarification、Match、Action、exploration map、Memory 与 reset 都有自动化及手动验证；界面无 profile completeness、score/ranking 或自由 LLM routing；公开合成／Fake-only／temporary-storage 边界保持成立。
+
 ## Phase 7B — Semantic/Vector Retrieval（未开始）
 
 未来单独学习 embedding、semantic similarity、vector metadata filter、retrieval evaluation 与隐私/retention tradeoff。开始前必须先证明 lexical retrieval 不足，并重新确认：semantic relevance 仍不能覆盖 explicit confirmation。

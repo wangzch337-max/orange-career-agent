@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 7.5 Orange Interactive Demo Vertical Slice；Phase 7B vector retrieval 与生产 UI 仍未实现。**
+**状态：Phase 7.6 Conversation-First Product Redesign / Demo v0.2；Phase 7B vector retrieval 与生产 UI 仍未实现。**
 
 ## 1. 架构目标
 
@@ -10,7 +10,8 @@ Orange 的架构服务于五个目标：用户保持最终决定权；重要结�
 
 ```mermaid
 flowchart TB
-    UI[Streamlit Presentation Layer<br/>public offline Demo] --> DC[Demo Controller / Runtime Adapter]
+    UI[Streamlit Conversation Workspace<br/>public offline Demo] --> GC[Guided Conversation / Presentation Controller]
+    GC --> DC[Demo Controller / Runtime Adapter]
     DC --> LG[LangGraph Orchestration Layer<br/>state / deterministic edges / interrupt / checkpoint]
     LG --> O[Orchestrator Agent<br/>deterministic-first]
 
@@ -415,3 +416,24 @@ Streamlit 是 presentation adapter，不拥有业务语义。`ui/app.py` 只接�
 Presentation mappings 只把 domain enums 与已验证对象转换成中文标签／cards。Job cards 来自 `JobRecord`／`JobIntelligenceRecord`；insight groups 来自 `MatchResult`；actions 原样展示权威 `ActionItem`；Memory summary 读取 `MemoryService`。UI 不计算 overall score、角色排名，不重新生成 action prose，也不创建额外 confirmed memory。
 
 Phase 7.5 默认只选择 `job_001`、`job_007`、`job_013`，对应 AI Product Intern、AI Application Engineer 与 Data Analyst。所有 provider 均为 `FakeLLMProvider`，Streamlit telemetry 关闭，server 默认绑定 localhost；没有 private mode、live provider、external data 或 vector retrieval。
+
+## 21. Phase 7.6 conversation-first presentation architecture
+
+```mermaid
+flowchart TB
+    SW[Streamlit Workspace<br/>guided conversation + dynamic profile] --> PC[Guided Conversation / Presentation Controller<br/>deterministic session state]
+    PC --> LG[LangGraph<br/>authoritative workflow state]
+    LG --> SD[Self-Discovery Agent]
+    LG --> JI[Job Intelligence Agent]
+    LG --> MI[Match & Insight Agent]
+    LG --> MS[MemoryService<br/>confirmed authority lifecycle]
+    PC --> VM[Presentation View Models<br/>profile / role / insight / action / map / memory]
+```
+
+`ConversationStage` 只描述产品如何逐步收集有限选择与可选短文本。它不调用 provider、不选择 graph node，也不成为第二套 Self-Discovery／Match workflow。完成 guided discovery 后，controller 才启动现有 graph；profile review、confirmation/revision、Job Intelligence、Match 与 Report 仍以 LangGraph 和既有 domain contracts 为权威。
+
+动态画像通过 presentation models 区分「已有证据」「用户刚刚表达」「待确认」「尚不确定」。Guided answer 可丰富当前 public synthetic session，但不会凭 UI 标签生成历史证据。Profile confirmation 继续使用真实 interrupt／same-thread resume；三个岗位只在确认后作为「值得探索的方向」出现，固定 layout 不表达排名。
+
+Role clarification 与 action status 属于 session interaction。Clarification 默认不写 Memory；只有用户明确选择保存时，controller 才经 `MemoryService.record_user_feedback(..., confirmed_by_user=True)` 写入该 browser session 的 temporary DB。Role deprioritization 只进入 Exploration Map，不修改 `MatchResult` 或生成 gap。Action task view 以 validated `ActionItem.rationale`、description、target、related insights 与 expected evidence 为权威，只叠加按 `ActionType` 固定的执行步骤和 session status。
+
+Phase 7.6 view models 包括 `CareerProfileView`、`CareerDirectionCardView`、`MatchInsightGroupView`、`ActionTaskView`、`ExplorationMapView` 与 `MemorySummaryView`。它们只能转换显示，不得回写 domain object。Reset 关闭当前 temporary DB，并替换 conversation、workflow、subject、checkpointer、role feedback、action status 与 exploration state。Phase 7.6 不包含自由聊天、LLM routing、live provider、private mode、external jobs、Canvas 或 vector retrieval。

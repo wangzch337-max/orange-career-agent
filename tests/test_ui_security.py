@@ -1,4 +1,4 @@
-"""Static security and dependency boundaries for Orange Interactive Demo v0.1."""
+"""Static security and dependency boundaries for Orange Interactive Demo v0.2."""
 
 from __future__ import annotations
 
@@ -83,3 +83,52 @@ def test_streamlit_app_uses_only_approved_role_ids_and_no_private_mode() -> None
         "Live AI",
     ):
         assert forbidden not in app_source
+
+
+def test_guided_conversation_has_no_provider_or_graph_routing_dependency() -> None:
+    source = (UI_ROOT / "conversation.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    imported_modules = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported_modules.update(item.name.split(".")[0] for item in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module.split(".")[0])
+    assert imported_modules.isdisjoint(
+        {"providers", "agents", "workflows", "langgraph", "openai"}
+    )
+    lowered = source.casefold()
+    assert "llmprovider" not in lowered
+    assert "generate_structured" not in lowered
+    assert "invoke(" not in lowered
+
+
+def test_v02_has_no_unrestricted_chat_percentage_ranking_or_external_runtime() -> None:
+    source = "\n".join(
+        path.read_text(encoding="utf-8") for path in UI_ROOT.rglob("*.py")
+    ).casefold()
+    for forbidden in (
+        "chat_input(",
+        "chat_message(",
+        "profile 60%",
+        "profile 80%",
+        "match score",
+        "role ranking",
+        "canvasprovider",
+        "livejobprovider",
+        "embeddingprovider",
+    ):
+        assert forbidden not in source
+
+
+def test_v02_reset_owns_all_session_product_state_through_controller() -> None:
+    app_source = (UI_ROOT / "app.py").read_text(encoding="utf-8")
+    controller_source = (UI_ROOT / "demo_controller.py").read_text(encoding="utf-8")
+    assert "controller.close()" in app_source
+    for state_name in (
+        "conversation",
+        "role_clarifications",
+        "role_exploration",
+        "action_statuses",
+    ):
+        assert state_name in controller_source

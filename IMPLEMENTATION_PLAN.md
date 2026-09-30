@@ -16,6 +16,7 @@
 | Day 8 | 6 | LangGraph Integration | 可暂停／恢复的 Golden Flow |
 | Day 9 | 7A | Structured & Persistent Memory | confirmed profile versions、curated records、lexical retrieval、purge |
 | Day 9.5 | 7.5 | Interactive Demo Vertical Slice | Streamlit presentation adapter、真实 graph confirmation、三角色 Demo |
+| Day 9.6 | 7.6 | Conversation-First Product Redesign | guided discovery、动态画像、role clarification、task UX、exploration map |
 | Later | 7B | Semantic/Vector Retrieval | 单独评估 embedding、vector backend 与检索质量；未开始 |
 | Day 10 | 8 | Observability | Agent/Tool/workflow events 与脱敏 trace |
 | Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
@@ -115,6 +116,18 @@
 **可选用户参与：**从 Welcome 手动走到 Profile Confirmation，打开三个角色的 Match 页面和 Memory Summary，再 Reset Demo；重点观察 profile confirmation 没有重新运行 Self-Discovery。此任务不是考试或完成门。
 
 **主要风险与 fallback：**Streamlit rerun 可能意外重建 runtime 或触发重复 side effect。Fallback 是 controller/checkpointer 保存在 browser session state、start 保持幂等、domain status 决定可导航页面，并由真实 graph state 而非 UI boolean 掌握进度。
+
+**状态：COMPLETE。** Phase 7.5 已通过 390 项回归，并以本地 Git checkpoint 固化；没有 push 或 remote 变更。
+
+## Phase 7.6 — Conversation-First Product Redesign / Demo v0.2
+
+**范围：**把 v0.1 结果页导向改为 conversation-first workspace。`GuidedConversation` 以显式 stage 和固定选项收集职业问题、活动偏好、AI 兴趣、项目贡献、工作方式与职业目标；右侧动态画像区分已有证据、用户刚刚表达、待确认与未知。画像确认继续通过真实 LangGraph interrupt／resume；确认后显示三个无排名探索方向、role clarification、八类 Match Insights、Why／What／Evidence／Status Action tasks、Career Exploration Map 与「Orange 对你的长期理解」。
+
+**Exit criteria：**conversation routing 完全确定且不由 LLM 决定；roles 在确认前不可用；same-thread confirmation 前后 Self-Discovery call count 为 1；role feedback 默认 session-only，明确保存才写入 temporary Demo `USER_FEEDBACK`；deprioritization 不改变 MatchResult；actions 保留 authoritative target／relation／expected evidence；map 无 score/ranking；reset 更换 workflow/subject/storage 并清除所有 v0.2 state；全程 public synthetic + Fake provider，无外部 runtime 网络与 Phase 7B 能力。
+
+**可选用户参与：**从第一个职业问题完成画像确认，保存一条 role clarification 到 Demo Memory，操作一项 Action status，查看 Career Exploration Map 与「Orange 对你的长期理解」，最后 Reset。此任务不是考试或完成门。
+
+**主要风险与 fallback：**guided answers 可能被误读为历史证据或长期事实。Fallback 是对每项显示 authority label，session answer 默认不持久化，Memory 写入必须经过显式「保存」，且 conversation state 不参与 domain routing／Match mutation。
 
 ## Phase 7B — Semantic/Vector Retrieval（未开始）
 
