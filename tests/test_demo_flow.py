@@ -55,7 +55,6 @@ def test_python_imports_exclude_unapproved_frameworks() -> None:
     forbidden_roots = {
         "langchain",
         "chromadb",
-        "streamlit",
         "qwen",
         "deepseek",
     }
@@ -70,6 +69,27 @@ def test_python_imports_exclude_unapproved_frameworks() -> None:
             elif isinstance(node, ast.ImportFrom) and node.module:
                 imported_roots.add(node.module.split(".")[0])
     assert imported_roots.isdisjoint(forbidden_roots)
+
+    # Phase 7.5 permits Streamlit only in the presentation adapter and its tests.
+    streamlit_importers = []
+    for path in PROJECT_ROOT.rglob("*.py"):
+        if ".venv" in path.parts:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        roots = {
+            alias.name.split(".")[0]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Import)
+            for alias in node.names
+        }
+        roots.update(
+            node.module.split(".")[0]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom) and node.module
+        )
+        if "streamlit" in roots:
+            streamlit_importers.append(path.relative_to(PROJECT_ROOT).parts[0])
+    assert set(streamlit_importers).issubset({"ui", "tests"})
 
 
 def test_langgraph_imports_are_confined_to_phase_6_workflow_modules() -> None:

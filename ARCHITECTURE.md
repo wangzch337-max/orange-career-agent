@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 7A Structured & Persistent Memory；Phase 7B vector retrieval 和 UI 仍未实现。**
+**状态：Phase 7.5 Orange Interactive Demo Vertical Slice；Phase 7B vector retrieval 与生产 UI 仍未实现。**
 
 ## 1. 架构目标
 
@@ -10,7 +10,8 @@ Orange 的架构服务于五个目标：用户保持最终决定权；重要结�
 
 ```mermaid
 flowchart TB
-    UI[Interface<br/>future] --> LG[LangGraph Orchestration Layer<br/>state / deterministic edges / interrupt / checkpoint]
+    UI[Streamlit Presentation Layer<br/>public offline Demo] --> DC[Demo Controller / Runtime Adapter]
+    DC --> LG[LangGraph Orchestration Layer<br/>state / deterministic edges / interrupt / checkpoint]
     LG --> O[Orchestrator Agent<br/>deterministic-first]
 
     subgraph Reasoning[Reasoning Agents]
@@ -393,3 +394,24 @@ Phase 7A retriever 先执行 subject、status、type 与 exact metadata filter�
 ### 19.5 最小 workflow integration
 
 `MemoryService` 通过 graph dependencies 注入，不进入 `OrangeGraphState` 或 checkpoint。显式 `CONFIRM` 后，graph 可幂等保存 active profile，并仅在 state 中保留 opaque `subject_id` 和小型 profile reference。Persisted profile 不会自动跳过下一次 Self-Discovery／profile review；未来产品 policy 必须另行明确决定是否加载。
+
+## 20. Phase 7.5 presentation adapter
+
+```mermaid
+flowchart TB
+    ST[Streamlit UI<br/>render + user events] --> DC[DemoController<br/>session runtime adapter]
+    DC --> LG[LangGraph<br/>real interrupt / same-thread resume]
+    LG --> DA[Existing Domain Agents<br/>Self-Discovery / Job Intelligence / Match]
+    LG --> RB[Deterministic ReportBuilder]
+    LG --> MS[Injected MemoryService]
+    DC --> CP[(Session-scoped InMemorySaver)]
+    MS --> TM[(Temporary session memory SQLite)]
+```
+
+Streamlit 是 presentation adapter，不拥有业务语义。`ui/app.py` 只接收用户点击、维护页面／selected-role 等 browser-session coordination，并渲染安全结果；`ui/demo_controller.py` 负责组装现有 public offline dependencies、启动 graph、读取真实 interrupt、以 `ProfileReviewDecision(CONFIRM)` 恢复同一 thread，以及重新验证 completed outputs。
+
+每个 browser session 独立持有 controller、`InMemorySaver`、opaque workflow/subject IDs 和 temporary memory directory。它们不进入 `OrangeGraphState`，也不使用 Phase 6／7A 的 private persistent databases。Reset 只关闭当前 temporary memory 并建立新 session runtime。
+
+Presentation mappings 只把 domain enums 与已验证对象转换成中文标签／cards。Job cards 来自 `JobRecord`／`JobIntelligenceRecord`；insight groups 来自 `MatchResult`；actions 原样展示权威 `ActionItem`；Memory summary 读取 `MemoryService`。UI 不计算 overall score、角色排名，不重新生成 action prose，也不创建额外 confirmed memory。
+
+Phase 7.5 默认只选择 `job_001`、`job_007`、`job_013`，对应 AI Product Intern、AI Application Engineer 与 Data Analyst。所有 provider 均为 `FakeLLMProvider`，Streamlit telemetry 关闭，server 默认绑定 localhost；没有 private mode、live provider、external data 或 vector retrieval。

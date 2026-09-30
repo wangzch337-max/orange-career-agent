@@ -88,7 +88,7 @@ def test_public_tests_do_not_reference_private_fixture_contents() -> None:
 def test_phase3_has_no_forbidden_framework_or_external_data_imports() -> None:
     # Phase 6 explicitly permits LangGraph and its local SQLite checkpointer;
     # the repository-wide exclusions below remain in force for other frameworks.
-    forbidden = {"langchain", "streamlit", "chromadb", "canvasapi"}
+    forbidden = {"langchain", "chromadb", "canvasapi"}
     imported = set()
     for path in ROOT.rglob("*.py"):
         if ".venv" in path.parts or "data/private" in path.as_posix():
@@ -100,6 +100,27 @@ def test_phase3_has_no_forbidden_framework_or_external_data_imports() -> None:
             elif isinstance(node, ast.ImportFrom) and node.module:
                 imported.add(node.module.split(".")[0])
     assert imported.isdisjoint(forbidden)
+
+    # Streamlit became an approved Phase 7.5 presentation dependency only.
+    streamlit_importers = []
+    for path in ROOT.rglob("*.py"):
+        if ".venv" in path.parts or "data/private" in path.as_posix():
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        modules = {
+            alias.name.split(".")[0]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Import)
+            for alias in node.names
+        }
+        modules.update(
+            node.module.split(".")[0]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom) and node.module
+        )
+        if "streamlit" in modules:
+            streamlit_importers.append(path.relative_to(ROOT).parts[0])
+    assert set(streamlit_importers).issubset({"ui", "tests"})
 
 
 def test_qwen_transport_remains_explicit_live_only() -> None:

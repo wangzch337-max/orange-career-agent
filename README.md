@@ -3,7 +3,7 @@
 > AI Career Discovery Agent for University Students
 > 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 7A — Structured & Persistent Memory**
+**当前状态：Phase 7.5 — Orange Interactive Demo Vertical Slice**
 
 Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
 
@@ -34,7 +34,8 @@ Orange 计划把用户陈述、课程与项目证据整理成可确认的结构�
 
 ```mermaid
 flowchart TD
-    UI[Future UI] --> LG[LangGraph orchestration<br/>state / routing / interrupt / checkpoint]
+    UI[Streamlit Interactive Demo<br/>presentation only] --> DC[Demo Controller<br/>runtime adapter]
+    DC --> LG[LangGraph orchestration<br/>state / routing / interrupt / checkpoint]
     LG --> O[Orchestrator Agent<br/>deterministic-first]
     O --> S[Self-Discovery Agent]
     O --> J[Job Intelligence Agent]
@@ -116,6 +117,11 @@ flowchart TD
 - deterministic exact／lexical retrieval，结果保留 authority、provenance、confidence 与 supersedes metadata；
 - LangGraph 在显式 profile confirmation 后可通过注入的 `MemoryService` 幂等保存画像；默认 workflow policy 不自动跳过 review；
 - 不保存完整 chat transcript，不使用 embedding、sqlite-vec、Chroma 或任何 vector retrieval。
+- Orange Interactive Demo v0.1：中文优先 Streamlit vertical slice，使用公开合成 persona、`FakeLLMProvider`、session-scoped in-memory checkpoint 与 temporary memory DB；
+- Welcome／About You／Profile Review／Role Explorer／Match Insights／Actions／Orange Memory 七步导航；
+- Profile Confirm 使用真实 LangGraph interrupt／resume 和同一 thread，Self-Discovery 不因 Streamlit rerun 重跑；
+- 固定展示 AI Product Intern、AI Application Engineer、Data Analyst，使用已验证 Job Intelligence、MatchResult 与 ActionItem，不计算分数或排名；
+- 可折叠安全 developer trace、session-isolated Reset Demo，以及关闭 Streamlit telemetry 的 localhost 配置。
 
 Phase 5 的 Match & Insight 从证据关系开始，不从分数开始。`evidence_missing` 只表示当前画像缺少验证材料，绝不自动变成能力弱或 `confirmed_gap`。结果保持原始 dataset／用户选择顺序，不选择最佳角色。
 
@@ -126,8 +132,20 @@ Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取
 ### 计划中 Planned
 
 - Phase 7B semantic/vector retrieval；
-- Streamlit UI；
+- 后续生产级 UI／认证／部署（Interactive Demo v0.1 不代表最终前端架构）；
 - 真实职位来源和脱敏课程导出 adapter。
+
+## Orange Interactive Demo v0.1
+
+本地运行：
+
+```bash
+.venv/bin/streamlit run ui/app.py
+```
+
+默认模式是 **Public Synthetic Demo**：只使用公开虚构学生／岗位 fixture、`FakeLLMProvider`、内存 LangGraph checkpoint 与临时 SQLite memory。它不会读取私有 Golden Case、`.env.local`、persistent workflow DB 或 persistent memory DB，也不会调用外部模型或职位 API。
+
+Demo 覆盖真实 LangGraph profile interrupt／resume、三个固定代表角色、evidence-based Match、确定性 actions 与 confirmed profile Memory summary。它不是生产 UI，不是任何大学官方产品，不包含实时职位数据，也不会默认分析真实用户。
 
 ## Roadmap（计划中，非已完成）
 
@@ -137,7 +155,8 @@ Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取
 - Phase 4：Job Intelligence Agent + Demo Role Taxonomy（完成）
 - Phase 5：Evidence-Based Match & Insight Engine（完成）
 - Phase 6：LangGraph Workflow Integration + Human-in-the-Loop Orchestration（完成）
-- Phase 7A：Structured & Persistent Memory（当前已实现）
+- Phase 7A：Structured & Persistent Memory（完成）
+- Phase 7.5：Orange Interactive Demo Vertical Slice（当前已实现）
 - Phase 7B：Semantic／Vector Retrieval（计划中）
 - Phase 8：Observability
 - Phase 9–10：Streamlit UI 与课程数据适配器
@@ -164,8 +183,11 @@ python3 -m venv .venv
 # 使用上一条命令输出的 workflow_id：
 .venv/bin/python -m workflows.langgraph_demo --checkpoint sqlite --sqlite-action resume --workflow-id <workflow_id>
 .venv/bin/python -m memory.demo
+.venv/bin/streamlit run ui/app.py
 ```
 
 Phase 6 LangGraph Demo 默认使用公开 fixture、`FakeLLMProvider` 和内存 checkpoint，全程离线。SQLite 模式只保存恢复当前工作流所需的执行状态到 `data/private/runtime/orange_workflow.sqlite3`；它不是长期记忆、向量记忆或用户历史检索。不得打印完整私有输入、raw request、完整 Prompt 或配置值。
 
 Phase 7A public memory Demo 默认使用临时 SQLite 文件、synthetic subject、公开合成 confirmed profile 与 synthetic MemoryRecords，不读取或迁移 private Golden Case。显式 `--persistent-memory` 才会使用 `data/private/memory/orange_memory.sqlite3`。Workflow checkpoint 和 long-term memory 使用不同数据库；memory retrieval 的相关性不会改变记录的 authority status。
+
+Phase 7.5 Streamlit Demo 继续完全离线：每个 browser session 拥有独立 controller、`InMemorySaver`、opaque workflow/subject IDs 与 temporary memory DB。UI 只映射已验证 domain output，不重新实现 Self-Discovery、Job Intelligence、Match、actions、memory authority 或 graph routing。

@@ -248,6 +248,36 @@ persistence vs checkpoint、authoritative profile vs memory record、candidate v
 
 profile immutable history/current pointer、curated lifecycle、subject isolation、transactional purge、deterministic lexical retrieval 与 replay idempotency 均通过；没有 transcript、embedding、vector retrieval 或自动 authority。
 
+## Phase 7.5 — Orange Interactive Demo Vertical Slice
+
+### 1. 学习目标
+
+把已经验证的 domain engine 变成一条可操作 vertical slice，同时保持 UI adapter 与业务权威边界，不因 Streamlit rerun 重复执行昂贵或有副作用的步骤。
+
+### 2. 需要理解的概念
+
+vertical slice、UI adapter vs domain layer、Streamlit rerun model、browser session state、graph state vs UI state、interrupt/resume in UI、presentation models、safe developer trace，以及 synthetic/public Demo design。
+
+### 3. Codex 负责
+
+实现 session-scoped controller、Streamlit pages、real graph profile confirmation、presentation mappings、safe error/trace、temporary memory、telemetry configuration 与 AppTest/controller regressions；不添加 private mode、live provider 或新的业务语义。
+
+### 4. OPTIONAL DEVELOPER HANDS-ON TASK
+
+可选且不作为 Phase gate：从 Welcome 手动运行到 Profile Confirmation，依次打开三个角色的 Match 页面与 Memory Summary，再 Reset Demo；确认 profile confirm 前后 Self-Discovery call count 都是 1。
+
+### 5. 验收问题
+
+为什么 UI session state 不能成为第二个业务状态机？为什么 runtime/checkpointer 可以保存在 browser session 中但不能进入 graph state？真实 interrupt/resume 如何避免确认按钮绕过领域门？
+
+### 6. 面试中应该能如何解释
+
+展示 Streamlit click/rerun 如何通过薄 controller 驱动同一 LangGraph thread；说明 presentation mapping 只改变显示、不改变 domain enums／evidence；解释 synthetic fixture、Fake provider、temporary memory 与 safe trace 如何形成可公开演示边界。
+
+### 7. 完成标准
+
+完整 UI vertical slice、same-thread confirm、rerun idempotency、三角色展示、actions/memory/trace、reset/session isolation 均有自动化与本地验证；没有 score、ranking、private data、live provider、external data 或 Phase 7B 能力。
+
 ## Phase 7B — Semantic/Vector Retrieval（未开始）
 
 未来单独学习 embedding、semantic similarity、vector metadata filter、retrieval evaluation 与隐私/retention tradeoff。开始前必须先证明 lexical retrieval 不足，并重新确认：semantic relevance 仍不能覆盖 explicit confirmation。

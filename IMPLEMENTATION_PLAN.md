@@ -15,6 +15,7 @@
 | Day 7 | 5 | Match & Insight Engine | 多维解释、friction、gap、actions |
 | Day 8 | 6 | LangGraph Integration | 可暂停／恢复的 Golden Flow |
 | Day 9 | 7A | Structured & Persistent Memory | confirmed profile versions、curated records、lexical retrieval、purge |
+| Day 9.5 | 7.5 | Interactive Demo Vertical Slice | Streamlit presentation adapter、真实 graph confirmation、三角色 Demo |
 | Later | 7B | Semantic/Vector Retrieval | 单独评估 embedding、vector backend 与检索质量；未开始 |
 | Day 10 | 8 | Observability | Agent/Tool/workflow events 与脱敏 trace |
 | Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
@@ -102,6 +103,18 @@
 **可选用户参与：**运行 public synthetic memory Demo，观察 preference 被新 confirmed record supersede 后，active query 只有新记录而 history 保留两条。此任务不是考试或 Phase 完成门。
 
 **主要风险与 fallback：**把 relevant 当 true、把 checkpoint 当 memory 或在 resume 时重复写入。Fallback 是把 authority 固定在显式 confirmation/lifecycle、保持两个 DB，并让确认 side effect 使用 immutable identity 幂等。
+
+**状态：COMPLETE。** Phase 7A 已通过 370 项回归并建立本地 checkpoint；Phase 7.5 不修改其 authority semantics。
+
+## Phase 7.5 — Orange Interactive Demo Vertical Slice
+
+**范围：**用 Streamlit 把现有 public offline engine 组成一条可见 vertical slice：Welcome → synthetic About You → real LangGraph Self-Discovery interrupt → same-thread profile confirm/resume → 三个固定角色 → validated Job Intelligence／Match／Actions → confirmed Profile Memory summary。
+
+**Exit criteria：**每个 browser session 使用独立 `InMemorySaver` 与 temporary memory DB；Self-Discovery 在确认前后 call count 均为 1；UI 只使用 Fake provider 和 public fixture；三个角色保持固定顺序；没有总体分、排名、private mode、external data、vector retrieval；Streamlit AppTest、controller tests、全部旧回归和本地手动 vertical slice 通过。
+
+**可选用户参与：**从 Welcome 手动走到 Profile Confirmation，打开三个角色的 Match 页面和 Memory Summary，再 Reset Demo；重点观察 profile confirmation 没有重新运行 Self-Discovery。此任务不是考试或完成门。
+
+**主要风险与 fallback：**Streamlit rerun 可能意外重建 runtime 或触发重复 side effect。Fallback 是 controller/checkpointer 保存在 browser session state、start 保持幂等、domain status 决定可导航页面，并由真实 graph state 而非 UI boolean 掌握进度。
 
 ## Phase 7B — Semantic/Vector Retrieval（未开始）
 

@@ -253,3 +253,22 @@ Phase 7A retrieval 仅使用 subject/type/status/metadata filtering 与 determin
 
 **Status**
 Accepted — Phase 7A
+
+## ADR-015 — Streamlit 作为 portfolio vertical slice 的 presentation adapter
+
+**Context**
+Phase 0–7A 已验证 Self-Discovery、Job Intelligence、Match、LangGraph interrupt/resume 和 persistent memory，但主要能力仍通过代码与 CLI 可见。作品集需要一个可操作的端到端 Demo，同时不能让 UI 重写业务规则、绕过 profile confirmation、读取私有数据或因 rerun 重复执行 Agent side effects。
+
+**Decision**
+Phase 7.5 使用 Streamlit 构建 Orange Interactive Demo v0.1，但只把它视为 presentation layer，不承诺最终 production frontend 架构。薄 `DemoController` 在每个 browser session 内组装现有 public offline dependencies、`InMemorySaver` 与 temporary SQLite `MemoryService`，并通过现有 `OrangeGraphRunner` 启动真实 interrupt、用 `ProfileReviewDecision(CONFIRM)` 恢复同一 thread。
+
+默认且唯一暴露的模式是 public synthetic fixture + `FakeLLMProvider`，固定显示 AI Product Intern、AI Application Engineer 和 Data Analyst。UI 只渲染 validated profile review payload、`JobIntelligenceRecord`、`MatchResult`、`ActionItem`、confirmed profile memory 和 allowlisted graph trace；不读取 private databases／credentials，不提供 live provider，不生成 score/ranking/action prose，也不实现 vector retrieval。Streamlit usage telemetry 关闭并默认绑定 localhost。
+
+**Reason**
+Streamlit 能以最少前端基础设施展示真实 Python／LangGraph engine，并提供官方 testing API 验证 click/rerun 行为。Session-scoped runtime 避免跨 browser sharing，真实 resume 证明 human-in-the-loop 不是 UI boolean；presentation mapping 让中文可读性提升而不改变 domain enums 或 evidence authority。
+
+**Tradeoffs**
+Streamlit rerun 与 server-side session object 不等于 production web architecture，也不提供 durable multi-user session、认证、移动体验或独立 frontend/backend deployment。Controller 暂时持有进程内 checkpointer 和 temporary DB，server restart 后 Demo 会重置。作为回报，v0.1 保持离线、可测试、截图友好，并让已验证 engine 在不扩大语义范围的情况下可见。
+
+**Status**
+Accepted — Phase 7.5
