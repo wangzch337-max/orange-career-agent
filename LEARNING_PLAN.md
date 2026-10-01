@@ -440,6 +440,28 @@ Run Orange from Welcome through the complete public Demo journey. Review the ten
 
 工程／产品验收通过后停止，Phase 8C 不自动 commit/push；不开始 8D。可选体验不强制考试，也不授权扩大范围。
 
+## Phase 8D — Public Portfolio Readiness
+
+### Codex 负责
+
+在恢复写权限且 pre-8D gates 通过后建立唯一已授权 Phase 8C checkpoint；整理产品入口、三个准确 Mermaid 图、文档导航、人工截图计划；审查当前与全部 Git 历史、作者元数据与许可；新增 meaningful offline readiness tests，保留全部 783 回归与 Golden statuses。无生产实现、外部请求、截图／发布或历史重写。
+
+### 开发者亲手完成（恰好一个可选任务，不是 quiz）
+
+Read the final README from top to bottom without opening any deep technical document. Then inspect the Product Flow, Agent Architecture and Memory Architecture diagrams and run the local Demo once. Judge whether a recruiter or technical interviewer could understand Orange's product value, engineering depth, quality story and limitations within five minutes.
+
+### 必须理解的概念与验收／面试问题
+
+1. 为什么 README 产品优先？先说明用户问题与体验，技术和阶段历史再解释它如何成立。
+2. 为什么 ignore 不够？ignore 不撤销历史提交；公开 Git 会暴露旧 blobs 和作者元数据。
+3. 为什么公开 EXPECTED_UNCERTAINTY？正确拒绝无证据的强结论是可验证成功，不是弱点或隐藏失败。
+4. 为什么 vector 是 derived？canonical confirmation 与 lifecycle 决定 authority，relevance 不能；索引可重建且命中必须回查。
+5. 为什么部署后置？公开 hygiene、许可与边界应先清晰，避免把本地 Demo 的风险扩展到远程服务。
+
+### 停止条件
+
+技术验证通过后停在用户发布决策；Phase 8D 不自动 commit/push、选 LICENSE、改作者／历史或开始 9A / 9B。真实私有内容／secret 在历史中出现必须 NEEDS REVIEW，不能标记完成。
+
 ## Phase 8 — Observability（历史路线，非当前实施范围）
 
 ### 1. 学习目标

@@ -1,6 +1,6 @@
 # Orange 产品规格 Product Specification
 
-**文档状态：Phase 0 产品契约**
+**文档状态：Portfolio v1 当前产品契约；Phase 8D 只整理公开入口，不改变产品行为。**
 **产品副标题：AI Career Discovery Agent for University Students**
 
 ## 1. 产品愿景 Product Vision
@@ -11,12 +11,12 @@ Orange 帮助大学生以更有证据、更透明、更可行动的方式理解�
 
 ## 2. 问题陈述 Problem Statement
 
-学生在职业探索中面对三类断层：个人经历尚未被整理为可信画像；职位名称与真实日常工作之间存在信息差；推荐结果常缺乏证据、反面因素和行动路径。Orange 计划把这些环节连接成可审阅的工作流，同时避免用单一分数替代人的判断。
+学生在职业探索中面对三类断层：个人经历尚未被整理为可信画像；职位名称与真实日常工作之间存在信息差；推荐结果常缺乏证据、反面因素和行动路径。Orange 已把这些环节连接成本地可审阅工作流，同时避免用单一分数替代人的判断。
 
 ## 3. 目标用户 Target Users
 
 - 长期用户：不同大学、学科和年级的学生。
-- 初始 Demo：以 AI 或相关方向为背景的 CityU 硕士生，但仅使用去标识化 fixture。
+- 当前 Demo：公开虚构的 AI 相关学生 persona，不读取真实用户资料；不是 CityU 官方产品。
 - 架构约束：不得假设所有用户来自 CityU；大学、地区、课程来源均应是可替换元数据或 provider。
 
 ## 4. 核心用户需求
@@ -50,7 +50,7 @@ V1 明确不包括：
 7. Match & Insight Agent 进行多维比较，确定性规则优先，语义推理按需使用。
 8. Report Builder 汇总适配依据、摩擦点、缺口与行动计划。
 9. 用户基于报告追问并检视证据。
-10. 经授权的长期结构化画像影响后续会话。
+10. 显式 Memory policy 为 profile refinement 与 role recall 提供已确认历史；新草案仍需确认。当前浏览器 Demo 使用 session 临时 store，不承诺跨启动保留。
 
 画像未确认、关键输入不完整或校验失败时，Orchestrator 应停留、请求修正或进入明确错误路径，而不是静默继续。
 
@@ -66,7 +66,7 @@ V1 明确不包括：
 
 ### 7.3 Match & Insight Agent
 
-比较 `UserProfile` 与 `JobIntelligenceRecord`；可确定的校验和计分使用规则，语义解释才使用 LLM；生成有证据的适配原因、能力缺口、潜在摩擦和行动建议。匹配分数不得表述为客观真理。
+比较 confirmed `UserProfile` 与 `JobIntelligenceRecord`；LLM 提出关系候选，确定性代码验证 schema、signal/evidence ownership、语义最低条件与 action policy。输出八类证据关系，不计算总体分、适配百分比或岗位排名；缺少证据不转 confirmed gap，职业偏好不证明能力。Job Intelligence 与 Match relation generation 不消费 retrieved Memory。
 
 ### 7.4 Orchestrator Agent
 
@@ -78,7 +78,7 @@ V1 明确不包括：
 
 ## 9. 职业角色分析 Role Analysis
 
-Job Intelligence 输出应覆盖：标准角色名称、地区／行业元数据、实际工作、核心能力、典型发展路径、优势、潜在缺点与工作方式。首个 Demo 使用约 15–20 个代表性角色，而不是数百个职位；Phase 0 不创建数据集。
+Job Intelligence 输出覆盖角色、地区／行业元数据、实际工作、能力、工作方式、协作与成长暴露；未提供的薪资、晋升等事实保持 unknown。公开 dataset 有 20 条虚构角色，交互 Demo 展示 AI Product Intern、AI Application Engineer、Data Analyst 三个方向，固定顺序不代表排名。
 
 代表范围包括：
 
@@ -99,7 +99,7 @@ Job Intelligence 输出应覆盖：标准角色名称、地区／行业元数据
 - `capability_gaps`：可验证的能力缺口；
 - `suggested_actions`：具体下一步。
 
-可用 skills、interests、values、experience、growth fit 等维度帮助解释，但不得把总分当成客观真理。输出应同时展示支持与反对因素，并明确不确定性。
+可用 skills、interests、values、experience、growth 等维度帮助解释，但不生成总体匹配分。输出同时展示支持因素、待验证摩擦与不确定性。当前 `MatchResult` 的正式字段以 [数据契约](DATA_CONTRACTS.md)和 Pydantic models 为准；本节概念名称不是额外 schema。
 
 ## 11. Evidence-first 原则
 
@@ -114,11 +114,11 @@ Job Intelligence 输出应覆盖：标准角色名称、地区／行业元数据
 
 ## 12. 地理与数据范围
 
-长期职位市场覆盖中国大陆、香港、澳门和台湾。职位数据模型应允许地区、语言、签证／工作资格、数据时间等元数据，但 Phase 0 不采集实时职位。课程数据通过 provider abstraction 输入，不直接依赖 CityU Canvas 在线服务。
+角色模型有中国大陆、香港、澳门和台湾地理元数据；这不是实时市场覆盖承诺。当前只用虚构 fixtures，不采集职位 API；签证／工作资格等未提供信息保持未知。课程数据通过 provider abstraction 输入，不依赖 Canvas 在线服务。
 
 ## 13. Demo 范围
 
-首个 Golden Case 使用去标识化的代表性学术／项目资料和约 15–20 个职业角色。Demo 聚焦“输入 → 画像确认 → 职业理解 → 匹配洞察 → 行动计划 → 追问”的完整性。Phase 0 只定义契约，不创建实际个人画像、职位数据或 AI 输出。
+Public Synthetic Demo 使用 `FakeLLMProvider`、`FakeEmbeddingProvider`、公开合成数据、内存 checkpoint 和临时 Memory DB；不读 `.env.local`、私有 Golden Case 或真实确认画像。Guided conversation 与动态画像 → Profile Review → 三个方向 → role clarification／Match／Action Plan／Exploration Map → 显式 Demo Memory；不是自由聊天、正式职业评估或生产级多用户 UI。当前状态与本地运行见 [README](README.md)。
 
 ## 14. V1 成功标准
 
@@ -133,7 +133,7 @@ Job Intelligence 输出应覆盖：标准角色名称、地区／行业元数据
 
 ## 15. 未来扩展
 
-在核心 Demo 验证后，可扩展更多大学数据适配器、职位来源、地区规则、长期记忆、导师协作、对比报告和反馈闭环。任何扩展都必须继续遵守用户确认、来源可追溯、最小数据收集和非自动决策原则。
+长期结构化 Memory、hybrid retrieval 与两个显式 consumer 已实现。更多大学 adapter、真实职位、认证／云部署、导师协作等未实现；Phase 9A / 9B 尚未开始，需单独授权。任何扩展都必须遵守用户确认、来源可追溯、最小数据收集和非自动决策原则。
 
 ## 16. 伦理与 Responsible AI
 

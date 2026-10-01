@@ -1,6 +1,8 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 8B COMPLETE（本地 checkpoint `5a6a1d1`）；当前 Phase 8C 仅表现层打磨。8A.1 live 与 8D 未开始。**
+**状态：Portfolio v1；Phase 8C COMPLETE（checkpoint `003c5bc`），Phase 8D 只整理公开说明。8A.1 live 与 Phase 9A / 9B 未开始。**
+
+本说明的总体图与产品边界是当前状态；带 Phase 标签的后续段落保留实现演进。Memory 只开放 profile refinement 与 role recall；Job Intelligence 和 Match relation generation 不消费 retrieved Memory。当前入口与三张速读图见 [README](README.md)。
 
 ## 1. 架构目标
 
@@ -26,7 +28,8 @@ flowchart TB
     O --> M
     S --> UP[(Structured User Profile)]
     J --> JR[(Job Intelligence Records)]
-    UP --> M
+    UP --> HC[Human confirmation gate]
+    HC --> M
     JR --> M
     M --> RB[Report Builder]
     RB --> O
@@ -34,7 +37,12 @@ flowchart TB
     LG <--> GS[(OrangeGraphState)]
     LG <--> CP[(Workflow Checkpoint<br/>memory or local SQLite)]
     O <--> SS[(Domain WorkflowState)]
-    O --> ML[Curated Long-term Memory Layer]
+    HC --> ML[Canonical long-term Memory]
+    ML --> POL[Explicit MemoryContextPolicy]
+    POL --> PR[ProfileRefinementService<br/>draft-only]
+    POL --> RC[RoleMemoryContextService<br/>recall presentation]
+    PR --> HC
+    RC --> RB
     O <--> TL[Tool Layer]
     O --> OB[Observability]
     S --> OB
@@ -99,16 +107,23 @@ stateDiagram-v2
 ```mermaid
 flowchart LR
     C[Current Workflow] --> CP[(Workflow checkpoint<br/>execution state)]
-    C --> PS[StructuredProfileStore<br/>authoritative confirmed versions]
-    C --> MS[MemoryStore<br/>curated durable records]
+    C --> CONF[Explicit human confirmation]
+    CONF --> PS[StructuredProfileStore<br/>authoritative confirmed versions]
+    CONF --> MS[MemoryStore<br/>curated durable records]
+    POLICY[MemoryContextPolicy<br/>consumer / types / top-k / budgets] --> QUERY[Deterministic query]
     MS --> LR[Deterministic lexical retriever]
     MS --> EP[Local EmbeddingProvider]
     EP --> VI[(Derived sqlite-vec index<br/>pysqlite3 only)]
     VI --> SR[SemanticMemoryRetriever<br/>canonical revalidation]
+    MS --> SR
+    QUERY --> LR
+    QUERY --> SR
     LR --> HR[HybridMemoryRetriever<br/>RRF k=60]
     SR --> HR
     HR --> MCB[MemoryContextBuilder<br/>bounded structured context]
-    MCB -. explicit retrieval only .-> C
+    POLICY -. budgets .-> MCB
+    MCB --> PR[ProfileRefinementService<br/>draft / separate review]
+    MCB --> RC[RoleMemoryContextService<br/>recall only]
     PS --> DB[(Separate private memory SQLite DB)]
     MS --> DB
 ```
@@ -164,11 +179,11 @@ classDiagram
     LLMProvider <|.. FutureProvider
 ```
 
-未来业务层依赖 `LLMProvider` 契约，而非某一 SDK。Phase 2 已实现 `QwenProvider`；其他供应商仅保留为接口允许的未来扩展，不创建 placeholder adapter。配置通过环境变量注入，密钥永不提交。
+业务层已依赖 `LLMProvider` 契约，而非某一 SDK。Phase 2 实现了 `QwenProvider`；其他供应商仅为未来接口扩展，不创建 placeholder adapter。默认 Demo 与 tests 使用 Fake；live 必须另行明确授权。配置通过环境变量注入，密钥永不提交。
 
 **为什么抽象 provider：**它允许根据成本、结构化输出能力、区域可用性和可靠性替换模型，也让测试使用 fake provider，而不把业务规则绑在特定供应商响应格式上。
 
-### 8.1 Phase 2 Provider 边界
+### 8.1 Phase 2 Provider 边界（历史隔离 Demo）
 
 ```mermaid
 flowchart TB
@@ -187,33 +202,23 @@ Phase 2 在 `providers.demo` 中隔离验证 `ProfileSignalExtraction`；其历�
 
 ## 9. Observability
 
-可观测性是结构化运行事实，不是模型的隐藏思维。预计记录：
+Phase 8B 可观测性是内容最小化的执行事实，不是模型隐藏思维。当前 DiagnosticEvent 只允许 opaque run/event IDs、closed component / operation / status、counts、版本、duration 与可用时的 token usage。Collector session-local、bounded；UI 默认折叠，只展示 safe projection。Raw evidence / profile / Memory / query / Prompt / completion / vectors / credentials / CoT 不进入诊断。旧 domain AgentEvent 通过 explicit adapters 转为更窄的诊断，不直接透传任意 summary。
 
-- Agent 开始／完成／失败；
-- 输入来源和安全摘要；
-- Tool 选择与安全参数摘要；
-- schema 校验结果与结构化中间结果摘要；
-- 路由决定及公开的规则原因；
-- 使用的 evidence id；
-- 重试、错误类别和延迟；
-- 在可用时记录 token／模型用量。
-
-示例 UI 事件：
+示意（数量仅说明显示类型，不是当前实际运行结果）：
 
 ```text
 [Self-Discovery Agent]
-✓ 读取 5 门课程
-✓ 提取 12 个候选技能
-✓ 识别 4 个兴趣信号
-✓ 生成 UserProfile v1
-Evidence: course / project / explicit user statement
+status: completed
+operation: self_discovery
+version: v1
+duration: measured locally
 ```
 
 **为什么展示 execution trace 而非 chain-of-thought：**用户需要知道系统做了什么、使用什么证据、如何路由以及哪里失败，而不是不可验证的内部生成过程。产品只提供可审计事件、公开规则和简洁 decision summary；不得声称暴露 raw/hidden chain-of-thought。
 
 ## 10. Interface
 
-未来 Streamlit UI 以中文为主，至少包含：背景输入、画像草案与逐项编辑、明确确认动作、角色洞察、证据与不确定性、能力缺口／行动计划、后续问答、运行事件与错误状态。UI 不能把分数设计成权威排名，也不能隐藏画像确认门。Phase 2 仍未实现 UI。
+当前中文 Streamlit 是 conversation-first 的 Public Synthetic Demo：fixed guided stages、动态画像、review / confirm / revision、三个等权方向、role clarification、八类 Match、Action Plan、Exploration Map、显式 Memory 与安全 trace。不是 unrestricted chat 或生产级多用户服务。Phase 8C 只打磨表现层；UI 不路由 domain、不定义 authority、不显示总体分／排名。每个 session 使用临时 stores 与 Fake providers，不加载真实 profile、私有配置或模型。
 
 ## 11. 安全与数据边界
 

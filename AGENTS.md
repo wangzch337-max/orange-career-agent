@@ -21,8 +21,9 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 - Job Intelligence 与 Match relation generation 不得消费 retrieved Memory。Memory-aware statement 必须保留 `memory_refs`；只有结构化同维度差异可建立 session-only `MemoryChangeCandidate`，且只有用户明确确认才可 supersede。不得用 semantic similarity 判断冲突，不得自动保存 guided answer、chat transcript 或检索结果。
 - Phase 8A 已通过 668 tests 与 27 Golden scenarios，并经明确授权建立唯一 local checkpoint `e707063`（无 push）。Evaluation 仍是外部 observer；不把评价规则放入生产 agents/workflow/UI/memory，不引入 judge／总体分／Match score／ranking。
 - Phase 8B COMPLETE：743 tests、27 Golden scenarios；唯一获授权本地 checkpoint `5a6a1d1`，无 push。安全诊断 contracts、scope/reset/isolation 和最小内容边界冻结，不记录 raw evidence/profile/Memory/query/Prompt/completion/vector/credential/CoT。
-- 当前 Phase 8C 只允许既有 Streamlit 表现层、集中轻量 visual tokens/helpers、信息层级、CTA、状态／依据／历史、固定 journey copy 与 UI 契约测试／文档。不得改变 Agent、domain、Prompt、controller、确认门、Match、Memory authority/lifecycle、evaluation 或 observability backend 语义；不添加评分／排名／画像完整度百分比、新 Agent、provider、持久化或依赖。
-- 默认网络禁用，不加载 private data、`.env.local` 或真实 model；仅 Fake providers／offline stubs。不得调用 Qwen、cloud embedding、Canvas、live jobs／cloud telemetry。Phase 8C 保持未提交，等待明确批准；不得开始 8A.1 live 或 8D public readiness。不得自动生成截图。
+- Phase 8C COMPLETE：783 tests、27 Golden scenarios；通过恢复权限后的完整 gates，获明确授权建立唯一本地 checkpoint `003c5bc`（`feat: polish orange demo experience`），无 push／remote。
+- Phase 8D COMPLETE — USER RELEASE DECISIONS PENDING：产品优先 README、准确 Mermaid 图、文档导航／当前状态、人工截图计划、当前与全历史安全审查、公开 checklist 和 35 meaningful offline readiness tests。818 passed、Golden 27 / 20 / 7 / 0 / 0；全部现有生产代码、prompts、fixtures、依赖与 783 tests 不变。不得改变 Agent、确认门、Match、Memory、Evaluation、Observability 语义或 artifact 路径。
+- 默认网络禁用，不加载 private data、`.env.local` 或真实 model；仅 Fake providers／offline stubs。不得调用 Qwen、cloud embedding、Canvas、live jobs／cloud telemetry，不自动截图。Phase 8D 保持未提交；不 push、创建 remote、部署、选择 LICENSE 或改写历史。真实敏感内容若在历史中出现必须停止公开发布并报告；不得开始 8A.1 live、Phase 9A 或 Phase 9B。
 - 不得静默改变四个核心 Agent、Golden Flow、数据边界或目录结构。必要变更必须先记录理由、影响和取舍，并取得确认。
 - 每个阶段结束时运行与风险相称的测试；测试失败不得伪装为完成。
 

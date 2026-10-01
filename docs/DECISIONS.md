@@ -387,3 +387,23 @@ Accepted — Phase 8B 已获明确批准建立本地 checkpoint `5a6a1d1`；后�
 ### Status
 
 Accepted — Phase 8C，表现层修改不自动 commit/push；Phase 8D 未开始。
+
+## ADR-022 — Product-first portfolio packaging without runtime changes
+
+### Context
+
+Phase 8C 在恢复 repository、Git metadata、evaluation output 写权限后再次通过 783 tests 与 27 Golden scenarios。用户明确授权唯一 checkpoint `003c5bc`：`feat: polish orange demo experience`，随后仅允许 Phase 8D public readiness。
+
+### Decision
+
+README 先解释产品、确认门、证据关系和行动，再展示 Product Flow / Agent Architecture / Memory Architecture。深层模块说明和旧 ADR 保留历史上下文，根目录当前说明与索引负责消除过时能力表述。只新增 documentation／readiness contracts，不修改任何现有生产代码、prompt、fixture、依赖、原 783 tests 或 artifact location。
+
+完整历史与当前公开文件都审查；发现真实私有资料必须停止而非自动 rewrite。LICENSE、作者元数据、截图、未来 repository URL 与 visibility 由用户决定。截图先准备安全计划，无截图／外部 asset／云部署／push。
+
+### Reason and tradeoffs
+
+产品入口降低理解成本，同时以已执行的 Golden 与安全边界支持工程故事；不制造 live benchmark 或 production-ready 声明。Text-native Mermaid 可维护、不引入 asset license，但这里只做结构 syntax smoke，未宣称跨 renderer 的像素验证。模式扫描加人工 public-fixture review 降低泄露风险，不等于完备法律／隐私保证。为保持全部回归与阶段记录，冻结模块 README 中历史状态保留，并由当前根入口解释。
+
+### Status
+
+Accepted — Phase 8D；修改未提交。技术 gates 和 public-readiness review 结果见 [审查记录](PUBLIC_READINESS_AUDIT.md)。Phase 9A / 9B 未开始；本 ADR 不授权发布或改写历史。

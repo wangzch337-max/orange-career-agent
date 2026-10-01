@@ -1,257 +1,246 @@
-# Orange
+# 🍊 Orange
 
-> AI Career Discovery Agent for University Students
-> 面向大学生的 AI 职业探索 Agent
+> AI Career Discovery Agent for University Students · 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 8C — Product & Demo Polish；Phase 8B COMPLETE，本地 checkpoint `5a6a1d1`，无 push。8C 仅打磨现有 Streamlit 表现层，修改等待明确批准提交；8D 未开始。**
+通过引导式对话，把经历整理成可确认的职业画像，理解岗位的实际工作，再用证据比较方向、制定下一步行动。
 
-Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
+**先理解自己，再理解工作，最后做职业决策。** Orange 不替你选「最佳岗位」，不做总体适配分数或岗位排名；缺少证据，也不等于你不具备能力。
 
-Orange 不是香港城市大学官方产品。首个演示场景计划使用经过脱敏的 CityU 硕士生背景，但产品和架构面向不同大学、地区与专业复用。
+[产品体验](#product-experience) · [本地 Demo](#demo) · [架构](#architecture) · [Evaluation](#evaluation) · [运行](#run-locally) · [文档](#documentation)
 
-## 问题 Problem
+**Hero 截图待用户选择：**建议展示公开合成 Demo 的「对话 + 动态职业画像」工作区。当前没有截图资产；[截图计划](docs/SCREENSHOT_PLAN.md)说明状态、裁剪与隐私边界。
 
-学生常看到职位名称、热门榜单或技能清单，却仍难以回答：自己真正擅长什么、一个岗位每天实际做什么、适配与摩擦点在哪里，以及下一步该采取什么行动。单一排名和不透明推荐容易把推测包装成事实，也忽略个人兴趣、价值观与成长空间。
+## Orange 是什么，为什么做
 
-## 产品概念 Product Concept
+面对相似的岗位名称和技能清单，学生仍可能不知道：哪段经历能说明自己的能力？岗位每天实际做什么？哪些是已有交集，哪些只是兴趣，哪些还需要材料验证？
 
-Orange 计划把用户陈述、课程与项目证据整理成可确认的结构化画像，再以一致方式解释候选角色，最后生成带证据的适配洞察、能力缺口和行动建议。用户始终可以确认、修改或补充画像；系统展示多维证据关系，不用总体匹配分数或岗位排名替用户做决定。
+Orange 把这些问题连成一条可审阅的探索旅程。它是本地作品集 Demo，不是心理测评、就业保证或自动投递工具，也不是香港城市大学官方产品；产品和架构面向不同大学与专业。
 
-## 预期工作流 Intended Workflow
+<a id="product-experience"></a>
+## 产品体验 Product Experience
 
-1. 用户输入背景信息。
-2. Orchestrator Agent 启动工作流。
-3. Self-Discovery Agent 分析陈述与证据。
-4. 系统生成结构化 `UserProfile`。
-5. **用户确认、修改或补充画像。**
-6. Job Intelligence Agent 分析候选职业角色。
-7. Match & Insight Agent 比较画像与角色。
-8. Report Builder 生成职业洞察与行动计划。
-9. 用户提出后续问题。
-10. 长期画像记忆在用户授权下影响后续对话。
+1. **从一个职业问题开始。** 通过固定选项、多选及可选短文本聊经历、投入的活动、工作偏好和目标；不是开放式自由聊天。
+2. **看到理解逐步形成。** 左侧对话，右侧动态画像；「已有证据／你刚刚表达／待确认／尚不确定」分开显示。
+3. **由你校准画像。** 草案必须经过真实的人工审阅与确认门；修订后仍需重新确认。
+4. **探索三个方向。** AI Product Intern、AI Application Engineer、Data Analyst 使用同一结构展示；固定顺序不是排名。
+5. **看清岗位与自己。** 岗位事实、你的情况、来自已确认历史的「Orange 记得」分别呈现，再查阅可解析的双侧证据关系。
+6. **把未知变成行动。** Action Plan 说明为什么做、具体做什么、要留下什么证据；行动状态只属于本次会话，完成不自动证明能力。
+7. **保留经你确认的理解。** 明确保存 Demo feedback、查看当前画像与历史，或重置 Demo；新表达不会自动成为长期事实。
 
-## 系统架构预览 System Architecture
+### Product Flow
 
 ```mermaid
-flowchart TD
-    UI[Streamlit Conversation Workspace<br/>presentation only] --> GC[Guided Conversation / Presentation Controller<br/>deterministic session interaction]
-    GC --> DC[Demo Controller<br/>runtime adapter]
-    DC --> LG[LangGraph orchestration<br/>state / routing / interrupt / checkpoint]
-    LG --> O[Orchestrator Agent<br/>deterministic-first]
-    O --> S[Self-Discovery Agent]
-    O --> J[Job Intelligence Agent]
-    O --> M[Match & Insight Agent]
-    S --> P[(Structured User Profile)]
-    J --> R[(Job Intelligence Records)]
-    P --> M
-    R --> M
-    M --> B[Report Builder]
-    O -. events .-> OBS[Observability]
-    O --> MEM[Curated Long-term Memory<br/>canonical authority / lexical retrieval]
-    MEM --> VEC[Derived Local Vector Index<br/>semantic + RRF / explicit only]
-    O --- T[Tool Layer]
+flowchart LR
+    U["用户的职业问题"] --> GC["Guided Career Conversation"]
+    GC --> D["Evidence-backed Draft Profile"]
+    D --> H{"Human Review / CONFIRM Gate"}
+    H -->|"修改或补充"| D
+    H -->|"明确确认"| CP["Confirmed Profile"]
+    CP --> R["三个值得探索的方向 / 非排名"]
+    R --> J["Job Intelligence / 岗位理解"]
+    J --> M["Evidence-based Match"]
+    M --> A["Action Plan / 探索地图"]
+    CP -->|"确认后保存"| L["长期理解 / Canonical Memory"]
+    A -->|"用户明确保存 feedback"| L
+    L -->|"显式 refinement / 仍生成草案"| D
 ```
 
-详细设计见 [ARCHITECTURE.md](ARCHITECTURE.md)，概念数据契约见 [DATA_CONTRACTS.md](DATA_CONTRACTS.md)。
+确认前不会进入方向与匹配；「长期」是 Memory 能力的语义，当前浏览器 Demo 使用临时存储，不承诺跨次启动保留。
 
-## 四个核心 Agent 角色
+## 核心能力与差异
 
-- **Self-Discovery Agent**：从用户、课程与项目证据中形成候选技能、兴趣、价值观、优势、发展领域和目标，并生成可追溯的 `UserProfile`。
-- **Job Intelligence Agent**：规范化职业信息，解释实际工作、能力要求、发展路径、优缺点和工作方式。
-- **Match & Insight Agent**：比较用户与角色，生成有证据支持的适配解释、潜在摩擦、能力缺口和行动建议。
-- **Orchestrator Agent**：以确定性状态转换为主，管理流程、路由、校验、重试、错误和结果聚合；它不是完全自治的 LLM Agent。
+| 能力 | Orange 如何约束它 |
+|---|---|
+| Evidence-backed profile | 来源、置信度与不确定性，由用户确认 |
+| Guided conversation | 固定阶段，不由 LLM 自由路由，不显示画像完整度百分比 |
+| 证据关系而非分数 | 双侧信号与 evidence ownership 校验，未知不变弱点 |
+| 有依据的行动 | exact target、关联 insight、确定性描述与预期证据 |
+| 人工确认 Memory | immutable profile versions、curated lifecycle、subject isolation |
+| Semantic / Hybrid retrieval | 本地 embedding、canonical revalidation、RRF；相关不等于真实 |
+| Evaluation + safe diagnostics | 离线 Golden 检查产品边界，内容最小化事件解释执行过程 |
 
-## 隐私、安全与责任
+<a id="architecture"></a>
+## 架构 Architecture
 
-- 仓库按公开项目标准设计，不提交真实学号、联系方式、账号标识或任何 API/token。
-- 真实个人数据与公开演示 fixture 严格分离；公开数据必须去标识化。
-- 重要结论区分明确事实、观察证据、模型推断与建议。
-- 产品不进行心理诊断，不保证就业结果，不自动投递职位。
-- 可观测性只展示 execution trace、事件、证据与结构化 decision summary，不展示隐藏 chain-of-thought。
+四个固定核心概念角色：**Orchestrator Agent** 管状态与确认门；三个语义 Agent 分别负责 Self-Discovery、Job Intelligence、Match & Insight。LLM 提出候选；确定性 Python 负责校验、组装、权威状态和行动渲染。Report Builder 不是第五个 Agent。
 
-## 项目状态 Project Status
+### Agent Architecture
 
-### 已实现 Implemented
-
-- Pydantic 领域模型、证据 provenance 与安全 JSON 序列化；
-- 可版本化、可修订、可确认的 `UserProfile`；
-- 普通 Python 实现的显式状态机和 deterministic-first Orchestrator；
-- 四个核心 Agent 概念；三个推理 Agent 均通过 `LLMProvider` 注入并由确定性代码约束；
-- 本地 Course／Job fixture provider 与确定性 Report Builder；
-- 不可跳过的画像确认门、修订返回路径和非法转换拒绝；
-- 内存 `AgentEvent`／`ToolEvent` 与安全 routing summary；
-- 三门虚构课程、20 条 Fictional Demo Job Records 和匿名用户 fixture；
-- 离线 Demo 与 pytest 测试；
-- provider-independent `LLMProvider` 严格结构化生成契约；
-- 完全离线的 `FakeLLMProvider`；
-- Alibaba Cloud Model Studio OpenAI-compatible `QwenProvider`；
-- `ProfileSignalExtraction`、严格 Pydantic schema 与 evidence-ID 白名单校验；
-- `profile_signal_extraction@v1` 版本化中文 Prompt；
-- timeout／429／连接／5xx 的有限重试与安全错误归一化；
-- token usage、latency、prompt metadata 与 retry count 的 credential-safe wrapper；
-- 默认不联网的 Phase 2 Provider Demo；
-- `self_discovery@v2` 中文结构化 Prompt：使用证据支持的最窄专业标签，并显式区分 career／project／learning goals；v1 保留为不可变历史；
-- 确定性 `SourceEvidenceBuilder`、evidence whitelist 和 `ProfileAssembler`；
-- 明确事实／证据推断区分、职业偏好、不确定性与 0–5 个澄清问题；
-- 保守 development-area 规则：缺少证据绝不自动视为弱点；
-- provider-injected `SelfDiscoveryAgent`、安全事件与不可跳过的画像确认门；
-- Git-ignored 私有 Golden Case 路径，以及完全公开安全的离线测试路径。
-- 六类轻量 `RoleFamily` taxonomy 与 Mainland China／Hong Kong／Macau／Taiwan 地理元数据；
-- 确定性 `JobEvidenceBuilder`、严格 `JobIntelligenceExtraction` 和 evidence-ID 白名单；
-- 确定性 `JobIntelligenceAssembler`，保留岗位事实／证据推断、confidence 与不确定性；
-- provider-injected `JobIntelligenceAgent`、安全事件与 20-role 公共离线 Demo；
-- salary、晋升、work-life、remote policy、team size 与完整技术栈缺失时明确保持 unknown。
-- Qwen `qwen3.8-flash` non-thinking live 语义验证已覆盖产品、工程与分析三类代表角色。
-- confirmed-profile Match 硬门与最小化 `MatchContextBuilder`；
-- `MatchDimension`／`MatchRelationType` taxonomy，以及双向 `MatchEvidenceLink`；
-- 明确区分 strong／partial alignment、evidence missing、confirmed gap、experience-depth gap、preference alignment、potential friction 与 unknown；
-- 确定性 `MatchInsightAssembler` 与 evidence-linked `ActionItem` 安全策略；
-- 仅描述覆盖情况的 metrics，不计算 overall match score、适配百分比或岗位排名；
-- 使用公开合成 confirmed profile 的 all-20 offline Match Demo。
-- LangGraph 编排层与显式 `OrangeGraphState`，同时保留原有确定性 workflow engine；
-- 真实 `interrupt`／`Command(resume=...)` 画像审阅门、同一 thread identity 恢复和领域模型确认／修订语义；
-- 自动测试／短期 Demo 使用内存 checkpoint，手动本地恢复使用 Git-ignored SQLite checkpoint；
-- provider-independent Agent nodes、确定性 routing、安全失败状态与 graph execution events；
-- public FakeLLMProvider Demo 可在暂停后恢复，并可跨 SQLite runner 重建继续执行。
-- 独立 `StructuredProfileStore`，只保存 confirmed `UserProfile`，保留不可变版本历史与显式 current pointer；
-- curated `MemoryRecord`、candidate／confirmed／superseded／archived lifecycle，以及显式 user-feedback confirmation；
-- 独立 Git-ignored SQLite long-term memory DB、subject isolation、transactional hard purge；
-- deterministic exact／lexical retrieval，结果保留 authority、provenance、confidence 与 supersedes metadata；
-- LangGraph 在显式 profile confirmation 后可通过注入的 `MemoryService` 幂等保存画像；默认 workflow policy 不自动跳过 review；
-- 不保存完整 chat transcript；Phase 7A canonical Memory DB 仍不包含 vector table。
-- Orange Interactive Demo v0.2：中文优先、conversation-first 的 Streamlit workspace，使用公开合成 persona、`FakeLLMProvider`、session-scoped in-memory checkpoint 与 temporary memory DB；
-- 确定性引导问题、随回答演进且区分「已有证据／用户刚刚表达／待确认／尚不确定」的动态职业画像；
-- Profile Confirm 使用真实 LangGraph interrupt／resume 和同一 thread，Self-Discovery 不因 Streamlit rerun 重跑；
-- 确认后才展示 AI Product Intern、AI Application Engineer、Data Analyst 三个「值得探索的方向」，不计算分数或排名；
-- role clarification 可仅用于当前 session，也可经明确选择保存为 confirmed Demo `USER_FEEDBACK`；
-- Match Insights 保留八类关系，Action Plan 使用 Why／What／Evidence／Status 任务卡，结尾提供无评分的 Career Exploration Map；
-- 「Orange 对你的长期理解」只显示已确认画像、active confirmed feedback 与真实画像历史；另有可折叠安全 trace 和 session-isolated Reset Demo。
-- `EmbeddingProvider` 抽象与 deterministic `FakeEmbeddingProvider`；normal pytest 不加载模型、不联网；
-- local-only FastEmbed adapter，选择 384-d `paraphrase-multilingual-MiniLM-L12-v2`，model-specific query／passage 行为封装在 provider 内；
-- canonical `orange_memory.sqlite3` 继续使用 stdlib sqlite3；separate derived `orange_vectors.sqlite3` 只使用 pysqlite3 + sqlite-vec；
-- active confirmed-only indexing、content hash／model identity metadata、subject isolation、lifecycle sync、stale-vector canonical revalidation、rebuild 与 coordinated purge；
-- 原有 deterministic lexical retriever 保留；semantic + lexical 通过固定一基 RRF `k=60` 融合并保留 lexical／semantic／fusion rank；
-- `MemoryContextBuilder` 生成 bounded structured authoritative context，但不自动注入 Self-Discovery、Job Intelligence、Match 或 LangGraph。
-- `MemoryUseCase` 与 deterministic `MemoryContextPolicy` 只开放 `PROFILE_REFINEMENT`、`ROLE_EXPLORATION`；每个 use case 固定 type allowlist、hybrid mode、top-k、record／character budget 与唯一 consumer；
-- Profile refinement 把「当前会话最新表达」「confirmed profile」「active confirmed historical Memory」保持为三层 authority，产出 draft profile，仍须单独 Profile Review；
-- Role Deep Dive 通过「🍊 Orange 记得／来自你之前确认的信息／查看依据」显示有 `memory_refs` 的 recall，不修改岗位事实或 `MatchResult`；
-- 只有带 `signal_dimension`／`signal_value`／`signal_version` 的结构化同维度 Memory 才能建立 session-only `MemoryChangeCandidate`；semantic similarity 不判断冲突；
-- 只有用户明确确认才可创建／supersede long-term Memory；retrieval、defer 与 uncertain 路径都不写 canonical DB。
-
-Phase 5 的 Match & Insight 从证据关系开始，不从分数开始。`evidence_missing` 只表示当前画像缺少验证材料，绝不自动变成能力弱或 `confirmed_gap`。结果保持原始 dataset／用户选择顺序，不选择最佳角色。
-
-`GoalType` 将职业目标、项目交付目标和学习目标分开保存。项目目标可以作为项目／经验证据，但不会仅凭自身自动成为职业偏好或职业匹配结论。
-
-Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取候选信号，但权威 `UserProfile` 始终由确定性 Python 组装并保持 draft，等待用户确认。
-
-### 计划中 Planned
-
-- Agent-aware memory context integration（只有 retrieval quality 继续验证后才考虑）；
-- 后续生产级 UI／认证／部署（Interactive Demo v0.2 不代表最终前端架构）；
-- 真实职位来源和脱敏课程导出 adapter。
-
-## Orange Interactive Demo v0.2
-
-本地运行：
-
-```bash
-.venv/bin/streamlit run ui/app.py
+```mermaid
+flowchart TB
+    UI["Streamlit / Guided Conversation"] --> DC["DemoController / presentation adapter"]
+    DC --> O["Orchestrator Agent / LangGraph state, routing, interrupt, checkpoint"]
+    O --> S["Self-Discovery Agent"]
+    O --> J["Job Intelligence Agent"]
+    O --> M["Match & Insight Agent"]
+    S --> PA["Deterministic Profile Assembly + Human Confirmation"]
+    J --> JA["Deterministic Job Assembly / Job Evidence"]
+    PA --> M
+    JA --> M
+    M --> V["Deterministic Relation, ID, Evidence, Action Validation"]
+    V --> R["MatchResult / Report Builder / Presentation"]
+    PA -->|"confirmed write"| MEM["Canonical Memory / separate support layer"]
+    MEM --> P["Explicit MemoryContextPolicy"]
+    P --> PR["ProfileRefinementService / draft-only"]
+    P --> RC["RoleMemoryContextService / recall presentation"]
+    PR --> PA
+    RC --> R
+    O -.-> OBS["Safe Observability / external observer"]
 ```
 
-默认模式是 **Public Synthetic Demo**：只使用公开虚构学生／岗位 fixture、`FakeLLMProvider`、内存 LangGraph checkpoint 与临时 SQLite memory。它不会读取私有 Golden Case、`.env.local`、persistent workflow DB 或 persistent memory DB，也不会调用外部模型或职位 API。
+Memory 只开放 `PROFILE_REFINEMENT` 与 `ROLE_EXPLORATION`；**Job Intelligence 与 Match relation generation 不消费 retrieved Memory**。检索到的历史不改变岗位事实，也不直接生成匹配关系。Provider abstraction 支持离线 Fake 与显式 Qwen adapter，默认 Demo 不调用真实模型。
 
-Demo 先通过选择题、多选和可选短文本进行 guided discovery，右侧动态画像同步区分证据、表达、待确认和未知；画像确认仍使用真实 LangGraph interrupt／resume。确认后才进入三个固定职业方向，继续完成 role clarification、evidence-based Match、任务式 Action Plan、Career Exploration Map 与明确确认的 Demo Memory feedback。它不是自由聊天机器人或生产 UI，不包含实时职位数据，也不会默认分析真实用户。
+### Memory Architecture
 
-## Roadmap（已完成与后续计划分开标记）
-
-- Phase 1：领域模型与确定性工作流骨架（当前已实现）
-- Phase 2：LLM Provider 抽象与首次结构化调用（完成）
-- Phase 3：Evidence-Backed Self-Discovery Agent（完成）
-- Phase 4：Job Intelligence Agent + Demo Role Taxonomy（完成）
-- Phase 5：Evidence-Based Match & Insight Engine（完成）
-- Phase 6：LangGraph Workflow Integration + Human-in-the-Loop Orchestration（完成）
-- Phase 7A：Structured & Persistent Memory（完成）
-- Phase 7.5：Orange Interactive Demo Vertical Slice（完成并建立本地 checkpoint）
-- Phase 7.6：Conversation-First Product Redesign / Demo v0.2（完成并建立本地 checkpoint）
-- Phase 7B：Semantic & Hybrid Memory Retrieval（完成并建立本地 checkpoint）
-- Phase 7C：Context-Aware Memory Integration（完成，本地 checkpoint `1c64e7a`）
-- Phase 8A：Evaluation Framework（完成，本地 checkpoint `e707063`）
-- Phase 8A.1：optional live evaluation（未开始，必须另行授权）
-- Phase 8B：Safe Observability & Diagnostics（完成，本地 checkpoint `5a6a1d1`）
-- Phase 8C：Product & Demo Polish（表现层验收，未提交）
-- Phase 8D：Public Portfolio Readiness（未开始，需单独授权）
-- Phase 9–10：Streamlit UI 与课程数据适配器
-- Phase 11–13：测试、成本控制、演示案例与最终打磨
-
-约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入后续阶段。
-
-## Phase 8A Golden Evaluation
-
-```bash
-.venv/bin/python -m evaluation.run
-.venv/bin/python -m evaluation.run --scenario SD_002
-.venv/bin/python -m evaluation.run --capability memory --tag offline
+```mermaid
+flowchart TB
+    C["Canonical Store / authoritative confirmed profile + curated Memory"]
+    POL["MemoryContextPolicy / use case, consumer, types, top-k, budgets"] --> Q["Deterministic query / explicit read-only request"]
+    C --> ACT["Active confirmed MemoryRecord only / same subject"]
+    ACT --> L["Lexical retrieval"]
+    ACT -->|"index only eligible records"| E["Local embedding / Fake in Demo"]
+    E --> D["Derived sqlite-vec index / discardable + rebuildable"]
+    Q --> L
+    Q --> S["Semantic retrieval"]
+    D --> S
+    S --> V["Canonical revalidation / lifecycle + subject + hash"]
+    C --> V
+    L --> RRF["Hybrid retrieval / rank RRF k=60"]
+    V --> RRF
+    RRF --> B["MemoryContextBuilder / bounded structured context"]
+    POL -.-> B
+    B --> PR["PROFILE_REFINEMENT / draft + separate confirmation"]
+    B --> RC["ROLE_EXPLORATION / referenced recall only"]
 ```
 
-三个 evaluation layers 覆盖 Self-Discovery、Job Intelligence、Match、Memory、Conversation、Action 与端到端旅程。27 个公开合成场景不读取私有 Golden Case、不调用 Qwen/cloud embedding、不引入 LLM judge 或总体质量分。PASS、FAIL、EXPECTED_UNCERTAINTY、NEEDS_REVIEW 由 required/forbidden/provenance 等结构规则确定；未知被正确保留时是成功，而不是系统失分。
+Policy 在检索前决定权限与范围，builder 在检索后执行数量／字符预算。相似度和 RRF 只决定相关顺序，不决定 authority 或职业适配。Canonical Memory 是事实来源；只索引 active confirmed MemoryRecord，不索引完整画像或聊天记录。向量索引可丢弃、重建，命中必须回查当前已确认记录。Workflow checkpoint 只恢复执行，是第三个独立边界。
 
-生成安全 JSON 和 failures-first Markdown 到 Git-ignored `artifacts/evaluation/`。结果：20 PASS、7 EXPECTED_UNCERTAINTY、0 FAIL、0 NEEDS_REVIEW。完整使用、状态推导、taxonomy、范围局限与 CLI exit code 见 [evaluation/README.md](evaluation/README.md)。Fake-only suite 不是 live model benchmark，也不能证明任意语言的语义正确性。
+更多：[系统架构](ARCHITECTURE.md) · [数据契约](DATA_CONTRACTS.md) · [Memory 实现说明](memory/README.md)。
 
-## Phase 8B 安全诊断
+## Evidence-based Match
 
-在 public synthetic Demo 中展开默认折叠的「开发者执行轨迹（安全）」，查看 Run Summary、Workflow Timeline、Component Activity、Memory Activity、Match Diagnostics、Warnings / Failures 与 Raw Safe Events。只有 opaque ID、closed category、status、count、版本、可用时的 token usage 与实测 duration；没有 evidence text、profile JSON、Memory content、query、Prompt、completion、embedding、credential 或隐藏推理。
+八类关系分开展示：strong alignment、partial alignment、evidence missing、confirmed gap、experience depth gap、preference alignment、potential friction、unknown。
 
-`observability/` 是 session-local observer，不是数据库、遥测 exporter 或评分器。Profile Review interrupt/resume 使用同一 diagnostic run；渲染不生成事件，Reset 清空旧 collector 并创建新 identity。Golden evaluation 每个 scenario 独立 run，只在报告中保存 bounded run/event references，不嵌入 trace。未知是正常产品状态，不自动成为诊断 warning。
+- `evidence_missing`：岗位要求已知，但当前画像缺少证明材料；不是能力不足。
+- `confirmed_gap`：需要明确的限制证据；不能从缺失材料推出来。
+- `preference_alignment`：兴趣／偏好支持探索方向，不证明专业能力或正式工作经验。
+- `unknown`：信息不足，先保留问题；摩擦也不是「不适合」的职业裁决。
 
-全程无需新增服务、环境变量或依赖。离线测试与 Demo 使用 Fake providers；Qwen instrumentation 仅通过 transport stub 测试，没有 live 请求。使用与限制见 [observability/README.md](observability/README.md)。8B 已建立唯一获授权本地 checkpoint；8C 不自动提交或 push，8D 未开始。
+请求限定的 signal-ID schema、严格结构化输出、relation-aware validation、双侧 evidence resolver 与 deterministic action policy 共同约束候选。无自动语义修复、总体质量分、总体适配概率或「Best Role」。
 
-## Phase 8C — Product & Demo Polish
+<a id="evaluation"></a>
+## Evaluation：质量证据与局限
 
-保持 Streamlit，不改写前端或业务层。`ui/visual_system.py` 集中维护有限颜色、字体／间距尺度、圆角、surface、badge、空状态、旅程与安全错误表现。橙色只用于品牌和主要 CTA；组件使用原生 bordered containers、可折叠依据与稳定结构，HTML 文案统一 escape，没有 JavaScript、外部 CSS／字体／CDN 或新依赖。
+Golden Suite 是生产系统外部 observer，覆盖 deterministic contracts、semantic Golden cases、end-to-end journeys。Self-Discovery、Job Intelligence、Match、Memory、Conversation、Action 都有公开合成场景。
 
-欢迎页先解释职业探索：先理解自己，再理解岗位，不排名、不替用户做最终决定。公开演示／虚构数据／离线 AI 以轻量持续标签呈现。对话 workspace 保留左侧 guided conversation、右侧动态职业画像；窄屏堆叠，旅程用「了解你／经历／工作偏好／探索目标／确认画像」以及已聊过／当前／接下来，**不是画像完整度百分比**。阶段过渡是固定文案，不由 LLM 生成，不提供跳过确认门的导航。
+| 本地验证 | 已核实结果 |
+|---|---|
+| Phase 8C 回归基线 | 783 passed / 0 failed |
+| Phase 8D 本地最终回归 | 818 passed / 0 failed（保留 783；新增 35 项公开 readiness contracts） |
+| Golden Suite | 27 scenarios：20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW |
 
-职业画像区分已有证据、你刚刚表达、待确认、尚不确定。Profile Review 是校准时刻，完整分类可展开，确认按钮明确；UI 标签不产生 authority。三张方向卡使用同一结构／权重：角色含义、为何值得探索、已有交集、关键未知。固定顺序不代表推荐排名。
+`EXPECTED_UNCERTAINTY` 是成功状态：证据不足时，系统正确拒绝给出更强结论。它不是部分失败，也不是为了隐藏失败设置的豁免。任何必要检查失败仍是 FAIL。
 
-岗位事实、你的情况、Orange 记得分别展示；Memory 依据保留确认内容、类型、状态与时间，不在主视图展示 opaque IDs。Match 保留八类既有 relation，并用交集／补证据／偏好／待确认摩擦／未知的辅助文案解释；「当前没有足够证据，不代表你不具备它」始终可见，没有分数、星级、仪表或适配进度条。Action cards 区分 WHY／WHAT／EVIDENCE／STATUS，状态只属于本次会话，完成不自动确认能力。探索地图仍不是最终职业决定。
+这些 Fake／synthetic 结果验证已定义契约和案例，不是 live-model benchmark、招聘效果证明或心理测评。没有 LLM judge、accuracy 百分比或总体 quality score。报告在 Git-ignored `artifacts/evaluation/`，不会作为公开输入或权威画像。详见 [Evaluation 说明](evaluation/README.md)。
 
-长期理解突出当前确认信息，把真实画像版本和 superseded history 放到次要折叠区，不删除历史、不编造版本。Developer Diagnostics 留在页面底部且默认折叠；只改善 safe projection 的排版／表格，不改变 Phase 8B 验证与录制契约。空状态说明原因和下一步，错误只用既有安全类别文案；已有同步 spinner 不宣称后台工作。Reset 仍清理原 session／Memory／diagnostics 并创建新 identity。
+## Safe Observability
 
-使用公开合成 Demo，FakeLLMProvider／FakeEmbeddingProvider 为默认；不读取私有 Golden Case、真实画像、Memory 或凭据，不进行任何外部 runtime 请求。产品验收范围／人工步骤见 [docs/PRODUCT_UX_ACCEPTANCE.md](docs/PRODUCT_UX_ACCEPTANCE.md)。本阶段不自动生成截图；十个目标视图供开发者在本地 UI 中最终审美复核，不是 Phase 8D 作品集包装。
+底部默认折叠的「开发者执行轨迹（安全）」展示 timeline、component / Memory activity、生命周期、数量、版本、实测时长和可用时的 token usage。事件只允许 opaque IDs 与 closed categories；Reset 清理 session-local collector。
 
-## 本地验证 Local Validation
+不记录 raw profile、evidence text、Memory content、query、Prompt、completion、向量、凭据或隐藏 chain-of-thought。不把诊断成功当职业结论，也没有云 telemetry。详见 [安全诊断](observability/README.md)。
 
-目标运行环境为 Python 3.10+，当前本地开发环境为 Python 3.11。Phase 3 沿用 Pydantic、pytest、OpenAI-compatible transport SDK 与 python-dotenv：
+<a id="demo"></a>
+## Demo：公开、虚构、离线
+
+默认 **Public Synthetic Demo** 使用公开合成 persona、20 条虚构岗位中的三个展示方向、`FakeLLMProvider`、`FakeEmbeddingProvider`、内存 LangGraph checkpoint 与 session 临时 SQLite stores。
+
+不会加载 `.env.local`、私有 Golden Case、真实确认画像或私有持久 DB，不需要 API key，也不需要下载 embedding model。保存 feedback 仅影响本次 Demo 的临时 Memory；关停／Reset 后不承诺保留。请勿输入真实私人资料。
+
+截图尚未拍摄；[六个截图目标](docs/SCREENSHOT_PLAN.md)与[产品 UX 验收](docs/PRODUCT_UX_ACCEPTANCE.md)可用于人工复核。Demo 是 guided workflow，不是无限自由聊天或生产级多用户服务。
+
+<a id="run-locally"></a>
+## Run Locally
+
+在已取得的仓库副本中运行（尚无 remote，不提供虚构 clone URL）：
 
 ```bash
-python3 -m venv .venv
+cd /path/to/orange-career-agent
+python3.11 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m pytest
-.venv/bin/python app.py
-.venv/bin/python -m workflows.demo
-.venv/bin/python -m providers.demo
-.venv/bin/python -m agents.self_discovery_demo
-.venv/bin/python -m agents.job_intelligence_demo
-.venv/bin/python -m agents.match_insight_demo
-.venv/bin/python -m workflows.langgraph_demo
-.venv/bin/python -m workflows.langgraph_demo --checkpoint sqlite --sqlite-action start
-# 使用上一条命令输出的 workflow_id：
-.venv/bin/python -m workflows.langgraph_demo --checkpoint sqlite --sqlite-action resume --workflow-id <workflow_id>
-.venv/bin/python -m memory.demo
-.venv/bin/python -m memory.semantic_demo
-# 模型已明确下载并缓存后，完全本地运行：
-HF_HUB_OFFLINE=1 .venv/bin/python -m memory.local_embedding_validation
 .venv/bin/streamlit run ui/app.py
 ```
 
-Phase 6 LangGraph Demo 默认使用公开 fixture、`FakeLLMProvider` 和内存 checkpoint，全程离线。SQLite 模式只保存恢复当前工作流所需的执行状态到 `data/private/runtime/orange_workflow.sqlite3`；它不是长期记忆、向量记忆或用户历史检索。不得打印完整私有输入、raw request、完整 Prompt 或配置值。
+打开终端显示的 localhost 地址。Python **3.11.9** 在本地已验证；当前验证平台为 macOS Apple Silicon。这不是全部操作系统兼容性承诺。已有有效 `.venv` 时可直接运行最后一行；不要覆盖含其他用途的环境。
 
-Phase 7A public memory Demo 默认使用临时 SQLite 文件、synthetic subject、公开合成 confirmed profile 与 synthetic MemoryRecords，不读取或迁移 private Golden Case。显式 `--persistent-memory` 才会使用 `data/private/memory/orange_memory.sqlite3`。Workflow checkpoint 和 long-term memory 使用不同数据库；memory retrieval 的相关性不会改变记录的 authority status。
+安装依赖通常需要网络；**默认 Demo 和 automated tests 的运行不需要外部网络**，不加载真实模型。`requirements.txt` 同时包含 runtime 与 test dependencies，尚未拆成发布锁文件。
 
-Phase 7.6 Streamlit Demo 继续完全离线：每个 browser session 拥有独立 controller、deterministic guided-conversation state、`InMemorySaver`、opaque workflow/subject IDs 与 temporary memory DB。Conversation state 只负责产品交互；UI 仍只映射已验证 domain output，不重新实现 Self-Discovery、Job Intelligence、Match、actions、memory authority 或 graph routing。角色澄清默认只留在 session，只有用户选择「保存」时才进入该 session 的 temporary Demo Memory。
+```bash
+.venv/bin/python -m pytest -q
+.venv/bin/python -m evaluation.run
+```
 
-Phase 7B public semantic Demo 只建立 temporary canonical/vector DB 和 synthetic subject。默认使用 `FakeEmbeddingProvider`；real-model validation 是单独、显式、cache-only 的命令。Embedding dependency／public model 下载可以联网，但 runtime retrieval 不调用云端，任何 private profile、Memory、query、向量或凭据都不会上传。删除 derived vector DB 不影响 canonical profile／Memory，并可通过 `rebuild_subject_index()` 从 active confirmed records 重建。
+Canonical Memory 使用标准库 `sqlite3`；独立 derived vector index 使用 `pysqlite3==0.6.0` + `sqlite-vec==0.1.9`（当前安装的间接依赖），为本地 extension loading 保留 binding 边界，**不全局替换 sqlite3**。
 
-公开模型默认缓存到 `~/.cache/orange/fastembed`，不进入仓库。`LocalEmbeddingProvider` 默认 `allow_download=False`；正常 runtime 若缓存缺失会安全失败，不会静默联网。
+可选真实 embedding 集成使用 FastEmbed / ONNX、384-d `paraphrase-multilingual-MiniLM-L12-v2`，本地包元数据标为 Apache-2.0。默认 adapter cache-only，模型未缓存时安全失败；显式模型下载是另一项操作，不是 Demo／pytest 前置步骤。见 [Memory 说明](memory/README.md)与[第三方许可记录](docs/THIRD_PARTY_NOTES.md)。
 
-Phase 7C public Demo 仍使用公开合成 persona、`FakeLLMProvider` 与 `FakeEmbeddingProvider`。打开角色时，UI 才通过明确的 `ROLE_EXPLORATION` policy 构造 bounded context；Job Intelligence 和 Match pipeline 没有 Memory consumer。AI Product Intern 提供结构化偏好变化场景：当前表达先用于 session，只有明确选择更新才 supersede 旧 Memory；随后生成的 profile v2 仍是 draft，必须单独确认。没有 Qwen、cloud embedding、private Golden Case、private Memory 或 live job 调用。
+## Project Structure
+
+```text
+orange-career-agent/
+├── agents/          # 三个语义 Agent、确定性 assemblers、Report Builder
+├── providers/       # LLM abstraction、Fake、显式 Qwen transport
+├── config/prompts/  # 版本化 prompts（历史版本保留）
+├── workflows/       # Orchestrator、LangGraph、人工确认与 checkpoints
+├── memory/          # Canonical stores、local retrieval、显式 consumers
+├── evaluation/      # 外部 Golden observer、合成场景、safe reports
+├── observability/   # 最小化事件、session collector、安全 diagnostics
+├── ui/              # Streamlit、presentation adapter、visual system
+├── data/fixtures/   # 公开虚构数据；私有及 runtime 数据不提交
+├── docs/            # 决策、验收、公开审查与截图计划
+└── tests/           # Offline unit、contract、integration、AppTest
+```
+
+## Technical Decisions
+
+Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承担 interrupt／resume，不取代领域规则；provider injection 让业务不绑定 transport；canonical / derived / checkpoint 分离避免相关性越权。保持 Streamlit 和少量视觉 tokens，不为作品集包装重写前端。历史取舍见 [ADRs](docs/DECISIONS.md)。
+
+## Privacy & Safety
+
+`.env*`（仅 `.env.example` 空占位除外）、`data/private/`、`data/local/`、本地模型、evaluation / diagnostic artifacts 与 `.venv` 均不提交。公共 fixtures 是虚构素材，不是匿名化后可反推的真实学生画像。当前文件干净不代表历史干净，公开前必须审查全部 Git 历史；[本地审查记录](docs/PUBLIC_READINESS_AUDIT.md)说明范围与局限。
+
+作者元数据会随 Git 历史公开；发布前由仓库所有者决定。截图只用合成 Demo，禁止真实姓名、学号、联系方式、私有材料、凭据与可识别本机路径。公开 readiness 不等于已发布。
+
+## Current Scope & Limitations
+
+已实现本地 guided discovery → 确认 → 岗位理解 → evidence-based Match → actions，以及显式 Memory、Golden Evaluation 和安全诊断。尚未实现认证、生产级多用户隔离服务、云部署、实时招聘、Canvas 在线集成、无约束对话或就业效果验证。Fake 输出不证明真实 LLM 的任意语义可靠性。
+
+## Roadmap
+
+Portfolio v1：核心能力、本地 Demo、Evaluation、诊断、UI polish 与 Phase 8D 公开入口整理已完成；发布仍等待用户决策，8D 修改尚未提交。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留工程演进，而非占据首页。
+
+**Phase 9A — Web Deployment Readiness** 与 **Phase 9B — Public Web Deployment** 均未开始，必须单独授权。认证、真实模型模式、云数据和部署是否需要，属于未来决策，不是当前承诺。
+
+<a id="documentation"></a>
+## Documentation
+
+| 入口 | 用途 |
+|---|---|
+| [Product Spec](PRODUCT_SPEC.md) | 当前产品边界与用户确认原则 |
+| [Architecture](ARCHITECTURE.md) | 组件边界、数据流、当前与历史实现 |
+| [Data Contracts](DATA_CONTRACTS.md) | 领域／抽取／Memory／Evaluation／诊断 contracts |
+| [Implementation Plan](IMPLEMENTATION_PLAN.md) | 完成状态、阶段历史、未授权路线 |
+| [Learning Plan](LEARNING_PLAN.md) | 工程概念与一个可选阅读／Demo 任务 |
+| [Decisions](docs/DECISIONS.md) | 追加式 ADR 历史与取舍 |
+| [Memory](memory/README.md) | Canonical / semantic / hybrid、显式 consumers |
+| [Evaluation](evaluation/README.md) | Golden layers、状态、CLI 与限制 |
+| [Observability](observability/README.md) | 安全事件与诊断边界 |
+| [Product UX Acceptance](docs/PRODUCT_UX_ACCEPTANCE.md) | Phase 8C 的本地交互／布局验收 |
+| [Public Release Checklist](docs/PUBLIC_RELEASE_CHECKLIST.md) | 每项 PASS／BLOCKED／用户决策 |
+| [Portfolio Acceptance](docs/PORTFOLIO_ACCEPTANCE.md) | 公开阅读与工程故事审阅 |
+| [Screenshot Plan](docs/SCREENSHOT_PLAN.md) | 人工截图目标与 asset 策略 |
+
+深层模块 README／旧 ADR 中的 Phase 标签保留其历史上下文；当前能力和未来状态以本入口及根目录产品／架构说明为准。
+
+## License
+
+仓库目前没有 `LICENSE`。**USER DECISION REQUIRED**：由所有者选择许可后再发布；本阶段不默认授予开源使用权，也不自动选择 MIT 或 Apache。依赖和模型的许可证不是 Orange 自身的许可证。

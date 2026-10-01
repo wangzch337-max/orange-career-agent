@@ -21,13 +21,13 @@
 | Day 9.8 | 7C | Context-Aware Memory Integration | explicit policies、profile refinement、role recall、human-confirmed changes |
 | Day 10 | 8A | Evaluation Framework | contract / semantic Golden / journey、安全报告 |
 | Day 10.5 | 8B | Safe Observability & Diagnostics | COMPLETE；checkpoint `5a6a1d1`，无 push |
-| Day 10.6 | 8C | Product & Demo Polish | 表现层 visual system／信息层级／UX acceptance，未提交 |
-| 后续（未开始） | 8A.1 / 8D | optional live / public portfolio readiness | 必须分别授权 |
-| Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
-| Day 12 | 10 | Course Data Adapter | mock + sanitized export provider |
-| Day 13 | 11 | Reliability & Cost | 测试、错误处理、重试、成本控制 |
-| Day 14 | 12 | Demo & Story | Golden/edge cases、README、面试叙事 |
-| Day 15 | 13 | Final Polish | release audit、演示视频与 fallback |
+| Day 10.6 | 8C | Product & Demo Polish | COMPLETE；checkpoint `003c5bc`，无 push |
+| 当前 | 8D | Public Portfolio Readiness | COMPLETE — USER RELEASE DECISIONS PENDING；未提交 |
+| 后续（未开始） | 8A.1 | optional live evaluation | 单独授权，不是当前离线质量证明 |
+| 后续（未开始） | 9A | Web Deployment Readiness | 需要单独定义与授权 |
+| 后续（未开始） | 9B | Public Web Deployment | 需要单独定义与授权 |
+
+Phase 8C 已完成并在通过恢复权限后的 783 tests / Golden gates 后建立本地 checkpoint `003c5bc`：`feat: polish orange demo experience`，无 push。下面初始 Phase 9–13 内容仅保留历史路线，不是当前后续授权；部分 UI／可靠性／story 工作已提前纳入当前 Portfolio v1。
 
 ## Phase 0 — Foundation & Product Contract
 
@@ -163,7 +163,7 @@
 
 **Exit criteria：**Phase 7C checkpoint、493 原回归保留、新测试与 complete Golden suite 通过；不隐藏 FAIL/review；任意 authority/subject/private/gate/lifecycle/network BLOCKING failure 必须 NEEDS REVIEW。报告保存在 ignored artifacts，Phase 8A 不自动 commit/push。
 
-**状态：COMPLETE。** 668 tests、27 scenarios（20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW）；本地 checkpoint `e707063`，无 push。8A.1 live、8C polish、8D public readiness 均未开始。
+**状态：COMPLETE。** 当时 668 tests、27 scenarios（20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW）；本地 checkpoint `e707063`，无 push。后续 8B / 8C 已完成，当前 8D 只整理公开入口；8A.1 live 仍未开始。
 
 ## Phase 8B — Safe Observability & Diagnostics
 
@@ -183,7 +183,17 @@
 
 **状态：COMPLETE（本地工程／产品验收）。** 783 passed / 0 failed；Golden 27 / 20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW。全部十个视图及 50 步按本地结构／交互／布局验收 PASS；无截图生成，最终 live 审美复核保留为唯一可选开发者任务。
 
-**停止条件：**所有 Phase 8C 变更留在 working tree，等待明确批准提交；不 push／创建 remote。Phase 8D — Public Portfolio Readiness 仅为未来计划，不开始 live evaluation、包装／发布／云部署或任何其他扩展。
+**Checkpoint：**已获明确批准，在全部 pre-8D gates 通过后建立唯一本地 `003c5bc`；没有 push／remote。8D 文档整理不会重新修改表现层或 core semantics。
+
+## Phase 8D — Public Portfolio Readiness
+
+**范围：**产品优先中文 README、Product / Agent / Memory Mermaid 图、人工截图计划与 asset 策略、文档导航／当前状态、tracked／untracked／ignore／全 Git 历史审查、LICENSE 与作者元数据记录、公开与 portfolio checklist、meaningful offline tests。无新生产能力／依赖／artifact 路径／语义。
+
+**验收：**保留全部 783 tests；full pytest、27 Golden（20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW）、internal link／Markdown／diff check、public Demo 与安全审查。当前结果见 [公开审查记录](docs/PUBLIC_READINESS_AUDIT.md)与[验收](docs/PORTFOLIO_ACCEPTANCE.md)。
+
+**状态：PHASE 8D COMPLETE — USER RELEASE DECISIONS PENDING。** 818 passed / 0 failed（原 783 不变 + 35 readiness tests）；Golden 前后不变；当前与全 13 commits 安全审查、本地 browser Demo、文档导航通过。无 LICENSE、图片、remote 或部署；剩余用户决定不等于技术 blocker。
+
+**边界：**Phase 8D 修改留在 working tree，等待用户决策；不选择 LICENSE、不自动截图、不创建 remote／push／release、不改写历史、不云部署、不开始 9A / 9B。历史发现真实凭据／私有资料必须停止。技术完成不代表已发布，许可／作者元数据／截图／仓库地址与 visibility 仍由用户决定。
 
 ## Phase 8 — Observability（历史初始路线）
 
@@ -195,7 +205,7 @@
 
 **主要风险与 fallback：**过量日志泄露数据或干扰 UI。Fallback 是只保留生命周期、引用、计数、错误码和延迟等最小事件。
 
-## Phase 9 — Streamlit UI
+## Phase 9 — Streamlit UI（历史路线，非当前 Phase 9A）
 
 **范围：**中文优先界面，包括背景输入、画像编辑／确认、角色洞察、证据、行动计划、follow-up 与 execution trace。
 
@@ -249,7 +259,7 @@
 
 进度受限时，按以下顺序优先删减，而不是牺牲画像确认、证据或安全：
 
-1. Vector Memory／Chroma（保留 session + structured profile）；
+1. 历史上的 vector extension 预算（当前 local hybrid 已实现；Chroma 没有引入）；
 2. 实时职位搜索、网页抓取和大规模数据集；
 3. 多个真实 LLM provider（保留接口、fake 与一个 adapter）；
 4. Canvas 在线连接（保留 mock／脱敏导出 adapter）；

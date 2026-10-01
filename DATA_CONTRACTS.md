@@ -1,11 +1,11 @@
 # Orange 概念数据契约 Data Contracts
 
-**状态：Phase 8A。核心领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；evaluation contracts 独立位于 `evaluation/models.py`，不修改领域语义。**
+**状态：Portfolio v1 / Phase 8D 文档审阅；未修改任何 schema。** 领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；Memory、Evaluation、diagnostic contracts 各自独立。早期表格是概念映射，不是可直接发送的 JSON schema；实际字段／required／enums 以 Pydantic models 与后面的实现映射为准。
 
 ## 1. 通用约定
 
 - 标识符使用不可推断个人身份的字符串；示例均为虚构、脱敏数据。
-- 时间使用带时区的 ISO 8601；地区未来采用明确代码与显示名。
+- 时间使用带时区的 ISO 8601；地区已使用明确 enum，city 分开保存。
 - 必填表示对象能否通过 schema 校验，不代表用户必须公开敏感信息。
 - 重要推断通过 `evidence_ids` 指向 `EvidenceItem`，不得只留在自由文本。
 - `confidence` 为 `0.0–1.0` 的校准信号或枚举映射，表达不确定性，不表示客观真理。
@@ -13,7 +13,7 @@
 
 ### 1.1 Provenance 枚举
 
-`source_type` 未来至少支持：
+早期 provenance 概念包含以下类别（实际枚举见 `EvidenceSourceType`，不得按本列表构造新 schema）：
 
 - `explicit_user_input`：用户明确陈述；
 - `course`：课程或课程成果证据；
@@ -110,7 +110,7 @@
 | `goals` | `list[Goal]` | 用户目标 | 用户／综合 | 是 | `[]` |
 | `confirmed_at` | `datetime?` | 用户确认时间 | 系统 | 否 | `null` |
 
-`EvidenceBackedStatement` 是未来可复用的小结构，至少包含 `text`、`source_type`、`confidence`、`evidence_ids` 和 `confirmed_by_user`。
+`EvidenceBackedStatement` 已实现并保留 provenance、confidence、evidence IDs 与确认状态；以领域模型为准。
 
 ## 8. `JobRecord`
 
@@ -308,7 +308,7 @@ Context 同时保存 confirmed current profile、current explicit signal 与 bou
 
 `MemoryType` 固定为 `profile_signal`、`career_preference`、`goal`、`project_evidence`、`course_evidence`、`user_feedback`、`career_insight`。`MemoryStatus` 固定为 `candidate`、`confirmed`、`superseded`、`archived`。模型推断默认只能建立 `candidate`；即使 confidence 很高，也必须通过显式确认操作才能成为 `confirmed`。
 
-## 19. `Report`
+## Report 展示概念映射
 
 Report Builder 对已校验结构的展示聚合。
 
@@ -323,14 +323,14 @@ Report Builder 对已校验结构的展示聚合。
 | `limitations` | `list[str]` | 数据／模型限制 | 系统 | 是 | `["不是就业结果保证"]` |
 | `generated_at` | `datetime` | 生成时间 | 系统 | 是 | `2026-03-01T10:05:00+08:00` |
 
-## 20. 校验与演进原则
+## 校验与演进原则
 
 - 所有跨组件输入输出在边界校验；无效对象不得进入 Shared State。
 - schema 需要显式版本，迁移不能静默丢失用户确认状态或 provenance。
 - 用户修改应生成新画像版本，并记录被替代版本，不原地覆盖审计历史。
 - `evidence_ids` 必须可解析；引用不存在时构建报告失败并产生结构化事件。
-- score 的算法、权重和缺失值策略必须版本化、可测试、可解释。
-- Phase 1 才决定具体 Python/Pydantic 实现；Phase 0 不包含代码模型。
+- 不存在总体 Match score、权重、角色排名；lexical/RRF 内部 relevance 只用于检索，不表示职业适配。
+- 核心 Python/Pydantic 实现已落地；Phase 8D 只更新文档，不改变 model／schema／validation。
 
 ## 21. Phase 2 Provider Extraction Contracts
 
