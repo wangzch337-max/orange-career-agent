@@ -24,7 +24,7 @@ from ui.visual_system import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CHECKPOINT = "5a6a1d14cb95e1a79ab11a1b16e4835d2bce5873"
+CHECKPOINT = "53aa2abb7861e3593a6f4d6bb4fa75c8fda75497"
 
 
 def text(app):

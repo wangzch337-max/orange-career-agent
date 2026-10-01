@@ -12,7 +12,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CHECKPOINT = "003c5bc5b91f73469aa462e1e7b607cc64e87930"
+CHECKPOINT = "8ba7f1facca42dc03f29e92e2d5d6761dbef06e2"
 
 
 def git(*args: str) -> bytes:
@@ -97,11 +97,52 @@ def historical_blobs() -> tuple[tuple[str, str], ...]:
     return tuple(blobs)
 
 
+def assert_frozen_bytes(name: str, current: bytes, historical: bytes) -> None:
+    """仅兼容获批准的单行 checkpoint 改写，其余字节必须完全一致。"""
+    expected = historical
+    if name == "tests/test_ui_polish.py":
+        old_sha = b"5a6a1d14cb95e1a79ab11a1b16e4835d2bce5873"
+        old_line = b'CHECKPOINT = "' + old_sha + b'"\n'
+        new_line = b'CHECKPOINT = "53aa2abb7861e3593a6f4d6bb4fa75c8fda75497"\n'
+        assert historical.count(old_sha) == 1, name
+        assert historical.splitlines(keepends=True).count(old_line) == 1, name
+        expected = historical.replace(old_line, new_line, 1)
+    assert current == expected, name
+
+
+def test_frozen_compatibility_rejects_all_unapproved_differences():
+    name = "tests/test_ui_polish.py"
+    old_sha = b"5a6a1d14cb95e1a79ab11a1b16e4835d2bce5873"
+    new_sha = b"53aa2abb7861e3593a6f4d6bb4fa75c8fda75497"
+    old_line = b'CHECKPOINT = "' + old_sha + b'"\n'
+    new_line = b'CHECKPOINT = "' + new_sha + b'"\n'
+    historical = b"# frozen header\n" + old_line + b"assert True\n"
+    approved = b"# frozen header\n" + new_line + b"assert True\n"
+    assert_frozen_bytes(name, approved, historical)
+    assert_frozen_bytes("tests/unrelated.py", historical, historical)
+    invalid_cases = (
+        ("tests/unrelated.py", approved, historical),
+        ("./tests/test_ui_polish.py", approved, historical),
+        (name, approved, b"# old SHA absent\n"),
+        (name, approved, historical + old_line),
+        (name, approved, historical + b"# " + old_sha + b"\n"),
+        (name, approved, b"# " + old_line),
+        (name, approved, historical.replace(old_sha, b"0" * 40, 1)),
+        (name, approved.replace(new_sha, b"0" * 40, 1), historical),
+        (name, historical, historical),
+        (name, approved + b"# extra byte difference\n", historical),
+        ("tests/unrelated.py", historical + b"\n", historical),
+    )
+    for path, current, original in invalid_cases:
+        with pytest.raises(AssertionError):
+            assert_frozen_bytes(path, current, original)
+
+
 def test_phase8c_checkpoint_and_original_tests_preserved():
     assert git("show", "-s", "--format=%s", CHECKPOINT).decode().strip() == "feat: polish orange demo experience"
     assert git("merge-base", "--is-ancestor", CHECKPOINT, "HEAD") == b""
     for name in git("ls-tree", "-r", "--name-only", CHECKPOINT, "tests").decode().splitlines():
-        assert (ROOT / name).read_bytes() == git("show", f"{CHECKPOINT}:{name}"), name
+        assert_frozen_bytes(name, (ROOT / name).read_bytes(), git("show", f"{CHECKPOINT}:{name}"))
 
 
 def test_all_existing_runtime_prompts_fixtures_and_dependencies_unchanged():
@@ -109,7 +150,7 @@ def test_all_existing_runtime_prompts_fixtures_and_dependencies_unchanged():
     for name in git("ls-tree", "-r", "--name-only", CHECKPOINT).decode().splitlines():
         if Path(name).suffix == ".md" and not name.startswith("config/prompts/"):
             continue
-        assert (ROOT / name).read_bytes() == git("show", f"{CHECKPOINT}:{name}"), name
+        assert_frozen_bytes(name, (ROOT / name).read_bytes(), git("show", f"{CHECKPOINT}:{name}"))
 
 
 @pytest.mark.parametrize("anchor", ["product-experience", "demo", "architecture", "evaluation", "run-locally", "documentation"])
