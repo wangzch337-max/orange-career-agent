@@ -1,6 +1,6 @@
 # 本地第三方许可记录
 
-这是 Phase 8D 的本地元数据盘点，不是完整法律意见／transitive license audit，也不替 Orange 选择许可证。仓库未包含 `LICENSE`；项目许可仍为 USER DECISION REQUIRED。公开分发前由所有者决定许可、核对实际分发版本及需要保留的 notices。
+这是 Phase 8D 的本地元数据盘点，不是完整法律意见／transitive license audit。用户已在 Orange V1 Public Release Preparation 中明确选择 [MIT License](../LICENSE)，版权声明为 Copyright (c) 2026 王梓丞。MIT 仅适用于 Orange 项目源码，不重新许可第三方依赖、外部模型或素材；它们继续遵循原许可证与 notices。公开分发前仍应核对实际分发版本及需要保留的 notices。
 
 ## 当前环境的软件
 

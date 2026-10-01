@@ -243,4 +243,6 @@ Portfolio v1：核心能力、本地 Demo、Evaluation、诊断、UI polish 与 
 
 ## License
 
-仓库目前没有 `LICENSE`。**USER DECISION REQUIRED**：由所有者选择许可后再发布；本阶段不默认授予开源使用权，也不自动选择 MIT 或 Apache。依赖和模型的许可证不是 Orange 自身的许可证。
+Orange project source code is released under the [MIT License](LICENSE).
+
+用户已明确选择 MIT；版权声明为 Copyright (c) 2026 王梓丞。此许可只适用于 Orange 项目源码，不重新许可第三方依赖、外部模型或未来第三方素材；它们继续遵循各自许可证与 notices，见 [第三方许可记录](docs/THIRD_PARTY_NOTES.md)。

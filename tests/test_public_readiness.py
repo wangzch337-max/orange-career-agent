@@ -341,11 +341,35 @@ def test_public_personal_identifier_patterns_current_and_history():
     assert findings == []
 
 
-def test_license_and_author_choices_not_automatically_taken():
-    assert not (ROOT / "LICENSE").exists()
+def test_user_approved_standard_mit_license_and_third_party_distinction():
+    expected = '''MIT License
+
+Copyright (c) 2026 王梓丞
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+'''
+    assert (ROOT / "LICENSE").read_text() == expected
     notes = (ROOT / "docs/THIRD_PARTY_NOTES.md").read_text()
     assert "Apache-2.0" in notes and "MiniLM-L12-v2" in notes
-    assert "USER DECISION REQUIRED" in (ROOT / "README.md").read_text()
+    assert "不重新许可" in notes and "原许可证" in notes
+    readme = (ROOT / "README.md").read_text()
+    assert "[MIT License](LICENSE)" in readme and "不重新许可第三方依赖" in readme
     assert git("remote").strip() == b""
 
 
