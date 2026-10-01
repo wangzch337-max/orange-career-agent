@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 7B Semantic & Hybrid Memory Retrieval；Agent-aware memory injection 与 Phase 8 尚未开始。**
+**状态：Phase 7C Context-Aware Memory Integration；Phase 8 尚未开始。**
 
 ## 1. 架构目标
 
@@ -468,3 +468,26 @@ RRF 对两个来源都使用一基 rank，固定 `k=60`。排序依次为 fusion
 Lifecycle coordination 在 canonical write 成功后更新 derived index。跨两个文件不存在单一 SQLite transaction：index failure 不回滚或否定 canonical authority，而是留下 safe diagnostic，随后可 rebuild；purge 先删除 canonical long-term data，再删除 subject vectors，vector cleanup failure 标记 `cleanup_required`。Workflow checkpoint DB 永远不属于该 purge。
 
 `MemoryService.retrieve_context()` 是唯一新增的显式未来 integration surface。四个 Agent 与 LangGraph 均未自动调用它；删除／损坏 vector DB 时 canonical read/write 继续工作，hybrid retrieval 可明确降级为 lexical-only mode。
+
+## 23. Phase 7C explicit context consumption
+
+```mermaid
+flowchart TB
+    I[Current Interaction] --> U[MemoryUseCase]
+    U --> P[MemoryContextPolicy]
+    P --> H[HybridMemoryRetriever]
+    H --> B[MemoryContextBuilder]
+    B --> C[Authoritative bounded MemoryContext]
+    C --> PR[PROFILE_REFINEMENT consumer]
+    C --> RE[ROLE_EXPLORATION consumer]
+    C -. forbidden .-> JI[JOB_INTELLIGENCE]
+    C -. forbidden .-> MR[MATCH_RELATION_GENERATION]
+```
+
+`MemoryPolicyRegistry` 固定每个 use case 的 MemoryType allowlist、retrieval mode、top-k、record／character budget、session-input query policy 与唯一 consumer。`MemoryQueryBuilder` 只做确定性构造；safe trace 记录 use case、count、type、opaque Memory ID 和 lifecycle result，不记录 raw query、raw Memory content、vector、profile JSON、credential 或 hidden reasoning。
+
+Profile refinement 明确保留三层：当前 session input 是本次会话最新表达；confirmed current profile 是当前画像权威；active confirmed Memory 是历史权威。`ProfileRefinementService` 只产出 draft revision 与带 `memory_refs` 的上下文 statement，不能确认画像。显式 Profile Review 后才由 `StructuredProfileStore` 保存新 confirmed version；旧 profile version 保留。
+
+Structured change detection 只读取带 `signal_dimension`、`signal_value`、`signal_version` metadata 的 active confirmed Memory，并只比较同维度、已注册 value。`MemoryChangeCandidate` 只存在于 session；free-text semantic similarity 永远不创建 contradiction／change。Update command 经现有 `MemoryService.supersede()` 写 canonical history并触发 derived vector lifecycle；defer／uncertain 对 canonical Memory、vector index 与 profile 都是零写入。
+
+Role recall 与 post-Match follow-up 是独立 presentation context。前者不改 `JobIntelligenceRecord`；后者不改八类 `MatchResult` relation。任何由 Memory 引起的个性化 statement 都必须在呈现前重新解析同 subject、active confirmed 的 `memory_refs`；stale ref 会被拒绝。

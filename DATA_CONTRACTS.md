@@ -284,6 +284,28 @@ Derived metadata：`memory_id`、`subject_id`、`memory_type`、`embedding_provi
 
 Rebuild 只返回 subject 与 cleared／eligible／indexed counts，不返回 raw content 或 vectors。`PurgeResult` 增加 `vector_records_deleted` 和 `vector_cleanup_required`；后者明确表达两文件 cleanup 不是 cross-file atomic transaction。
 
+## 20. Phase 7C context-aware Memory contracts
+
+### `MemoryUseCase`／`MemoryContextPolicy`
+
+Use case 仅有 `profile_refinement` 与 `role_exploration`。Policy 固定 allowed MemoryTypes、hybrid retrieval、top-k、max records、character budget、session input 是否参与 query、唯一 consumer 与是否允许 memory-derived statement。LLM 和 UI 都不能覆盖这些字段。
+
+### `StructuredSessionSignal`
+
+保存当前 session 的 `signal_id`、`dimension`、`value`、display label、explicit-user-input source、session order、timestamp 与 session-only／pending persistence state。它是本次会话最新表达，不是长期 Memory。
+
+### `MemoryChangeCandidate`
+
+Session-only proposal：`candidate_id`、subject、dimension、previous Memory refs／values、current value／display text、deterministic change kind、policy-compatible choices 与 status。它不是 `MemoryRecord`，不会自动持久化。
+
+### `MemoryAwareStatement`
+
+Presentation/domain-adjacent contract：statement ID／text、non-empty `memory_refs`、use case、statement kind、authority label 与 optional related session signal。呈现前必须重新验证 referenced Memory 同 subject、active、confirmed、still exists。
+
+### `ProfileRefinementContext`／`ProfileRefinementResult`
+
+Context 同时保存 confirmed current profile、current explicit signal 与 bounded authoritative MemoryContext。Result 只含 draft profile、memory-aware statements、完整 refs、`current_input_is_newest=true` 与 `requires_profile_review=true`；不能自动确认画像。
+
 `MemoryType` 固定为 `profile_signal`、`career_preference`、`goal`、`project_evidence`、`course_evidence`、`user_feedback`、`career_insight`。`MemoryStatus` 固定为 `candidate`、`confirmed`、`superseded`、`archived`。模型推断默认只能建立 `candidate`；即使 confidence 很高，也必须通过显式确认操作才能成为 `confirmed`。
 
 ## 19. `Report`

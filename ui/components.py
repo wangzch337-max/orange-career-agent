@@ -15,6 +15,7 @@ from ui.presentation import (
     CareerProfileView,
     ExplorationMapView,
     MemorySummaryView,
+    RoleMemoryView,
     action_task_view,
     match_insight_groups,
     role_location,
@@ -259,6 +260,25 @@ def render_memory_summary(view: MemorySummaryView) -> None:
         _render_labels("你后来告诉 Orange", view.user_feedback, empty="还没有保存反馈")
         _render_labels("最近发生的变化", view.recent_changes, empty="暂无已确认变化")
         _render_labels("画像历史", view.profile_history)
+    _render_labels("当前已确认的长期偏好", view.current_memory_preferences)
+    _render_labels("历史偏好", view.historical_memory_preferences, empty="暂无被替代的历史偏好")
+    if view.pending_profile_revision:
+        st.warning(view.pending_profile_revision + "；长期 Memory 的更新不会自动确认画像。")
+
+
+def render_role_memory(view: RoleMemoryView) -> None:
+    if not view.statements:
+        return
+    with st.container(border=True):
+        st.markdown("### 🍊 Orange 记得")
+        st.caption("来自你之前确认的信息；它不会改变岗位事实或当前 MatchResult。")
+        for statement in view.statements:
+            st.markdown(f"- {statement}")
+        with st.expander("查看依据"):
+            for item in view.evidence:
+                st.markdown(f"**{item.memory_type}** · {item.status}")
+                st.write(item.content)
+                st.caption("确认时间：" + item.confirmed_at)
 
 
 def render_developer_trace(events: list[dict[str, object]]) -> None:

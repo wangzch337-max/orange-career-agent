@@ -338,6 +338,36 @@ embedding abstraction、local vs cloud embeddings、vector index vs source of tr
 
 Fake-only default tests、public real-model multilingual acceptance、rebuild、purge、subject isolation 与安全扫描全部通过后停止。不得自动进入 Agent-aware context integration 或 Phase 8。
 
+## Phase 7C — Context-Aware Memory Integration
+
+### 1. 学习目标
+
+理解 retrieval 与 consumption 的区别，以及 current session input、confirmed Profile、historical Memory 三层 authority 如何在不静默改写事实的情况下协作。
+
+### 2. 需要理解的概念
+
+memory-use policy、deterministic query construction、read path vs write path、structured same-dimension change detection、human-confirmed supersession、single-value vs multi-value、`memory_refs` provenance、stale-reference validation、memory-aware UI 与 domain-agent context isolation。
+
+### 3. Codex 负责
+
+实现 closed `MemoryUseCase`／policy registry、explicit consumers、draft-only profile refinement、role recall、structured change candidate／command、vector lifecycle、safe trace、public UI、自动化与安全验证；不把 Memory 注入 Job Intelligence／Match relation generation。
+
+### 4. OPTIONAL DEVELOPER HANDS-ON TASK
+
+运行 public Demo，打开 AI Product Intern，检查「Orange 记得」，建立一次结构化偏好变化；先选择「这次先不要修改」，再重复并显式更新长期理解。确认旧 Memory 为历史／superseded、新 Memory 为 current，且 Profile revision 仍要求单独确认。
+
+### 5. 验收／面试问题
+
+为什么 retrieved Memory 不能直接修改 MatchResult？为什么当前输入在 session 中优先但不自动覆盖 confirmed Memory？为什么 structured same-dimension 可触发 candidate，而 semantic similarity 不可以？为什么每条 memory-derived statement 必须保留 refs？
+
+### 6. 面试中应该能如何解释
+
+画出 Interaction → UseCase → Policy → Hybrid retrieval → bounded context → explicit consumer；说明 retrieval relevance、historical authority、current expression、profile confirmation 和 mutation 是五件不同的事。
+
+### 7. 完成／停止条件
+
+Profile refinement／role recall、change choices、reference validation、Job／Match non-consumer、reset、public UI、Fake-only zero-network、安全扫描与全部 regressions 通过后停止。不得开始 Phase 8。
+
 ## Phase 8 — Observability
 
 ### 1. 学习目标

@@ -26,6 +26,12 @@ Canonical write 先完成，derived index sync 后执行；两个 DB 不声称 c
 
 Phase 7B 不自动修改或调用任何 Agent／LangGraph。Future caller 必须显式调用 `MemoryService.retrieve_context()`。
 
+## Phase 7C explicit consumers
+
+`MemoryContextCoordinator` 在 Phase 7B retrieval 前应用 closed `MemoryContextPolicy`。只开放 `PROFILE_REFINEMENT`（career preference／goal／user feedback，top-k 8、最多 6 records／3600 characters）与 `ROLE_EXPLORATION`（相同 type allowlist，top-k 5、最多 3 records／1800 characters）。Query 由确定性 `MemoryQueryBuilder` 生成；Job Intelligence、Match relation generation、Action generation 与 generic LangGraph routing 都不是 consumer。
+
+`ProfileRefinementService` 只生成 draft profile；`RoleMemoryContextService` 只生成带 `memory_refs` 的 presentation statement。所有 refs 在呈现前回查同 subject、active confirmed canonical Memory。Structured change detection 只比较 registered same-dimension metadata；free-text Memory 仍可被检索，但 semantic similarity 不会把它标为 conflict。只有显式 `MemoryChangeService` command 能 create／supersede；defer／uncertain 是零写入。
+
 ## Observed public acceptance case
 
 在本机 cache-only validation 中，中文 documentation query 对英文 documentation Memory 排名第 2（第 1 是同主题中文 Memory）；英文 query 对中文 requirements Memory 排名第 1；mixed Chinese／English LLM application query 对目标 Memory 排名第 1；hybrid 结果把英文 documentation Memory 保留在 top 3。这里只说明这些 synthetic acceptance cases 通过，不代表通用检索准确率或 benchmark。

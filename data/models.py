@@ -242,6 +242,13 @@ class EventType(str, Enum):
     MEMORY_SEMANTIC_RETRIEVED = "memory_semantic_retrieved"
     MEMORY_HYBRID_RETRIEVED = "memory_hybrid_retrieved"
     MEMORY_VECTOR_STALE_FILTERED = "memory_vector_stale_filtered"
+    MEMORY_CONTEXT_REQUESTED = "memory_context_requested"
+    MEMORY_CONTEXT_BUILT = "memory_context_built"
+    MEMORY_CONTEXT_CONSUMED = "memory_context_consumed"
+    MEMORY_CHANGE_CANDIDATE_CREATED = "memory_change_candidate_created"
+    MEMORY_CHANGE_CONFIRMED = "memory_change_confirmed"
+    MEMORY_CHANGE_DEFERRED = "memory_change_deferred"
+    MEMORY_AWARE_STATEMENT_RENDERED = "memory_aware_statement_rendered"
 
 
 class AgentName(str, Enum):

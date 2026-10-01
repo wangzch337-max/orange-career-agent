@@ -9,13 +9,32 @@ from typing import Mapping
 
 from data.models import (
     CareerReport,
+    EvidenceSourceType,
     JobIntelligenceRecord,
     JobRecord,
     MatchResult,
     UserProfile,
 )
-from memory.models import MemoryRecord, new_subject_id
-from memory.service import MemoryService, build_sqlite_memory_service
+from memory.embeddings import FakeEmbeddingProvider
+from memory.integration import (
+    MemoryChangeDetector,
+    MemoryChangeService,
+    MemoryContextCoordinator,
+    ProfileRefinementService,
+    RoleMemoryContextService,
+)
+from memory.models import (
+    MemoryAwareStatement,
+    MemoryChangeCandidate,
+    MemoryChangeChoice,
+    MemoryContext,
+    MemoryRecord,
+    MemoryType,
+    ProfileRefinementResult,
+    StructuredSessionSignal,
+    new_subject_id,
+)
+from memory.service import MemoryService, build_semantic_memory_service
 from providers.fake import FakeLLMProvider
 from ui.conversation import ConversationStage, GuidedConversation
 from ui.presentation import (
@@ -24,6 +43,7 @@ from ui.presentation import (
     ROLE_CLARIFICATION_PROMPTS,
     CareerProfileView,
     ExplorationMapView,
+    ROLE_ONE_LINE,
     career_profile_view,
 )
 from workflows.langgraph_checkpoint import create_memory_checkpointer
@@ -85,7 +105,21 @@ class DemoController:
         self.subject_id = new_subject_id()
         self._temporary_directory = TemporaryDirectory(prefix="orange_ui_demo_")
         memory_path = Path(self._temporary_directory.name) / "orange_demo_memory.sqlite3"
-        self.memory_service = build_sqlite_memory_service(memory_path)
+        vector_path = Path(self._temporary_directory.name) / "orange_demo_vectors.sqlite3"
+        self.memory_service = build_semantic_memory_service(
+            memory_path=memory_path,
+            vector_path=vector_path,
+            embedding_provider=FakeEmbeddingProvider(),
+        )
+        self.memory_context_coordinator = MemoryContextCoordinator(self.memory_service)
+        self.role_memory_service = RoleMemoryContextService(
+            self.memory_service, self.memory_context_coordinator
+        )
+        self.profile_refinement_service = ProfileRefinementService(
+            self.memory_service, self.memory_context_coordinator
+        )
+        self.memory_change_detector = MemoryChangeDetector(self.memory_service)
+        self.memory_change_service = MemoryChangeService(self.memory_service)
         dependencies = replace(
             build_public_offline_dependencies(APPROVED_ROLE_IDS),
             memory_service=self.memory_service,
@@ -114,6 +148,12 @@ class DemoController:
         self.role_deprioritization_reasons: dict[str, str] = {}
         self.action_statuses: dict[str, str] = {}
         self.actions_needing_evidence_review: set[str] = set()
+        self.structured_session_signals: dict[str, StructuredSessionSignal] = {}
+        self.memory_change_candidates: dict[str, MemoryChangeCandidate] = {}
+        self.role_memory_contexts: dict[str, MemoryContext] = {}
+        self.role_memory_statements: dict[str, tuple[MemoryAwareStatement, ...]] = {}
+        self.pending_profile_refinement: ProfileRefinementResult | None = None
+        self._seed_public_memory_scenario()
 
     @property
     def state(self) -> OrangeGraphState | None:
@@ -271,6 +311,89 @@ class DemoController:
         self.saved_feedback_memory_ids[job_id] = record.memory_id
         return record
 
+    def role_memory_context(
+        self, job_id: str
+    ) -> tuple[MemoryContext, tuple[MemoryAwareStatement, ...]]:
+        """Explicitly retrieve role context without changing role or Match objects."""
+
+        self._require_approved_role(job_id)
+        self._require_state(GraphWorkflowStatus.COMPLETED)
+        title = APPROVED_ROLE_TITLES[APPROVED_ROLE_IDS.index(job_id)]
+        context, statements = self.role_memory_service.recall(
+            subject_id=self.subject_id,
+            role_title=title,
+            role_summary=ROLE_ONE_LINE[job_id],
+            clarification_topic=ROLE_CLARIFICATION_PROMPTS[job_id],
+        )
+        self.role_memory_contexts[job_id] = context
+        self.role_memory_statements[job_id] = statements
+        return context, statements
+
+    def submit_structured_preference(
+        self,
+        *,
+        dimension: str,
+        value: str,
+        display_label: str,
+    ) -> MemoryChangeCandidate | None:
+        """Keep the newest explicit expression in-session and propose, never auto-save."""
+
+        signal = StructuredSessionSignal(
+            signal_id=f"session_signal_{len(self.structured_session_signals) + 1:03d}",
+            dimension=dimension,
+            value=value,
+            display_label=display_label,
+            source="explicit_user_input",
+            session_order=len(self.structured_session_signals) + 1,
+        )
+        self.structured_session_signals[dimension] = signal
+        candidate = self.memory_change_detector.detect(self.subject_id, signal)
+        if candidate is not None:
+            self.memory_change_candidates[candidate.candidate_id] = candidate
+        return candidate
+
+    def resolve_memory_change(
+        self,
+        candidate_id: str,
+        choice: MemoryChangeChoice,
+    ) -> MemoryChangeCandidate:
+        candidate = self.memory_change_candidates.get(candidate_id)
+        if candidate is None:
+            raise DemoValidationError("Memory change candidate is unavailable.")
+        resolved, record = self.memory_change_service.resolve(candidate, choice)
+        self.memory_change_candidates[candidate_id] = resolved
+        if record is not None:
+            self.role_memory_contexts.clear()
+            self.role_memory_statements.clear()
+        if record is not None and choice == MemoryChangeChoice.UPDATE_LONG_TERM:
+            signal = self.structured_session_signals[candidate.dimension]
+            self.pending_profile_refinement = self.profile_refinement_service.refine(
+                subject_id=self.subject_id,
+                current_input=signal,
+            )
+        return resolved
+
+    def confirm_pending_profile_refinement(self) -> UserProfile:
+        if self.pending_profile_refinement is None:
+            raise DemoWorkflowError("No profile refinement is awaiting review.")
+        profile = self.profile_refinement_service.confirm(
+            self.subject_id,
+            self.pending_profile_refinement,
+            confirmed_by_user=True,
+        )
+        self.pending_profile_refinement = None
+        return profile
+
+    def memory_aware_match_follow_up(
+        self, job_id: str
+    ) -> MemoryAwareStatement | None:
+        _, statements = self.role_memory_context(job_id)
+        return self.role_memory_service.post_match_follow_up(
+            subject_id=self.subject_id,
+            statements=statements,
+            match_result=self.match_for(job_id),
+        )
+
     def set_role_exploration(
         self,
         job_id: str,
@@ -370,9 +493,7 @@ class DemoController:
         return self.memory_service.profile_store.list_profile_history(self.subject_id)
 
     def safe_trace(self) -> list[dict[str, object]]:
-        if self._state is None:
-            return []
-        return [
+        graph_events = [] if self._state is None else [
             {
                 "event_type": event["event_type"],
                 "node": event.get("node_name"),
@@ -390,9 +511,60 @@ class DemoController:
             }
             for event in self._state.get("graph_events", [])
         ]
+        memory_events = [
+            {
+                "event_type": event.event_type.value,
+                "node": event.component,
+                "status": event.safe_metadata.get("status"),
+                "profile_version": event.profile_version,
+                "checkpoint_mode": None,
+                "count": event.safe_metadata.get("result_count"),
+                "memory_ids": event.safe_metadata.get("memory_ids"),
+                "use_case": event.safe_metadata.get("use_case"),
+            }
+            for source in (
+                self.memory_service.events,
+                self.memory_context_coordinator.events,
+                self.memory_change_detector.events,
+                self.memory_change_service.events,
+                self.role_memory_service.events,
+            )
+            for event in source
+        ]
+        return [*graph_events, *memory_events]
 
     def close(self) -> None:
         self._temporary_directory.cleanup()
+
+    def _seed_public_memory_scenario(self) -> None:
+        self.memory_service.create_confirmed(
+            subject_id=self.subject_id,
+            memory_type=MemoryType.CAREER_PREFERENCE,
+            content="更偏好亲手实现和搭建可运行系统。",
+            source_type=EvidenceSourceType.SYSTEM_FIXTURE,
+            confirmed_by_user=True,
+            metadata={
+                "demo_scope": "public_session",
+                "signal_dimension": "work_style.primary_focus",
+                "signal_value": "hands_on_implementation",
+                "signal_version": 1,
+            },
+            memory_id="memory_demo_hands_on_preference",
+        )
+        self.memory_service.create_confirmed(
+            subject_id=self.subject_id,
+            memory_type=MemoryType.USER_FEEDBACK,
+            content="可以接受文档较多的工作。",
+            source_type=EvidenceSourceType.SYSTEM_FIXTURE,
+            confirmed_by_user=True,
+            metadata={
+                "demo_scope": "public_session",
+                "signal_dimension": "work_style.documentation_tolerance",
+                "signal_value": "acceptable",
+                "signal_version": 1,
+            },
+            memory_id="memory_demo_documentation_tolerance",
+        )
 
     def _require_approved_role(self, job_id: str) -> None:
         if job_id not in APPROVED_ROLE_IDS:

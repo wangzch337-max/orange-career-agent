@@ -14,7 +14,7 @@ from data.models import (
     MatchResult,
     UserProfile,
 )
-from memory.models import MemoryRecord, MemoryType
+from memory.models import MemoryAwareStatement, MemoryRecord, MemoryStatus, MemoryType
 from ui.conversation import ConversationStage, GuidedConversation
 
 
@@ -124,6 +124,23 @@ class MemorySummaryView:
     user_feedback: tuple[str, ...]
     recent_changes: tuple[str, ...]
     profile_history: tuple[str, ...]
+    current_memory_preferences: tuple[str, ...] = ()
+    historical_memory_preferences: tuple[str, ...] = ()
+    pending_profile_revision: str | None = None
+
+
+@dataclass(frozen=True)
+class MemoryEvidenceView:
+    memory_type: str
+    content: str
+    status: str
+    confirmed_at: str
+
+
+@dataclass(frozen=True)
+class RoleMemoryView:
+    statements: tuple[str, ...]
+    evidence: tuple[MemoryEvidenceView, ...]
 
 
 AUTHORITY_EVIDENCE = "已有证据"
@@ -472,6 +489,8 @@ def memory_summary_view(
     profile: UserProfile,
     active_memories: list[MemoryRecord],
     profile_history: list[UserProfile],
+    memory_history: list[MemoryRecord] | None = None,
+    pending_profile_revision: UserProfile | None = None,
 ) -> MemorySummaryView:
     feedback = tuple(
         item.content
@@ -490,6 +509,46 @@ def memory_summary_view(
             + (" · 当前版本" if item.version == profile.version else " · 历史版本")
             for item in profile_history
         ),
+        current_memory_preferences=tuple(
+            item.content
+            for item in active_memories
+            if item.memory_type == MemoryType.CAREER_PREFERENCE
+        ),
+        historical_memory_preferences=tuple(
+            item.content
+            for item in (memory_history or [])
+            if item.memory_type == MemoryType.CAREER_PREFERENCE
+            and item.status == MemoryStatus.SUPERSEDED
+        ),
+        pending_profile_revision=(
+            f"画像 v{pending_profile_revision.version} · 等待单独确认"
+            if pending_profile_revision is not None
+            else None
+        ),
+    )
+
+
+def role_memory_view(
+    statements: tuple[MemoryAwareStatement, ...],
+    records: tuple[MemoryRecord, ...],
+) -> RoleMemoryView:
+    by_id = {record.memory_id: record for record in records}
+    referenced = list(
+        dict.fromkeys(ref for statement in statements for ref in statement.memory_refs)
+    )
+    evidence = tuple(
+        MemoryEvidenceView(
+            memory_type=by_id[memory_id].memory_type.value,
+            content=by_id[memory_id].content,
+            status="已确认 · 当前有效",
+            confirmed_at=by_id[memory_id].created_at.isoformat(timespec="minutes"),
+        )
+        for memory_id in referenced
+        if memory_id in by_id and by_id[memory_id].status == MemoryStatus.CONFIRMED
+    )
+    return RoleMemoryView(
+        statements=tuple(statement.text for statement in statements),
+        evidence=evidence,
     )
 
 

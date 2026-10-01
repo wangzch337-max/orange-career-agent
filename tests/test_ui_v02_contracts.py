@@ -109,14 +109,16 @@ def test_role_answer_is_session_only_until_explicit_save(completed_controller) -
     controller = completed_controller
     controller.answer_role_clarification("job_007", "可以接受")
     assert controller.role_clarifications["job_007"] == "可以接受"
-    assert controller.active_memories() == []
+    before_ids = {item.memory_id for item in controller.active_memories()}
     record = controller.save_role_clarification("job_007")
     assert record.memory_type == MemoryType.USER_FEEDBACK
     assert record.status == MemoryStatus.CONFIRMED
     assert record.source_type == EvidenceSourceType.EXPLICIT_USER_INPUT
     assert record.metadata["job_id"] == "job_007"
     assert controller.save_role_clarification("job_007").memory_id == record.memory_id
-    assert len(controller.active_memories()) == 1
+    assert {item.memory_id for item in controller.active_memories()} == before_ids | {
+        record.memory_id
+    }
 
 
 def test_saved_feedback_uses_temporary_demo_database(completed_controller) -> None:
@@ -142,7 +144,10 @@ def test_deprioritization_is_only_exploration_state_not_match_mutation(
     after = controller.match_for("job_013").model_dump(mode="json")
     assert after == before
     assert controller.role_deprioritization_reasons["job_013"] == "只是目前优先级较低"
-    assert controller.active_memories() == []
+    assert all(
+        item.metadata.get("demo_scope") == "public_session"
+        for item in controller.active_memories()
+    )
     view = controller.exploration_map()
     assert view.deprioritized == ("Data Analyst",)
     assert "Data Analyst" not in view.continue_exploring
@@ -218,7 +223,10 @@ def test_action_status_and_already_done_are_session_only(completed_controller) -
     controller.mark_action_already_done(action.action_id)
     assert action.action_id in controller.actions_needing_evidence_review
     assert controller.confirmed_profile().model_dump(mode="json") == profile_before
-    assert controller.active_memories() == []
+    assert {item.metadata.get("signal_dimension") for item in controller.active_memories()} == {
+        "work_style.primary_focus",
+        "work_style.documentation_tolerance",
+    }
 
 
 def test_exploration_map_uses_only_explicit_state_without_scores(

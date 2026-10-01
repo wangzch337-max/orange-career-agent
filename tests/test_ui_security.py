@@ -21,7 +21,7 @@ def test_streamlit_dependency_and_telemetry_configuration() -> None:
     assert 'address = "localhost"' in config
 
 
-def test_ui_has_no_private_live_provider_network_or_vector_imports() -> None:
+def test_ui_has_no_private_live_provider_network_or_direct_vector_backend_imports() -> None:
     forbidden_modules = {
         "chromadb",
         "sqlite_vec",
@@ -51,7 +51,9 @@ def test_ui_has_no_private_live_provider_network_or_vector_imports() -> None:
     assert ".env.local" not in lowered
     assert "orange_workflow.sqlite3" not in lowered
     assert "orange_memory.sqlite3" not in lowered
-    assert "embeddingprovider" not in lowered
+    assert "localembeddingprovider" not in lowered
+    assert "cloudembedding" not in lowered
+    assert "fakeembeddingprovider" in lowered
 
 
 def test_ui_adapter_does_not_import_or_reimplement_domain_assemblers() -> None:
@@ -116,7 +118,8 @@ def test_v02_has_no_unrestricted_chat_percentage_ranking_or_external_runtime() -
         "role ranking",
         "canvasprovider",
         "livejobprovider",
-        "embeddingprovider",
+        "localembeddingprovider",
+        "cloudembeddingprovider",
     ):
         assert forbidden not in source
 

@@ -3,7 +3,7 @@
 > AI Career Discovery Agent for University Students
 > 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 7B — Semantic & Hybrid Memory Retrieval**
+**当前状态：Phase 7C — Context-Aware Memory Integration**
 
 Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
 
@@ -132,6 +132,11 @@ flowchart TD
 - active confirmed-only indexing、content hash／model identity metadata、subject isolation、lifecycle sync、stale-vector canonical revalidation、rebuild 与 coordinated purge；
 - 原有 deterministic lexical retriever 保留；semantic + lexical 通过固定一基 RRF `k=60` 融合并保留 lexical／semantic／fusion rank；
 - `MemoryContextBuilder` 生成 bounded structured authoritative context，但不自动注入 Self-Discovery、Job Intelligence、Match 或 LangGraph。
+- `MemoryUseCase` 与 deterministic `MemoryContextPolicy` 只开放 `PROFILE_REFINEMENT`、`ROLE_EXPLORATION`；每个 use case 固定 type allowlist、hybrid mode、top-k、record／character budget 与唯一 consumer；
+- Profile refinement 把「当前会话最新表达」「confirmed profile」「active confirmed historical Memory」保持为三层 authority，产出 draft profile，仍须单独 Profile Review；
+- Role Deep Dive 通过「🍊 Orange 记得／来自你之前确认的信息／查看依据」显示有 `memory_refs` 的 recall，不修改岗位事实或 `MatchResult`；
+- 只有带 `signal_dimension`／`signal_value`／`signal_version` 的结构化同维度 Memory 才能建立 session-only `MemoryChangeCandidate`；semantic similarity 不判断冲突；
+- 只有用户明确确认才可创建／supersede long-term Memory；retrieval、defer 与 uncertain 路径都不写 canonical DB。
 
 Phase 5 的 Match & Insight 从证据关系开始，不从分数开始。`evidence_missing` 只表示当前画像缺少验证材料，绝不自动变成能力弱或 `confirmed_gap`。结果保持原始 dataset／用户选择顺序，不选择最佳角色。
 
@@ -168,12 +173,13 @@ Demo 先通过选择题、多选和可选短文本进行 guided discovery，右�
 - Phase 7A：Structured & Persistent Memory（完成）
 - Phase 7.5：Orange Interactive Demo Vertical Slice（完成并建立本地 checkpoint）
 - Phase 7.6：Conversation-First Product Redesign / Demo v0.2（完成并建立本地 checkpoint）
-- Phase 7B：Semantic & Hybrid Memory Retrieval（当前已实现，待提交）
+- Phase 7B：Semantic & Hybrid Memory Retrieval（完成并建立本地 checkpoint）
+- Phase 7C：Context-Aware Memory Integration（当前已实现，待用户批准提交）
 - Phase 8：Observability
 - Phase 9–10：Streamlit UI 与课程数据适配器
 - Phase 11–13：测试、成本控制、演示案例与最终打磨
 
-约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Agent-aware memory integration 或 Phase 8。
+约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Phase 8。
 
 ## 本地验证 Local Validation
 
@@ -209,3 +215,5 @@ Phase 7.6 Streamlit Demo 继续完全离线：每个 browser session 拥有独�
 Phase 7B public semantic Demo 只建立 temporary canonical/vector DB 和 synthetic subject。默认使用 `FakeEmbeddingProvider`；real-model validation 是单独、显式、cache-only 的命令。Embedding dependency／public model 下载可以联网，但 runtime retrieval 不调用云端，任何 private profile、Memory、query、向量或凭据都不会上传。删除 derived vector DB 不影响 canonical profile／Memory，并可通过 `rebuild_subject_index()` 从 active confirmed records 重建。
 
 公开模型默认缓存到 `~/.cache/orange/fastembed`，不进入仓库。`LocalEmbeddingProvider` 默认 `allow_download=False`；正常 runtime 若缓存缺失会安全失败，不会静默联网。
+
+Phase 7C public Demo 仍使用公开合成 persona、`FakeLLMProvider` 与 `FakeEmbeddingProvider`。打开角色时，UI 才通过明确的 `ROLE_EXPLORATION` policy 构造 bounded context；Job Intelligence 和 Match pipeline 没有 Memory consumer。AI Product Intern 提供结构化偏好变化场景：当前表达先用于 session，只有明确选择更新才 supersede 旧 Memory；随后生成的 profile v2 仍是 draft，必须单独确认。没有 Qwen、cloud embedding、private Golden Case、private Memory 或 live job 调用。

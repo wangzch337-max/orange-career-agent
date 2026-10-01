@@ -17,8 +17,8 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 ## 阶段式开发
 
 - 严格按 `IMPLEMENTATION_PLAN.md` 推进，不跨阶段实现。
-- 当前 Phase 7B 只实现显式 long-term Memory retrieval：local `EmbeddingProvider`、独立 derived sqlite-vec index、semantic retrieval、lexical + semantic RRF、bounded `MemoryContextBuilder` 与 public synthetic validation。
-- Phase 7B 不得自动把检索结果注入 Agent／LangGraph，不得把 similarity／RRF 变成事实权威、Match score 或岗位排名；不得索引 candidate、superseded、archived、完整 profile、chat transcript、JobRecord、MatchResult 或 ActionItem；不得调用 cloud embedding、Qwen、Canvas、live jobs，也不得开始 Phase 8。
+- 当前 Phase 7C 只允许两个显式 Memory use case：`PROFILE_REFINEMENT` 与 `ROLE_EXPLORATION`。`MemoryContextPolicy` 的类型过滤、检索模式、top-k、预算和 consumer 必须由确定性代码决定；retrieval 是只读路径。
+- Job Intelligence 与 Match relation generation 不得消费 retrieved Memory。Memory-aware statement 必须保留 `memory_refs`；只有结构化同维度差异可建立 session-only `MemoryChangeCandidate`，且只有用户明确确认才可 supersede。不得用 semantic similarity 判断冲突，不得自动保存 guided answer、chat transcript 或检索结果；不得调用 cloud embedding、Qwen、Canvas、live jobs，也不得开始 Phase 8。
 - 不得静默改变四个核心 Agent、Golden Flow、数据边界或目录结构。必要变更必须先记录理由、影响和取舍，并取得确认。
 - 每个阶段结束时运行与风险相称的测试；测试失败不得伪装为完成。
 

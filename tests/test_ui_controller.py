@@ -83,14 +83,17 @@ def test_exactly_three_roles_preserve_approved_order_and_domain_outputs(controll
     assert len(controller.report().role_insights) == 3
 
 
-def test_memory_summary_uses_graph_persisted_profile_without_fake_records(controller) -> None:
+def test_memory_summary_uses_graph_profile_and_phase7c_public_scenario(controller) -> None:
     assert controller.current_profile_from_memory() is None
     controller.start()
     controller.confirm_profile()
     profile = controller.current_profile_from_memory()
     assert profile is not None and profile.confirmed is True
     assert profile.version == 1
-    assert controller.active_memories() == []
+    assert {item.metadata.get("signal_dimension") for item in controller.active_memories()} == {
+        "work_style.primary_focus",
+        "work_style.documentation_tolerance",
+    }
     assert [item.version for item in controller.profile_history()] == [1]
 
 
@@ -125,7 +128,10 @@ def test_memory_summary_never_treats_non_active_history_as_active(controller) ->
     )
     service.archive(controller.subject_id, archived.memory_id)
     active = controller.active_memories()
-    assert [item.memory_id for item in active] == [superseding.memory_id]
+    assert superseding.memory_id in {item.memory_id for item in active}
+    assert {item.memory_id for item in active}.issuperset(
+        {"memory_demo_hands_on_preference", "memory_demo_documentation_tolerance"}
+    )
     history_status = {
         item.memory_id: item.status
         for item in service.memory_store.list_history(controller.subject_id)

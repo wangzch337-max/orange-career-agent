@@ -126,11 +126,11 @@ def test_streamlit_role_feedback_match_action_map_and_memory() -> None:
     role_question.set_value("很喜欢").run()
     _button(app, "记录本次回答").click().run()
     controller = app.session_state["orange_demo_controller"]
-    assert controller.active_memories() == []
+    before_ids = {item.memory_id for item in controller.active_memories()}
     memory_choice = next(item for item in app.radio if "长期理解" in item.label)
     memory_choice.set_value("保存").run()
     _button(app, "确认记忆方式").click().run()
-    assert len(controller.active_memories()) == 1
+    assert len({item.memory_id for item in controller.active_memories()} - before_ids) == 1
 
     _button(app, "查看 Match Insights").click().run()
     match_text = _text(app)
@@ -204,6 +204,10 @@ def test_reset_demo_clears_every_v02_session_concern() -> None:
     assert not new_controller.role_clarifications
     assert not new_controller.role_exploration
     assert not new_controller.action_statuses
+    assert not new_controller.structured_session_signals
+    assert not new_controller.memory_change_candidates
+    assert not new_controller.role_memory_contexts
+    assert new_controller.pending_profile_refinement is None
     assert app.session_state["orange_demo_page"] == "welcome"
     assert app.session_state["orange_selected_role"] is None
     assert "🍊 Orange" in _text(app)

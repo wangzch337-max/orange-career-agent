@@ -18,6 +18,7 @@
 | Day 9.5 | 7.5 | Interactive Demo Vertical Slice | Streamlit presentation adapter、真实 graph confirmation、三角色 Demo |
 | Day 9.6 | 7.6 | Conversation-First Product Redesign | guided discovery、动态画像、role clarification、task UX、exploration map |
 | Day 9.7 | 7B | Semantic & Hybrid Memory Retrieval | local embedding、derived sqlite-vec、canonical validation、RRF、bounded context |
+| Day 9.8 | 7C | Context-Aware Memory Integration | explicit policies、profile refinement、role recall、human-confirmed changes |
 | Day 10 | 8 | Observability | Agent/Tool/workflow events 与脱敏 trace |
 | Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
 | Day 12 | 10 | Course Data Adapter | mock + sanitized export provider |
@@ -140,6 +141,18 @@
 **主要风险与 fallback：**两个 DB 无法共享一个 SQLite transaction，canonical 写入始终优先；derived sync 失败记录安全 diagnostic，并通过 rebuild 恢复。vector DB 丢失时 canonical operations 不受影响，hybrid 可显式 surfaced lexical-only fallback。
 
 **状态：COMPLETE（以最终自动化、离线 real-model acceptance 与安全扫描为准）。** 下一阶段的 Agent-aware memory context integration 仍明确 deferred。
+
+## Phase 7C — Context-Aware Memory Integration
+
+**范围：**只开放 `PROFILE_REFINEMENT` 与 `ROLE_EXPLORATION`。确定性 policy 决定类型、检索、top-k、预算和 consumer；query 构造不使用 LLM。Profile refinement 只生成 draft 并保留 `memory_refs`；Role recall 独立展示，不改 role facts／MatchResult。结构化同维度变化建立 session-only candidate，只有用户确认才经 canonical service supersede。
+
+**Exit criteria：**retrieval 零 canonical write；current session／confirmed profile／historical Memory 三层 authority 分离；free text／semantic similarity 不触发 conflict；Job Intelligence 与 Match relation generation 零 Memory retrieval；update／defer／uncertain／compatible keep-both lifecycle 通过；profile v2 必须独立 review；Fake-only／public synthetic／zero-network regressions通过。
+
+**可选用户参与：**运行 public Demo，在 AI Product Intern 中先 defer 一次结构化偏好变化，再显式更新长期理解，最后单独确认画像 revision。
+
+**主要风险与 fallback：**retrieval context 可能被误当权威或静默污染 Match。Fallback 是 closed policy、read/write path 分离、每条个性化 statement 强制 `memory_refs`，并把 profile confirmation 置于未来 Match 之前。
+
+**状态：COMPLETE（待最终自动化、UI 与安全验收；不自动提交）。** Phase 8 未开始。
 
 ## Phase 8 — Observability
 

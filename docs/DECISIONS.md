@@ -312,3 +312,22 @@ Private long-term Memory 的 embedding 默认使用 local provider。Normal test
 
 **Status**
 Accepted — Phase 7B
+
+## ADR-018 — Explicit memory-use policies and human-confirmed change handling
+
+**Context**
+Phase 7B 能找到相关 active confirmed Memory，但 relevance 不能决定何时使用、谁可使用或是否意味着用户已改变偏好。若把 retrieval 做成全局 middleware，Job Intelligence、Match relation 或当前 session 表达可能被历史内容静默污染。
+
+**Decision**
+Phase 7C 只开放 `PROFILE_REFINEMENT` 与 `ROLE_EXPLORATION`。Code-owned `MemoryContextPolicy` 固定类型、hybrid retrieval、top-k、预算和唯一 consumer；retrieval 是只读路径。当前 explicit input 是本 session 最新表达，confirmed Profile 是画像权威，active confirmed Memory 是历史权威，三者不折叠。
+
+只有已注册 structured signal 的 same-dimension value difference 可建立 session-only `MemoryChangeCandidate`。Semantic similarity 永远不自动判断 contradiction。用户明确 update 后，write command 才通过现有 `MemoryService.supersede()` 保存 history 并同步 vector lifecycle；profile 仍须独立 review／confirmation。Memory-aware statement 必须保留并重新验证 `memory_refs`。Job Intelligence 接收零 user Memory；Memory 不能直接 patch `MatchResult`。
+
+**Reason**
+Explicit policy 防止 consumer 扩权；read/write 分离防止 retrieval 自我强化；structured comparison 提供可解释的有限 change detection；human confirmation 保留用户对长期理解与画像版本的最终控制。
+
+**Tradeoffs**
+只覆盖少量 structured dimensions，free-text 变化需要人工澄清；profile 和 Memory confirmation 是两个步骤；role recall context 与 authoritative Match 必须在 UI 中分区，增加 presentation complexity。
+
+**Status**
+Accepted — Phase 7C

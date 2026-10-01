@@ -20,6 +20,7 @@ from ui.components import (
     render_job_intelligence,
     render_match_insights,
     render_memory_summary,
+    render_role_memory,
     render_profile_review,
     render_public_demo_banner,
     render_role_card,
@@ -39,8 +40,10 @@ from ui.presentation import (
     ask_orange_answer,
     career_direction_card_view,
     memory_summary_view,
+    role_memory_view,
     safe_error_message,
 )
+from memory.models import MemoryChangeChoice
 from workflows.langgraph_state import GraphErrorCategory, GraphWorkflowStatus
 
 
@@ -281,6 +284,20 @@ def _role(controller: DemoController) -> None:
     overview, clarify, ask = st.tabs(("岗位理解", "探索澄清", "和 Orange 聊聊这个岗位"))
     with overview:
         st.info("这是值得了解的方向，不是适配结论。")
+        _, memory_statements = controller.role_memory_context(selected)
+        memory_records = tuple(
+            controller.memory_service.memory_store.get(
+                controller.subject_id, memory_id
+            )
+            for statement in memory_statements
+            for memory_id in statement.memory_refs
+        )
+        render_role_memory(
+            role_memory_view(
+                memory_statements,
+                tuple(record for record in memory_records if record is not None),
+            )
+        )
         render_job_intelligence(job, record)
     with clarify:
         st.header("先验证你对这种工作方式的真实感受")
@@ -312,6 +329,51 @@ def _role(controller: DemoController) -> None:
                     st.success("已作为明确确认的用户反馈保存到本次 Demo Memory。")
                 else:
                     st.info("保持为本次会话信息，没有写入 MemoryStore。")
+        if selected == "job_001":
+            st.divider()
+            st.markdown("### 结构化偏好变化演示")
+            st.caption("当前会话表达优先，但不会自动覆盖已确认的长期 Memory。")
+            if st.button("表达：更愿意投入产品沟通与需求分析", key="structured_change"):
+                candidate = controller.submit_structured_preference(
+                    dimension="work_style.primary_focus",
+                    value="product_and_requirement_work",
+                    display_label="更愿意投入产品沟通与需求分析。",
+                )
+                if candidate is not None:
+                    st.session_state["orange_memory_change_candidate"] = candidate.candidate_id
+                st.rerun()
+            candidate_id = st.session_state.get("orange_memory_change_candidate")
+            candidate = controller.memory_change_candidates.get(candidate_id)
+            if candidate is not None and candidate.status.value == "pending":
+                st.warning("这和你现在的回答有些不同。要更新 Orange 对你的长期理解吗？")
+                labels = {
+                    "是，更新我的长期理解": MemoryChangeChoice.UPDATE_LONG_TERM,
+                    "这次先不要修改": MemoryChangeChoice.DEFER,
+                    "我还不确定": MemoryChangeChoice.UNCERTAIN,
+                }
+                selected_choice = st.radio(
+                    "请选择",
+                    tuple(labels),
+                    index=None,
+                    key="memory_change_choice",
+                )
+                if st.button(
+                    "确认偏好处理方式",
+                    disabled=selected_choice is None,
+                    key="resolve_memory_change",
+                ):
+                    controller.resolve_memory_change(candidate.candidate_id, labels[selected_choice])
+                    st.rerun()
+            elif candidate is not None:
+                status_copy = {
+                    "confirmed": "已更新长期理解；画像仍等待单独确认",
+                    "deferred": "这次先不要修改；当前表达只用于本次会话",
+                    "uncertain": "我还不确定；长期理解保持不变",
+                }
+                signal = controller.structured_session_signals.get(candidate.dimension)
+                if signal is not None:
+                    st.write("当前会话表达：" + signal.display_label)
+                st.info(status_copy.get(candidate.status.value, candidate.status.value))
         st.divider()
         decision = st.radio(
             "你现在想怎样安排这个方向？",
@@ -360,6 +422,12 @@ def _match(controller: DemoController) -> None:
         controller.confirmed_profile(),
         controller.intelligence_for(selected),
     )
+    follow_up = controller.memory_aware_match_follow_up(selected)
+    if follow_up is not None:
+        with st.container(border=True):
+            st.markdown("### Memory-aware follow-up context")
+            st.write(follow_up.text)
+            st.caption("来自你之前确认的信息；这不是 Authoritative Match Insight。")
     columns = st.columns(2)
     if columns[0].button("打开行动计划", type="primary", use_container_width=True):
         _go("actions")
@@ -404,8 +472,21 @@ def _memory(controller: DemoController) -> None:
         profile,
         controller.active_memories(),
         controller.profile_history(),
+        controller.memory_service.memory_store.list_history(controller.subject_id),
+        (
+            controller.pending_profile_refinement.draft_profile
+            if controller.pending_profile_refinement is not None
+            else None
+        ),
     )
     render_memory_summary(view)
+    if controller.pending_profile_refinement is not None:
+        st.markdown("### Profile Review")
+        st.write("当前会话已生成画像草案，但尚未确认，也尚未改变 MatchResult。")
+        if st.button("确认画像修订", type="primary"):
+            controller.confirm_pending_profile_refinement()
+            st.success("已确认新画像版本；未来 Match 需通过正常流程重新运行。")
+            st.rerun()
 
 
 def _set_graph_error(state) -> None:

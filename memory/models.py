@@ -30,6 +30,54 @@ class MemoryStatus(str, Enum):
     ARCHIVED = "archived"
 
 
+class MemoryUseCase(str, Enum):
+    PROFILE_REFINEMENT = "profile_refinement"
+    ROLE_EXPLORATION = "role_exploration"
+
+
+class MemoryRetrievalMode(str, Enum):
+    HYBRID = "hybrid"
+
+
+class MemoryConsumer(str, Enum):
+    PROFILE_REFINEMENT_SERVICE = "profile_refinement_service"
+    ROLE_MEMORY_CONTEXT_SERVICE = "role_memory_context_service"
+
+
+class DimensionCardinality(str, Enum):
+    SINGLE_VALUE = "single_value"
+    MULTI_VALUE = "multi_value"
+
+
+class SessionSignalPersistence(str, Enum):
+    SESSION_ONLY = "session_only"
+    PENDING_CONFIRMATION = "pending_confirmation"
+
+
+class MemoryChangeChoice(str, Enum):
+    UPDATE_LONG_TERM = "update_long_term"
+    KEEP_BOTH = "keep_both"
+    DEFER = "defer"
+    UNCERTAIN = "uncertain"
+
+
+class MemoryChangeStatus(str, Enum):
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    DEFERRED = "deferred"
+    UNCERTAIN = "uncertain"
+
+
+class MemoryStatementKind(str, Enum):
+    MEMORY_RECALL = "memory_recall"
+    RELATED_HISTORY = "related_history"
+    POST_MATCH_CONTEXT = "post_match_context"
+
+
+class MemoryAuthorityLabel(str, Enum):
+    CONFIRMED_HISTORICAL_MEMORY = "confirmed_historical_memory"
+
+
 def new_subject_id() -> str:
     return f"subject_{uuid4().hex}"
 
@@ -203,6 +251,110 @@ class MemoryContext(DomainModel):
     max_records: int = Field(ge=1)
     character_count: int = Field(ge=0)
     truncated: bool = False
+
+
+class MemoryContextPolicy(DomainModel):
+    """Deterministic allowlist and budget for one explicit consumer."""
+
+    use_case: MemoryUseCase
+    allowed_memory_types: List[MemoryType] = Field(min_length=1)
+    retrieval_mode: MemoryRetrievalMode = MemoryRetrievalMode.HYBRID
+    top_k: int = Field(ge=1, le=8)
+    max_records: int = Field(ge=1, le=8)
+    max_characters: int = Field(ge=1, le=6000)
+    session_input_contributes: bool
+    consumer: MemoryConsumer
+    allow_memory_derived_statements: bool = True
+
+    @model_validator(mode="after")
+    def validate_budget(self) -> "MemoryContextPolicy":
+        if self.max_records > self.top_k:
+            raise ValueError("Memory context max_records cannot exceed top_k.")
+        if len(self.allowed_memory_types) != len(set(self.allowed_memory_types)):
+            raise ValueError("Memory policy types must be unique.")
+        return self
+
+
+class StructuredSessionSignal(DomainModel):
+    signal_id: str = Field(min_length=1)
+    dimension: str = Field(min_length=1)
+    value: str = Field(min_length=1)
+    display_label: str = Field(min_length=1)
+    source: str = Field(pattern="^explicit_user_input$")
+    session_order: int = Field(ge=1)
+    observed_at: datetime = Field(default_factory=utc_now)
+    persistence_state: SessionSignalPersistence = SessionSignalPersistence.SESSION_ONLY
+
+    @field_validator("observed_at")
+    @classmethod
+    def validate_signal_time(cls, value: datetime) -> datetime:
+        return _require_aware(value, "observed_at")
+
+
+class MemoryChangeCandidate(DomainModel):
+    """Session-only proposal; never an authoritative MemoryRecord."""
+
+    candidate_id: str = Field(min_length=1)
+    subject_id: str = Field(min_length=1)
+    dimension: str = Field(min_length=1)
+    previous_memory_refs: List[str] = Field(min_length=1)
+    previous_values: List[str] = Field(min_length=1)
+    current_session_value: str = Field(min_length=1)
+    current_display_text: str = Field(min_length=1)
+    change_kind: str = Field(pattern="^structured_same_dimension_change$")
+    allowed_user_choices: List[MemoryChangeChoice] = Field(min_length=1)
+    status: MemoryChangeStatus = MemoryChangeStatus.PENDING
+
+
+class MemoryAwareStatement(DomainModel):
+    statement_id: str = Field(min_length=1)
+    text: str = Field(min_length=1)
+    memory_refs: List[str] = Field(min_length=1)
+    use_case: MemoryUseCase
+    statement_kind: MemoryStatementKind
+    authority_label: MemoryAuthorityLabel
+    related_session_signal_id: Optional[str] = None
+
+    @field_validator("memory_refs")
+    @classmethod
+    def normalize_memory_refs(cls, value: List[str]) -> List[str]:
+        if any(not item.strip() for item in value):
+            raise ValueError("memory_refs cannot contain empty IDs")
+        return list(dict.fromkeys(value))
+
+
+class ProfileRefinementContext(DomainModel):
+    subject_id: str = Field(min_length=1)
+    current_profile: UserProfile
+    current_session_signal: StructuredSessionSignal
+    memory_context: MemoryContext
+
+    @model_validator(mode="after")
+    def validate_subject(self) -> "ProfileRefinementContext":
+        if self.memory_context.subject_id != self.subject_id:
+            raise ValueError("Profile refinement context subject mismatch.")
+        if not self.current_profile.confirmed:
+            raise ValueError("Profile refinement requires a confirmed current profile.")
+        return self
+
+
+class ProfileRefinementResult(DomainModel):
+    draft_profile: UserProfile
+    memory_aware_statements: List[MemoryAwareStatement] = Field(default_factory=list)
+    memory_refs: List[str] = Field(default_factory=list)
+    current_input_is_newest: bool = True
+    requires_profile_review: bool = True
+
+    @model_validator(mode="after")
+    def validate_draft(self) -> "ProfileRefinementResult":
+        if self.draft_profile.confirmed:
+            raise ValueError("Profile refinement may only produce a draft.")
+        statement_refs = {
+            ref for statement in self.memory_aware_statements for ref in statement.memory_refs
+        }
+        if statement_refs != set(self.memory_refs):
+            raise ValueError("Profile refinement memory_refs must preserve statement provenance.")
+        return self
 
 
 class VectorSyncDiagnostic(DomainModel):
