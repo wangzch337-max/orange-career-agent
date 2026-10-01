@@ -36,6 +36,10 @@ from memory.sqlite_store import (
 from memory.vector_index import DEFAULT_VECTOR_DATABASE_PATH, MemoryVectorIndex
 
 
+from observability.instrumentation import observe
+from observability.models import DiagnosticComponent as DC
+
+
 class MemoryService:
     """Domain-facing facade; Agents never see SQL or SQLite schemas."""
 
@@ -78,6 +82,7 @@ class MemoryService:
     def get_current_confirmed_profile(self, subject_id: str) -> UserProfile | None:
         return self.profile_store.get_current_confirmed_profile(subject_id)
 
+    @observe(DC.MEMORY, "memory_candidate")
     def create_candidate(
         self,
         *,
@@ -108,6 +113,7 @@ class MemoryService:
         )
         return record
 
+    @observe(DC.MEMORY, "memory_confirm")
     def create_confirmed(
         self,
         *,
@@ -166,6 +172,7 @@ class MemoryService:
             metadata=metadata,
         )
 
+    @observe(DC.MEMORY, "memory_confirm")
     def confirm_candidate(
         self, subject_id: str, memory_id: str, *, confirmed_by_user: bool
     ) -> MemoryRecord:
@@ -181,6 +188,7 @@ class MemoryService:
         self._index_record(record, operation="confirm_candidate")
         return record
 
+    @observe(DC.MEMORY, "memory_supersede")
     def supersede(
         self,
         subject_id: str,
@@ -219,6 +227,7 @@ class MemoryService:
         self._index_record(record, operation="supersede_index_replacement")
         return record
 
+    @observe(DC.MEMORY, "memory_archive")
     def archive(self, subject_id: str, memory_id: str) -> MemoryRecord:
         record = self.memory_store.archive(subject_id, memory_id)
         self._record(
@@ -230,6 +239,7 @@ class MemoryService:
         self._remove_vector(subject_id, memory_id, operation="archive")
         return record
 
+    @observe(DC.MEMORY_RETRIEVAL, "memory_retrieve")
     def retrieve(
         self,
         subject_id: str,
@@ -261,6 +271,7 @@ class MemoryService:
         )
         return results
 
+    @observe(DC.MEMORY_RETRIEVAL, "memory_retrieve")
     def retrieve_semantic(
         self,
         subject_id: str,
@@ -278,6 +289,7 @@ class MemoryService:
             top_k=top_k,
         )
 
+    @observe(DC.MEMORY_RETRIEVAL, "memory_retrieve")
     def retrieve_hybrid(
         self,
         subject_id: str,
@@ -295,6 +307,7 @@ class MemoryService:
             top_k=top_k,
         )
 
+    @observe(DC.MEMORY_CONTEXT, "memory_context_build")
     def retrieve_context(
         self,
         subject_id: str,
@@ -313,11 +326,13 @@ class MemoryService:
         )
         return self.context_builder.build(subject_id, results)
 
+    @observe(DC.VECTOR_INDEX, "vector_rebuild")
     def rebuild_subject_index(self, subject_id: str) -> VectorIndexRebuildResult:
         if self.vector_index is None:
             raise VectorIndexError("Derived vector index is not configured.")
         return self.vector_index.rebuild_subject_index(subject_id, self.memory_store)
 
+    @observe(DC.MEMORY, "memory_purge")
     def purge_subject(self, subject_id: str) -> PurgeResult:
         result = self.database.purge_subject(subject_id)
         vector_deleted = 0

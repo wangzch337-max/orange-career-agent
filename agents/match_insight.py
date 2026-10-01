@@ -39,6 +39,8 @@ from providers.prompts import (
 )
 from workflows.stages import ProfileNotConfirmedError, WorkflowStage
 from workflows.state import WorkflowState
+from observability.instrumentation import observe
+from observability.models import DiagnosticComponent as DC
 
 
 _DEPTH_GAP_JOBS = {"job_007", "job_011", "job_018"}
@@ -361,6 +363,7 @@ class MatchInsightAgent(BaseAgent):
             max_retries=0,
         )
 
+    @observe(DC.MATCH_INSIGHT, "match_run")
     def analyze_with_details(
         self,
         profile: UserProfile,

@@ -20,7 +20,8 @@
 | Day 9.7 | 7B | Semantic & Hybrid Memory Retrieval | local embedding、derived sqlite-vec、canonical validation、RRF、bounded context |
 | Day 9.8 | 7C | Context-Aware Memory Integration | explicit policies、profile refinement、role recall、human-confirmed changes |
 | Day 10 | 8A | Evaluation Framework | contract / semantic Golden / journey、安全报告 |
-| 后续（未开始） | 8A.1 / 8B / 8C / 8D | optional live / diagnostics / polish / public readiness | 必须分别授权 |
+| Day 10.5 | 8B | Safe Observability & Diagnostics | local collector、安全事件、折叠 trace、evaluation links；未提交 |
+| 后续（未开始） | 8A.1 / 8C / 8D | optional live / polish / public readiness | 必须分别授权 |
 | Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
 | Day 12 | 10 | Course Data Adapter | mock + sanitized export provider |
 | Day 13 | 11 | Reliability & Cost | 测试、错误处理、重试、成本控制 |
@@ -161,9 +162,19 @@
 
 **Exit criteria：**Phase 7C checkpoint、493 原回归保留、新测试与 complete Golden suite 通过；不隐藏 FAIL/review；任意 authority/subject/private/gate/lifecycle/network BLOCKING failure 必须 NEEDS REVIEW。报告保存在 ignored artifacts，Phase 8A 不自动 commit/push。
 
-**状态：COMPLETE（以最终报告验证结果为准）。** 后续 8A.1 optional live 必须显式授权；8B diagnostic UI、8C polish、8D public readiness 均未开始。下面旧 Phase 8–13 保留为历史初始路线，不授权当前扩展。
+**状态：COMPLETE。** 668 tests、27 scenarios（20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW）；本地 checkpoint `e707063`，无 push。8A.1 live、8C polish、8D public readiness 均未开始。
 
-## Phase 8 — Observability
+## Phase 8B — Safe Observability & Diagnostics
+
+**范围：**独立 `observability/` contracts/redaction/context/events/adapters/collector/diagnostics；生产高价值路径薄 instrumentation；只升级折叠 Developer Trace；Golden报告安全关联 run/event IDs。默认本地与离线，无 trace DB/exporter、新增依赖、live request、Prompt/domain/authority 改动或 UI redesign。
+
+**Exit criteria：**保留 668 原回归；strict metadata、录制故障、scope/reset/isolation、HITL resume、Memory/vector/Match counts 和 synthetic failure links 验证；Golden statuses 不变；public synthetic 实际 Streamlit 手动验收；secret-safe、无私有内容、无网络／推理泄露。最终证据以 Phase 8B 报告为准。
+
+**停止条件：**Phase 8B 修改留在 working tree，等待明确批准；不得 commit/push 或开始 8C/8D。唯一可选学习任务见 LEARNING_PLAN 的 Phase 8B。
+
+**风险／取舍：**bounded local collector 不是无限历史或生产 telemetry；粗粒度 spans 不代表每个内部验证分步时长；旧 source timestamps 与当前 span 可能交错，由 timestamp/sequence/ID 稳定排序；Fake/stub 验证不证明 live 模型行为。
+
+## Phase 8 — Observability（历史初始路线）
 
 **范围：**实现 `AgentEvent`、`ToolEvent`、routing、error、retry、latency 与可用时的 model usage。
 

@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Annotated, Literal
 
-from pydantic import Field, JsonValue, model_validator
+from pydantic import Field, JsonValue, model_validator, field_serializer
 
 from data.models import DomainModel, MatchRelationType
 from evaluation.taxonomy import FailureTaxonomy, EvaluationSeverity, severity_for
@@ -131,7 +131,11 @@ class GoldenScenario(DomainModel):
         return self
 
 
+DiagnosticEventRef = Annotated[str, Field(pattern=r"^evt_[0-9a-f]{32}$")]
+
+
 class EvaluationFailure(DomainModel):
+    related_event_ids: list[DiagnosticEventRef] = Field(default_factory=list, max_length=8, exclude=True)
     failure_id: str
     taxonomy: FailureTaxonomy
     scenario_id: str
@@ -152,6 +156,7 @@ class EvaluationFailure(DomainModel):
 
 
 class CheckResult(DomainModel):
+    related_event_ids: list[DiagnosticEventRef] = Field(default_factory=list, max_length=8, exclude=True)
     check_id: str
     kind: str
     summary: str
@@ -161,6 +166,7 @@ class CheckResult(DomainModel):
 
 
 class ScenarioResult(DomainModel):
+    diagnostic_run_id: str | None = Field(default=None, exclude=True, pattern=r"^diag_[0-9a-f]{32}$")
     scenario_id: str
     title: str
     layer: EvaluationLayer
@@ -201,3 +207,19 @@ class EvaluationReport(DomainModel):
     run: RunMetadata
     summary: EvaluationSummary
     scenarios: list[ScenarioResult]
+
+    @field_serializer("scenarios")
+    def correlated_scenarios(self, values):
+        # Dynamic correlation belongs to report transport, not deterministic scenario snapshots.
+        rows = []
+        for scenario in values:
+            row = scenario.model_dump(mode="json")
+            row["diagnostic_run_id"] = scenario.diagnostic_run_id
+            for data, check in zip(row["checks"], scenario.checks):
+                data["related_event_ids"] = check.related_event_ids
+                if check.failure is not None:
+                    data["failure"]["related_event_ids"] = check.failure.related_event_ids
+            for data, finding in zip(row["findings"], scenario.findings):
+                data["related_event_ids"] = finding.related_event_ids
+            rows.append(row)
+        return rows

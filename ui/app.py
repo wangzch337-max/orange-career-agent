@@ -544,7 +544,7 @@ def main() -> None:
     except Exception:
         st.session_state[SESSION_ERROR] = "unexpected_failure"
         st.error(safe_error_message("unexpected_failure"))
-    render_developer_trace(controller.safe_trace())
+    render_developer_trace(controller.safe_trace(), controller.diagnostics_snapshot())
 
 
 if __name__ == "__main__":

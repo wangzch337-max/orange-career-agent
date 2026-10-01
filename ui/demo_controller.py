@@ -37,6 +37,10 @@ from memory.models import (
 from memory.service import MemoryService, build_semantic_memory_service
 from providers.fake import FakeLLMProvider
 from ui.conversation import ConversationStage, GuidedConversation
+from observability.collector import DiagnosticEventCollector
+from observability.models import DiagnosticComponent as DC, ObservabilityContext, run_id
+from observability.instrumentation import session_operation
+from observability.diagnostics import snapshot
 from ui.presentation import (
     ACTION_STATUS_OPTIONS,
     ROLE_CLARIFICATION_OPTIONS,
@@ -100,9 +104,13 @@ class DemoValidationError(DemoControllerError):
 class DemoController:
     """Own one browser-session graph, in-memory checkpoint and temporary memory DB."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, diagnostics_enabled: bool = True) -> None:
         self.workflow_id = new_workflow_id()
         self.subject_id = new_subject_id()
+        self.diagnostics_enabled = diagnostics_enabled
+        self.diagnostic_collector = DiagnosticEventCollector()
+        self.diagnostic_context = ObservabilityContext(run_id=run_id(), workflow_id=self.workflow_id,
+                                                       thread_id=self.workflow_id, subject_id=self.subject_id)
         self._temporary_directory = TemporaryDirectory(prefix="orange_ui_demo_")
         memory_path = Path(self._temporary_directory.name) / "orange_demo_memory.sqlite3"
         vector_path = Path(self._temporary_directory.name) / "orange_demo_vectors.sqlite3"
@@ -163,6 +171,7 @@ class DemoController:
     def public_persona(self) -> dict[str, object]:
         return load_public_self_discovery_input()
 
+    @session_operation(DC.WORKFLOW, "workflow_start")
     def start(self) -> OrangeGraphState:
         """Start once; Streamlit reruns cannot restart Self-Discovery."""
 
@@ -183,6 +192,7 @@ class DemoController:
             raise DemoWorkflowError("Public Demo did not reach the profile review gate.")
         return self._state
 
+    @session_operation(DC.CONVERSATION, "guided_answer")
     def submit_conversation_answer(
         self,
         stage: ConversationStage,
@@ -230,6 +240,7 @@ class DemoController:
             raise DemoValidationError("Profile review payload is invalid.")
         return dict(payload)
 
+    @session_operation(DC.WORKFLOW, "workflow_resume")
     def confirm_profile(self) -> OrangeGraphState:
         """Resume the same real LangGraph thread with the domain confirm contract."""
 
@@ -251,6 +262,7 @@ class DemoController:
             self._validate_completed_roles()
         return self._state
 
+    @session_operation(DC.WORKFLOW, "workflow_resume")
     def revise_profile_summary(self, education_summary: str) -> OrangeGraphState:
         """Use the existing Phase 6 revision contract on the same graph thread."""
 
@@ -311,6 +323,7 @@ class DemoController:
         self.saved_feedback_memory_ids[job_id] = record.memory_id
         return record
 
+    @session_operation(DC.ROLE_EXPLORATION, "role_recall")
     def role_memory_context(
         self, job_id: str
     ) -> tuple[MemoryContext, tuple[MemoryAwareStatement, ...]]:
@@ -329,6 +342,7 @@ class DemoController:
         self.role_memory_statements[job_id] = statements
         return context, statements
 
+    @session_operation(DC.MEMORY, "memory_change_detect")
     def submit_structured_preference(
         self,
         *,
@@ -352,6 +366,7 @@ class DemoController:
             self.memory_change_candidates[candidate.candidate_id] = candidate
         return candidate
 
+    @session_operation(DC.MEMORY, "memory_change_resolve")
     def resolve_memory_change(
         self,
         candidate_id: str,
@@ -373,6 +388,7 @@ class DemoController:
             )
         return resolved
 
+    @session_operation(DC.PROFILE_REFINEMENT, "profile_refine_confirm")
     def confirm_pending_profile_refinement(self) -> UserProfile:
         if self.pending_profile_refinement is None:
             raise DemoWorkflowError("No profile refinement is awaiting review.")
@@ -439,12 +455,14 @@ class DemoController:
     def action_status(self, action_id: str) -> str:
         return self.action_statuses.get(action_id, "未开始")
 
+    @session_operation(DC.ACTION, "action_status")
     def set_action_status(self, action_id: str, status: str) -> None:
         if status not in ACTION_STATUS_OPTIONS:
             raise DemoValidationError("Invalid action status.")
         self._require_action(action_id)
         self.action_statuses[action_id] = status
 
+    @session_operation(DC.ACTION, "action_review")
     def mark_action_already_done(self, action_id: str) -> None:
         """Request evidence review without upgrading profile authority."""
 
@@ -533,7 +551,12 @@ class DemoController:
         ]
         return [*graph_events, *memory_events]
 
+    def diagnostics_snapshot(self):
+        """Read-only safe projection; page rerenders create no events."""
+        return snapshot(self.diagnostic_collector, self.diagnostic_context.run_id)
+
     def close(self) -> None:
+        self.diagnostic_collector.reset()
         self._temporary_directory.cleanup()
 
     def _seed_public_memory_scenario(self) -> None:

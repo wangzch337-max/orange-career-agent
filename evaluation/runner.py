@@ -14,6 +14,10 @@ from evaluation.models import (EvaluationReport, EvaluationStatus, EvaluationSum
 from evaluation.registry import ScenarioRegistry
 from evaluation.scenarios.execute import execute_scenario
 from evaluation.taxonomy import FailureTaxonomy as T
+from observability.collector import DiagnosticEventCollector
+from observability.context import diagnostic_scope
+from observability.events import diagnostic_span, emit
+from observability.models import ObservabilityContext, DiagnosticComponent as DC, DiagnosticStatus as DS, run_id
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +29,7 @@ class EvaluationRunner:
 
     def __init__(self, registry: ScenarioRegistry | None = None):
         self.registry = registry or ScenarioRegistry()
+        self.diagnostic_collectors = {}
 
     def run(self, *, scenario_ids=(), layer=None, capability=None, tags=(), fail_fast=False):
         scenarios = self.registry.select(scenario_ids=scenario_ids, layer=layer, capability=capability, tags=tags)
@@ -32,15 +37,20 @@ class EvaluationRunner:
             raise ValueError("Selection contains no scenarios")
         OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
         results = []
+        self.diagnostic_collectors = {}
         network_attempts = private_attempts = 0
         for scenario in scenarios:
             with TemporaryDirectory(prefix="scenario_", dir=OUTPUT_ROOT) as name:
                 boundary = OfflineBoundary(Path(name))
                 observation = {}
                 error = False
-                with boundary:
+                collector = DiagnosticEventCollector()
+                context = ObservabilityContext(run_id=run_id(), scenario_id=scenario.scenario_id)
+                self.diagnostic_collectors[context.run_id] = collector
+                with boundary, diagnostic_scope(collector, context):
                     try:
-                        observation = execute_scenario(scenario.scenario_id, Path(name))
+                        with diagnostic_span(DC.EVALUATION, "evaluation_scenario_run"):
+                            observation = execute_scenario(scenario.scenario_id, Path(name))
                     except Exception:
                         # Exception text/locals may contain sensitive data; do not serialize them.
                         error = True
@@ -59,8 +69,17 @@ class EvaluationRunner:
                         summary="生产适配器须完整执行；异常仅保留安全类别", taxonomy=T.CROSS_COMPONENT_INVARIANT_BREAK, source_component="runner"),
                 ]
                 checks = [evaluate_check(scenario.scenario_id, check, observation) for check in [*scenario.checks, *guards]]
+                with diagnostic_scope(collector, context):
+                    for check in checks:
+                        event = emit(DC.EVALUATION, "evaluation_check", DS.SUCCEEDED if check.passed else DS.FAILED,
+                            safe_metadata={"validation_result": "passed" if check.passed else "failed"},
+                            error_category=None if check.passed else "validation_failure")
+                        if event is not None:
+                            check.related_event_ids = [event.event_id]
+                            if check.failure is not None:
+                                check.failure.related_event_ids = [event.event_id]
                 status = derive_status(scenario, checks)
-                results.append(ScenarioResult(scenario_id=scenario.scenario_id, title=scenario.title,
+                results.append(ScenarioResult(scenario_id=scenario.scenario_id, diagnostic_run_id=context.run_id, title=scenario.title,
                     layer=scenario.layer, capability=scenario.capability, expected_status=scenario.expected_status,
                     status=status, checks=checks, findings=[check.failure for check in checks if check.failure]))
             if fail_fast and status == EvaluationStatus.FAIL:

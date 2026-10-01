@@ -13,6 +13,8 @@ from typing import Iterable, Sequence
 
 from memory.errors import EmbeddingProviderError
 from memory.models import EmbeddingVector
+from observability.instrumentation import observe
+from observability.models import DiagnosticComponent as DC
 
 
 DEFAULT_LOCAL_MODEL_ID = (
@@ -87,6 +89,7 @@ class FakeEmbeddingProvider(EmbeddingProvider):
             raise ValueError("Fake embedding dimension must be at least 8.")
         self.dimension = dimension
 
+    @observe(DC.EMBEDDING, "embedding_batch")
     def embed_batch(
         self,
         texts: Sequence[str],
@@ -140,6 +143,7 @@ class LocalEmbeddingProvider(EmbeddingProvider):
         self.batch_size = batch_size
         self._model: object | None = None
 
+    @observe(DC.EMBEDDING, "embedding_batch")
     def embed_batch(
         self,
         texts: Sequence[str],

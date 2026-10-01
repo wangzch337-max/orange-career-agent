@@ -39,6 +39,7 @@ from workflows.langgraph_state import (
     UnknownWorkflowError,
 )
 from workflows.stages import ProfileNotConfirmedError, WorkflowError
+from observability.adapters import record_legacy_event
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,7 @@ def _event(
         workflow_id=state["workflow_id"],
         node_name=node_name,
     )
+    record_legacy_event(item)
     return item.model_dump(mode="json")
 
 

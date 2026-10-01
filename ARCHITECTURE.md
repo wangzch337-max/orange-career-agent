@@ -500,4 +500,16 @@ Evaluation 包位于生产依赖图之外。三层分别验证 contract、semant
 
 每个 scenario 使用独立 FakeLLMProvider/FakeEmbeddingProvider、memory checkpointer、临时 canonical/vector DB 和 subject。读取 Memory 前后比较完整 canonical history/status/timestamps 与 vector metadata snapshot；current input、defer、显式 supersede 和另行 profile v2 confirmation 分别观察，不把 Memory recall 视为 Match 修改许可。
 
-Offline accident guards 在执行期间阻断网络、live/model constructors、私有文件与 root 外数据库；attempt 即使被捕获仍为 BLOCKING FAIL。全部测试不需要 credentials。默认报告只持有 checks/findings 与安全 run metadata，observations 不持久化。没有 judge、overall quality score、Match score 或角色 ranking；诊断 UI 8B 未实现。
+Offline accident guards 在执行期间阻断网络、live/model constructors、私有文件与 root 外数据库；attempt 即使被捕获仍为 BLOCKING FAIL。全部测试不需要 credentials。默认报告只持有 checks/findings 与安全 run metadata，observations 不持久化。没有 judge、overall quality score、Match score 或角色 ranking。
+
+## 25. Phase 8B local diagnostics observer
+
+`session/scenario owner → ObservabilityContext → scoped ContextVar → coarse measured span / legacy event adapter → strict DiagnosticEvent → bounded in-memory collector → safe projection → collapsed Developer Trace`。
+
+四个 Agent 的职责、domain models、Prompts、Memory authority 和 Match semantics 保持不变。原 AgentEvent/ToolEvent/GraphEvent/MemoryEvent 不迁移、不删除；adapter 明确投影 allowlisted fields 并保留 `source_event_type`，不复制 summary/text。高价值方法只增加有 scope 才启用的薄 decorator。Standalone 原调用不建立隐式 global collector。
+
+DemoController 持有自己的 collector 和 opaque run/thread/subject identity；evaluation runner 每个 scenario 独立 collector/context，不向 UI collector 写入。`diagnostic_scope` 用 token/finally 恢复 ContextVar，HITL resume 保留 logical run，新的 measured root span 表示恢复操作。parent 指向同 run 的 start event；timestamp 用 timezone-aware UTC，duration 用 monotonic perf_counter，root duration 不双计子 span，不包括等待用户的时间。
+
+Recorder failure 只累加安全 `recording_failure_count`，不改变业务返回／原异常；collector 有 4000-event 上限且返回 deep copy。长期不重置会截断后续诊断，显式计数而非静默成功。无 telemetry DB、global singleton、cloud trace 或 exporter。Observability 描述发生了什么；evaluation 判断是否符合规则，两者不互相代替。
+
+报告只新增 `diagnostic_run_id` 和最多八个 `related_event_ids`，不嵌入事件。动态 ID 在独立 scenario deterministic snapshot 中排除，在完整报告 serializer 中显式加入，保持原 scenario comparisons 可重复。发生 synthetic failure 时可定位 scenario → run → failed evaluation-check event；EVALUATION event 不是新的 production failure taxonomy。

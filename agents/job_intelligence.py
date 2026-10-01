@@ -33,6 +33,8 @@ from providers.prompts import (
 from tools.base import JobDataProvider
 from workflows.stages import ProfileNotConfirmedError, WorkflowStage
 from workflows.state import WorkflowState
+from observability.instrumentation import observe
+from observability.models import DiagnosticComponent as DC
 
 
 def _evidence_for(
@@ -155,6 +157,7 @@ class JobIntelligenceAgent(BaseAgent):
             max_retries=0,
         )
 
+    @observe(DC.JOB_INTELLIGENCE, "job_intelligence_run")
     def _analyze(
         self,
         job: JobRecord,

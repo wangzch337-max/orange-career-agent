@@ -77,4 +77,10 @@ OfflineBoundary 阻断 socket/DNS/send、子进程／shell、live-provider/model
 
 Fake responses 验证结构、assembly 和已定义案例，不证明 live LLM 候选语义或真实 embedding 质量。窄 claim rules 不是通用 entailment。Guided answers 与 authoritative profile 仍是现有 adapter 的两个层次，本阶段不重构产品。public canned job helper 依赖非空且可区分的 summary/responsibility/technology evidence；incomplete case 保留最小有效 source，不宣称测试任意空 JD helper。
 
-Phase 7C checkpoint `1c64e7a`：`feat: integrate context-aware career memory`。Phase 8A 不自动 commit。未来 8A.1 live 必须另行授权；8B diagnostic UI、8C polish、8D public readiness 未开始。不新增 CI actions、监控或 UI。
+Phase 8A 已经明确授权建立 local checkpoint `e707063`：`feat: add scenario-based evaluation framework`，没有 push。未来 8A.1 live 必须另行授权；8C polish、8D public readiness 未开始。没有新增 CI actions 或外部监控。
+
+## Phase 8B 安全诊断关联
+
+每个 scenario 独立 `diagnostic_run_id`，CheckResult/EvaluationFailure 只引用最多八个 `related_event_ids`（evt UUID）。完整 JSON report 显式序列化这些引用，failed-check Markdown 展示 bounded refs；不包含 full event stream、profile、Memory、query 或 Prompt。In-memory collector 由 runner 持有，不另存 trace 文件／数据库。
+
+ScenarioResult 的直接 deterministic dump 排除动态 IDs；EvaluationReport transport serializer 才加入，保留原重复／反序测试。Synthetic failure 验证 finding → scenario → run → failed EVALUATION check event；evaluation taxonomy、PASS/FAIL/EU/review 判定与 production semantics 不变。

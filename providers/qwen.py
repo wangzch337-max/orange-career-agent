@@ -8,6 +8,8 @@ from openai import OpenAI
 from pydantic import BaseModel, SecretStr, ValidationError
 
 from providers.base import LLMProvider
+from observability.instrumentation import observe
+from observability.models import DiagnosticComponent as DC
 from providers.errors import (
     LLMAuthenticationError,
     LLMConfigurationError,
@@ -56,6 +58,7 @@ class QwenProvider(LLMProvider):
         assert settings.base_url is not None
         return cls(settings.api_key, settings.base_url)
 
+    @observe(DC.PROVIDER, "provider_call")
     def generate_structured(
         self,
         messages: Sequence[LLMMessage],

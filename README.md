@@ -3,7 +3,7 @@
 > AI Career Discovery Agent for University Students
 > 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 8A — Evaluation Framework（离线合成 Golden Suite）；Phase 7C 已完成并建立本地 checkpoint。**
+**当前状态：Phase 8B — Safe Observability & Diagnostics（本地、离线、安全结构化事件）；Phase 8A 已建立本地 checkpoint `e707063`。Phase 8B 修改等待明确批准提交。**
 
 Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
 
@@ -175,9 +175,10 @@ Demo 先通过选择题、多选和可选短文本进行 guided discovery，右�
 - Phase 7.6：Conversation-First Product Redesign / Demo v0.2（完成并建立本地 checkpoint）
 - Phase 7B：Semantic & Hybrid Memory Retrieval（完成并建立本地 checkpoint）
 - Phase 7C：Context-Aware Memory Integration（完成，本地 checkpoint `1c64e7a`）
-- Phase 8A：Evaluation Framework（已实现，待用户批准提交）
+- Phase 8A：Evaluation Framework（完成，本地 checkpoint `e707063`）
 - Phase 8A.1：optional live evaluation（未开始，必须另行授权）
-- Phase 8B：diagnostic UI；8C：polish；8D：public readiness（均未开始）
+- Phase 8B：Safe Observability & Diagnostics（已实现，本地验收；未提交）
+- Phase 8C：polish；8D：public readiness（均未开始）
 - Phase 9–10：Streamlit UI 与课程数据适配器
 - Phase 11–13：测试、成本控制、演示案例与最终打磨
 
@@ -194,6 +195,14 @@ Demo 先通过选择题、多选和可选短文本进行 guided discovery，右�
 三个 evaluation layers 覆盖 Self-Discovery、Job Intelligence、Match、Memory、Conversation、Action 与端到端旅程。27 个公开合成场景不读取私有 Golden Case、不调用 Qwen/cloud embedding、不引入 LLM judge 或总体质量分。PASS、FAIL、EXPECTED_UNCERTAINTY、NEEDS_REVIEW 由 required/forbidden/provenance 等结构规则确定；未知被正确保留时是成功，而不是系统失分。
 
 生成安全 JSON 和 failures-first Markdown 到 Git-ignored `artifacts/evaluation/`。结果：20 PASS、7 EXPECTED_UNCERTAINTY、0 FAIL、0 NEEDS_REVIEW。完整使用、状态推导、taxonomy、范围局限与 CLI exit code 见 [evaluation/README.md](evaluation/README.md)。Fake-only suite 不是 live model benchmark，也不能证明任意语言的语义正确性。
+
+## Phase 8B 安全诊断
+
+在 public synthetic Demo 中展开默认折叠的「开发者执行轨迹（安全）」，查看 Run Summary、Workflow Timeline、Component Activity、Memory Activity、Match Diagnostics、Warnings / Failures 与 Raw Safe Events。只有 opaque ID、closed category、status、count、版本、可用时的 token usage 与实测 duration；没有 evidence text、profile JSON、Memory content、query、Prompt、completion、embedding、credential 或隐藏推理。
+
+`observability/` 是 session-local observer，不是数据库、遥测 exporter 或评分器。Profile Review interrupt/resume 使用同一 diagnostic run；渲染不生成事件，Reset 清空旧 collector 并创建新 identity。Golden evaluation 每个 scenario 独立 run，只在报告中保存 bounded run/event references，不嵌入 trace。未知是正常产品状态，不自动成为诊断 warning。
+
+全程无需新增服务、环境变量或依赖。离线测试与 Demo 使用 Fake providers；Qwen instrumentation 仅通过 transport stub 测试，没有 live 请求。使用与限制见 [observability/README.md](observability/README.md)。Phase 8C/8D 未授权、未实现；不自动提交或 push。
 
 ## 本地验证 Local Validation
 

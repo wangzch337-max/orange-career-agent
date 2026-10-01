@@ -31,10 +31,12 @@ def markdown_report(report: EvaluationReport) -> str:
     for scenario in report.scenarios:
         lines.extend([f"### {scenario.scenario_id} — {scenario.title}", "",
             f"{scenario.status.value} · {scenario.layer.value} · {scenario.capability.value}", "",
+            f"Diagnostic run: `{scenario.diagnostic_run_id or 'none'}`", "",
             "| Check | Kind | Result | Rule |", "|---|---|---|---|"])
         for check in scenario.checks:
             status = "NEEDS_REVIEW" if check.review_triggered else "PASS" if check.passed else "FAIL"
-            lines.append(f"| {check.check_id} | {check.kind} | {status} | {_cell(check.summary)} |")
+            refs = f" · event `{check.related_event_ids[0]}`" if check.related_event_ids and not check.passed else ""
+            lines.append(f"| {check.check_id} | {check.kind} | {status} | {_cell(check.summary)}{refs} |")
         lines.append("")
     return "\n".join(lines) + "\n"
 

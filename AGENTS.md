@@ -19,7 +19,9 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 - 严格按 `IMPLEMENTATION_PLAN.md` 推进，不跨阶段实现。
 - Phase 7C 已完成并建立本地 checkpoint。Memory 仍只允许两个显式 use case：`PROFILE_REFINEMENT` 与 `ROLE_EXPLORATION`。`MemoryContextPolicy` 的类型过滤、检索模式、top-k、预算和 consumer 必须由确定性代码决定；retrieval 是只读路径。
 - Job Intelligence 与 Match relation generation 不得消费 retrieved Memory。Memory-aware statement 必须保留 `memory_refs`；只有结构化同维度差异可建立 session-only `MemoryChangeCandidate`，且只有用户明确确认才可 supersede。不得用 semantic similarity 判断冲突，不得自动保存 guided answer、chat transcript 或检索结果。
-- 当前 Phase 8A 仅允许独立 evaluation observer、公开合成 Golden scenarios、FakeLLMProvider／FakeEmbeddingProvider、临时隔离 stores、deterministic checks 与安全 JSON/Markdown reports。不把 evaluation 逻辑放入生产 agents/workflow/UI/memory；不引入 LLM judge、总体质量分、Match score 或 role ranking。默认网络禁用，不加载 private data、`.env.local` 或真实 model。不得调用 cloud embedding、Qwen、Canvas、live jobs；不得开始 8A.1 live、8B diagnostics、8C polish、8D public readiness。Phase 8A 不自动 commit/push。
+- Phase 8A 已通过 668 tests 与 27 Golden scenarios，并经明确授权建立唯一 local checkpoint `e707063`（无 push）。Evaluation 仍是外部 observer；不把评价规则放入生产 agents/workflow/UI/memory，不引入 judge／总体分／Match score／ranking。
+- 当前 Phase 8B 仅允许 local safe observability contracts、bounded session/scenario collector、旧事件 explicit adapters、薄 observational instrumentation、折叠 Developer Trace 与 bounded evaluation correlation。不得记录 raw evidence/profile/Memory/query/Prompt/completion/vector/credential/CoT；只允许 closed categories、opaque IDs、counts、版本与实测 duration。Recorder 不改变业务状态、返回或原异常；scope 必须 finally reset，session/scenario 不能串联。
+- 默认网络禁用，不加载 private data、`.env.local` 或真实 model；仅 Fake providers／offline transport/inference stubs。不得调用 Qwen、cloud embedding、Canvas、live jobs／cloud telemetry。Phase 8B 保持未提交，等待明确批准；不得开始 8A.1 live、8C polish 或 8D public readiness。
 - 不得静默改变四个核心 Agent、Golden Flow、数据边界或目录结构。必要变更必须先记录理由、影响和取舍，并取得确认。
 - 每个阶段结束时运行与风险相称的测试；测试失败不得伪装为完成。
 

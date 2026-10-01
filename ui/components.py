@@ -281,8 +281,52 @@ def render_role_memory(view: RoleMemoryView) -> None:
                 st.caption("确认时间：" + item.confirmed_at)
 
 
-def render_developer_trace(events: list[dict[str, object]]) -> None:
+def render_developer_trace(events: list[dict[str, object]], diagnostics=None) -> None:
     with st.expander("开发者执行轨迹（安全）", expanded=False):
+        if diagnostics is not None:
+            from observability.diagnostics import safe_event_view
+            from observability.models import DiagnosticComponent as DC, DiagnosticRunSummary
+            # Validate the entire envelope before rendering even the first diagnostic value.
+            validated_views = [safe_event_view(e) for e in diagnostics["events"]]
+            summary = DiagnosticRunSummary.model_validate(diagnostics["summary"].model_dump())
+            st.markdown("#### Run Summary")
+            st.caption(f"run_id={summary.run_id} · {summary.status.value} · events={summary.event_count}")
+            st.write({"workflow_status": summary.workflow_status, "provider_calls": summary.provider_call_count,
+                "memory_retrievals": summary.memory_retrieval_count, "duration_ms": summary.duration_ms,
+                "recording_failures": summary.recording_failure_count})
+            st.markdown("#### Workflow Timeline")
+            rows = [{key: item[key] for key in ("component", "operation", "status", "duration_ms")}
+                    for item in validated_views]
+            if rows:
+                st.dataframe(rows, hide_index=True, width="stretch")
+            for event in validated_views:
+                if event["source_event_type"] and event["component"] == "WORKFLOW":
+                    st.code(f"{event['source_event_type']} · {event['component']} · {event['status']}", language=None)
+            st.markdown("#### Component Activity")
+            st.write({key.value: value for key, value in summary.component_counts.items()})
+            st.markdown("#### Memory Activity")
+            memory_components = {DC.MEMORY, DC.MEMORY_RETRIEVAL, DC.MEMORY_CONTEXT, DC.VECTOR_INDEX, DC.PROFILE_REFINEMENT, DC.ROLE_EXPLORATION}
+            for event in diagnostics["events"]:
+                if event.component in memory_components and event.status.value != "STARTED":
+                    view = safe_event_view(event)
+                    st.caption(f"{view['component']} · {view['operation']} · {view['status']}")
+                    if view["counts"]:
+                        st.write(view["counts"])
+            st.markdown("#### Match Diagnostics")
+            matches = [safe_event_view(e) for e in diagnostics["events"] if e.component == DC.MATCH_INSIGHT and e.operation == "match_run" and e.status.value == "SUCCEEDED"]
+            for match in matches:
+                st.write(match["counts"])
+            st.markdown("#### Warnings / Failures")
+            flagged = [safe_event_view(e) for e in diagnostics["events"] if e.status.value == "FAILED" or "warning" in e.safe_metadata]
+            if not flagged and not summary.recording_failure_count:
+                st.caption("无诊断 warning/failure；正常的未知不作为 warning。")
+            for event in flagged:
+                st.write({"component": event["component"], "operation": event["operation"], "status": event["status"],
+                          "error_category": event["error_category"], "safe_metadata": event["safe_metadata"]})
+            with st.expander("Raw Safe Events", expanded=False):
+                for event in diagnostics["events"]:
+                    st.json(safe_event_view(event))
+            return
         if not events:
             st.caption("工作流尚未开始。")
             return

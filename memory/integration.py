@@ -74,6 +74,10 @@ ROLE_EXPLORATION_POLICY: Final = MemoryContextPolicy(
 )
 
 
+from observability.instrumentation import observe
+from observability.models import DiagnosticComponent as DC
+
+
 class MemoryPolicyRegistry:
     """Closed, code-owned registry; providers cannot change retrieval scope."""
 
@@ -132,6 +136,7 @@ class MemoryContextCoordinator:
         self.policies = policies or MemoryPolicyRegistry()
         self.events: list[MemoryEvent] = []
 
+    @observe(DC.MEMORY_CONTEXT, "memory_context_build")
     def retrieve(
         self,
         *,
@@ -285,6 +290,7 @@ class MemoryChangeDetector:
         self.dimensions = dimensions or StructuredSignalPolicyRegistry()
         self.events: list[MemoryEvent] = []
 
+    @observe(DC.MEMORY, "memory_change_detect")
     def detect(
         self, subject_id: str, signal: StructuredSessionSignal
     ) -> MemoryChangeCandidate | None:
@@ -352,6 +358,7 @@ class MemoryChangeService:
         self.dimensions = dimensions or StructuredSignalPolicyRegistry()
         self.events: list[MemoryEvent] = []
 
+    @observe(DC.MEMORY, "memory_change_resolve")
     def resolve(
         self,
         candidate: MemoryChangeCandidate,
@@ -455,6 +462,7 @@ class ProfileRefinementService:
         self.profile_refinement_calls = 0
         self.events: list[MemoryEvent] = []
 
+    @observe(DC.PROFILE_REFINEMENT, "profile_refine")
     def refine(
         self,
         *,
@@ -528,6 +536,7 @@ class ProfileRefinementService:
         )
         return result
 
+    @observe(DC.PROFILE_REFINEMENT, "profile_refine_confirm")
     def confirm(
         self,
         subject_id: str,
@@ -575,6 +584,7 @@ class RoleMemoryContextService:
         self.references = MemoryReferenceResolver(memory_service)
         self.events: list[MemoryEvent] = []
 
+    @observe(DC.ROLE_EXPLORATION, "role_recall")
     def recall(
         self,
         *,

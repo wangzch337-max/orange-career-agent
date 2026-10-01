@@ -394,6 +394,28 @@ Profile refinement／role recall、change choices、reference validation、Job�
 
 完整回归与 Golden suite 运行、安全边界通过、所有 findings 如实报告后停止。不得自动 commit/push，不开始 8A.1 live、8B、8C 或 8D。下面原 Phase 8–13 是历史学习路线。
 
+## Phase 8B — Safe Observability & Diagnostics
+
+### Codex 负责与关键概念
+
+建立 safe event schema、allowlists、local collector、legacy adapters、scope/parent correlation、薄 instrumentation、collapsed trace、evaluation links；验证保留原业务语义、安全拒绝、failure visibility、reset/isolation 与 public Demo。概念：observability ≠ evaluation；opaque run/event/parent identity；wall-clock timestamp 与 monotonic duration；内容最小化；read-only observation；显式 error category；诊断不是 hidden reasoning。
+
+### OPTIONAL DEVELOPER HANDS-ON TASK（本阶段恰好一个）
+
+运行 Orange Demo v0.2，完成 profile confirmation，打开一个 role，触发一次 Memory recall 并查看 Match Insights。展开 Developer Trace，观察 Workflow Timeline、Component Activity、operation/status/count/duration；确认没有 profile text、Memory content、Prompt、embedding 或隐藏推理。这是可选体验，不是 quiz，不阻塞阶段完成。
+
+### 五个验收／面试问题与简答
+
+1. Observability 与 evaluation 有何区别？前者回答组件何时做了什么／耗时／状态；后者以显式规则判断结果是否符合产品契约。
+2. 为什么不记录 raw profile、Memory、Prompt？诊断通常只需生命周期、计数、类别和引用；原文提高隐私与凭据泄露风险而非必要信息。
+3. Run/event/parent ID 如何帮助定位？run 串联 interrupt/resume，event 唯一定位，parent 连接同 run 的嵌套操作；scenario refs 可跳到对应 failed check event。
+4. 为什么 recorder 不能改变 canonical Memory 或 Match？observer 必须只读，业务权威仍由既有 schema、确认门和写命令管理，否则开关诊断会改变产品。
+5. 为什么不用 chain-of-thought？可验证的执行事件、错误类别和结构化结果足够定位工程故障；隐藏推理不是安全或可靠的诊断契约。
+
+### 停止条件
+
+完整回归、Golden suite、安全与实际 public Demo 验收完成后停止。只建立已授权 Phase 8A checkpoint；Phase 8B 不 commit/push，不开始 8C/8D。
+
 ## Phase 8 — Observability（历史路线，非当前实施范围）
 
 ### 1. 学习目标

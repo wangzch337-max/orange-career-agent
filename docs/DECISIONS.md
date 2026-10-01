@@ -348,3 +348,20 @@ Fake suite 不能证明 live LLM 或真实 embedding 质量；label normalizatio
 
 **Status**
 Accepted — Phase 8A
+
+## ADR-020 — 本地最小内容诊断与 evaluation correlation 分离
+
+**Context**
+Phase 8A Golden suite 已建立 checkpoint。跨 workflow/HITL/Memory/vector/Match 的诊断仍分散在原事件列表；直接输出原始状态或自由 summary 可能泄露 profile、Memory、Prompt 或凭据。
+
+**Decision**
+新增独立 strict `orange.observability.v1`。保留原事件，显式 adapter 投影；高价值操作用 scoped coarse spans，不重写业务逻辑。每个 session/scenario 独立 bounded in-memory collector，ContextVar 只传播显式 context，并 finally reset。run 穿过确认门，parent 必须同 run；Reset 清空旧 collector。UI 只升级默认折叠 Developer Trace，所有展示重新验证；report 只引用 run/event IDs，不存 full trace。
+
+**Reason**
+Closed keys/values 比 denylist/free-form summary 更能防止新字段泄露；内容最小化使安全与诊断可以同时成立。Observer failures 显式计数而不接管产品异常／权威。Evaluation check event 定位失败，但不把评价 taxonomy 注入生产组件，也不把 unknown 当 warning。
+
+**Tradeoffs**
+无持久化／exporter，Reset 后不能恢复历史 trace；4000-event cap 可截断诊断且会显式计数。Coarse spans 不提供每个内部 validation stage 的独立时长；旧事件顺序按 timestamp/sequence/ID 稳定排序。动态 IDs 只在 report transport 加入，不污染 deterministic scenario comparisons。Fake/stub 与合成 Demo 不等于 live/private quality validation。
+
+**Status**
+Accepted — Phase 8B，本阶段 working tree 等待明确批准；没有 8C/8D。

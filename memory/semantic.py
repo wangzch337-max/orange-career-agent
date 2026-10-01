@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from observability.events import emit
+from observability.models import DiagnosticComponent as DC, DiagnosticStatus as DS
+
 from collections.abc import Sequence
 from time import perf_counter
 from uuid import uuid4
@@ -113,6 +116,10 @@ class SemanticMemoryRetriever:
                 "duration_ms": round((perf_counter() - started) * 1000),
             },
         )
+        emit(DC.MEMORY_RETRIEVAL, "memory_retrieval_sources", DS.SUCCEEDED,
+             counts={"candidate_count": len(hits), "semantic_result_count": len(results),
+                     "stale_filtered_count": stale_count},
+             safe_metadata={"retrieval_mode": "semantic", "memory_types": sorted({item.memory.memory_type.value for item in results})})
         return results
 
     def _record(
@@ -260,4 +267,8 @@ class HybridMemoryRetriever:
                 subject_id=subject_id,
             )
         )
+        emit(DC.MEMORY_RETRIEVAL, "memory_retrieval_sources", DS.SUCCEEDED,
+             counts={"candidate_count": len(by_id), "lexical_result_count": len(lexical),
+                     "semantic_result_count": len(semantic), "hybrid_result_count": len(results)},
+             safe_metadata={"retrieval_mode": self.last_mode, "memory_types": sorted({item.memory.memory_type.value for item in results})})
         return results

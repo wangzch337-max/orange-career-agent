@@ -455,3 +455,13 @@ Long-term memory 使用 schema version 1 的 `data/private/memory/orange_memory.
 `EvaluationFailure`：failure_id、taxonomy、scenario_id、check_id、summary、expected、safe observed、source_component、evidence_refs、memory_refs、固定 severity。Taxonomy 26 要求类别 + PRESENTATION_AMBIGUITY；BLOCKING/MAJOR/MINOR 在 `evaluation/taxonomy.py` 闭合映射，不能降级。Expected/observed 不携带完整输入、private profile、credential、exception text 或 hidden reasoning。
 
 Expectations 为 discriminated union：Required、Forbidden、Uncertainty、Provenance、Relation、Lifecycle、Workflow，以及只用于 presentation ambiguity 的 Review。检查结构 fields/enums/IDs/refs 与窄 claim fragments，不匹配自然语言整句。Match provenance 验证 evidence ownership union；unknown uncertainty signal 可合法拥有空 evidence_refs，但 referenced signal 本身必须存在。Action expected evidence 是 authoritative ActionRenderer recipe，不是模型自由建议。
+
+## 28. Phase 8B Diagnostic contracts（不改变 domain）
+
+`DiagnosticEvent.schema_version = orange.observability.v1`；extra fields 禁止。`run_id=diag_<uuidhex>`、`event_id=evt_<uuidhex>`、可选同 run `parent_event_id`；可选 workflow/thread/subject/scenario opaque IDs；UTC-aware timestamp、可选 started_at、sequence、有限非负 duration_ms；closed component、operation、status、source_event_type、error_category；allowlisted correlation_ids、counts、safe_metadata。
+
+Component：SYSTEM / WORKFLOW / SELF_DISCOVERY / JOB_INTELLIGENCE / MATCH_INSIGHT / REPORT / MEMORY / MEMORY_RETRIEVAL / MEMORY_CONTEXT / EMBEDDING / VECTOR_INDEX / CONVERSATION / PROFILE_REFINEMENT / ROLE_EXPLORATION / ACTION / EVALUATION / UI / PROVIDER。Status：STARTED / SUCCEEDED / FAILED / WAITING / SKIPPED / INTERRUPTED。Operation 只允许既有 EventType 和注册的粗粒度操作，不接受任意用户字符串。
+
+Counts 只接受 allowlisted 非负整数（不接受 bool）；metadata 只接受对应 key 的 closed enum string、strict bool、非负整数／finite float、bounded closed enum list 或已允许的 null。Safe key 不授权任意 string/object。完整 profile、raw input/output、query、Memory content、vector、Prompt、completion、证据原文、credential、CoT 字段全部拒绝。异常只保存 closed category/class，绝不复制 message/stack。Adapter 只投影旧事件的既有安全值，对显式危险 key 记录拒绝 count/warning，不保留值。
+
+Collector 和 UI rendering 都重新验证 envelope，model_copy/model_construct 不可绕过。Timeline 从已验证事件派生；unknown/uncertainty 不自动 warning。Run Summary 包含 safe counts、workflow status、measured root duration 与 recorder failure count，不包含结果内容。Evaluation report 的 diagnostic_run_id 使用同一 ID 格式；related_event_ids 最多八个且只允许 evt UUID，JSON/Markdown 只携带引用、不持久化 full trace。

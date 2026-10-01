@@ -37,6 +37,8 @@ from providers.prompts import (
 from tools.base import CourseDataProvider
 from workflows.stages import WorkflowStage
 from workflows.state import WorkflowState
+from observability.instrumentation import observe
+from observability.models import DiagnosticComponent as DC
 
 
 def public_offline_extraction() -> SelfDiscoveryExtraction:
@@ -76,6 +78,7 @@ class SelfDiscoveryAgent(BaseAgent):
         self.profile_assembler = profile_assembler or ProfileAssembler()
         self.generation_options = generation_options or GenerationOptions(model="fake-self-discovery-v2", max_retries=0)
 
+    @observe(DC.SELF_DISCOVERY, "self_discovery_run")
     def discover(self, user_input: Dict[str, object], courses: list) -> SelfDiscoveryResult:
         evidence = self.evidence_builder.build(user_input, courses)
         response = self.llm_provider.generate_structured(

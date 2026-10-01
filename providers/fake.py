@@ -7,6 +7,8 @@ from pydantic import BaseModel, ValidationError
 
 from providers.base import LLMProvider
 from providers.errors import LLMStructuredOutputError
+from observability.instrumentation import observe
+from observability.models import DiagnosticComponent as DC
 from providers.models import (
     GenerationOptions,
     LLMMessage,
@@ -33,6 +35,7 @@ class FakeLLMProvider(LLMProvider):
         self.predefined_responses = list(predefined_responses or [])
         self.call_count = 0
 
+    @observe(DC.PROVIDER, "provider_call")
     def generate_structured(
         self,
         messages: Sequence[LLMMessage],
