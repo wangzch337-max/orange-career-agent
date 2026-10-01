@@ -27,14 +27,20 @@ def stylesheet() -> str:
     # Use semantic elements and stable Streamlit test IDs, not generated classes.
     return "<style>:root{" + variables + "}" + """
     .stApp {background:var(--orange-canvas); color:var(--orange-ink);}
-    .block-container {max-width:1200px; padding-top:1.7rem; padding-bottom:3rem;}
+    [data-testid="stMainBlockContainer"] {max-width:1200px; padding-top:calc(3.75rem + var(--orange-space-md)); padding-bottom:3rem;}
     h1 {font-size:var(--orange-title)!important; letter-spacing:-.025em;}
     h2 {font-size:var(--orange-page)!important; margin-top:var(--orange-space-lg);}
     h3 {font-size:var(--orange-section)!important;}
     h4 {font-size:var(--orange-card)!important;}
     p, li {line-height:1.65; overflow-wrap:anywhere;}
     [data-testid="stCaptionContainer"] {color:var(--orange-muted);}
-    [data-testid="stSidebar"] {background:var(--orange-surface); border-right:1px solid var(--orange-line);}
+    [data-testid="stSidebar"] {background:var(--orange-surface); color:var(--orange-ink); border-right:1px solid var(--orange-line);}
+    [data-testid="stSidebar"] h2 {color:var(--orange-ink);}
+    [data-testid="stWidgetLabel"],
+    [data-testid="stRadio"] [data-testid="stRadioOption"],
+    [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"],
+    [data-testid="stCheckbox"] [data-baseweb="checkbox"],
+    [data-testid="stCheckbox"] [data-testid="stMarkdownContainer"] {color:var(--orange-ink);}
     [data-testid="stVerticalBlockBorderWrapper"] {border-radius:var(--orange-radius); background:var(--orange-surface);}
     [data-testid="stBaseButton-primary"] {background:var(--orange-accent); border-color:var(--orange-accent); color:white;}
     button {min-height:2.6rem; white-space:normal;}
@@ -51,7 +57,7 @@ def stylesheet() -> str:
     .orange-journey li {font-size:var(--orange-meta); padding:.35rem .7rem; border-radius:999px; border:1px solid var(--orange-line); color:var(--orange-muted);}
     .orange-journey .current {background:var(--orange-accent-soft); color:var(--orange-accent); border-color:var(--orange-accent); font-weight:700;}
     @media (max-width:700px) {
-      .block-container {padding-left:1rem; padding-right:1rem;}
+      [data-testid="stMainBlockContainer"] {padding-left:1rem; padding-right:1rem;}
       h1 {font-size:2.1rem!important;} h2 {font-size:1.5rem!important;}
       [data-testid="stHorizontalBlock"] {flex-wrap:wrap;}
       [data-testid="stColumn"] {min-width:min(100%,280px); flex:1 1 280px!important;}

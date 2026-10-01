@@ -98,7 +98,7 @@ def historical_blobs() -> tuple[tuple[str, str], ...]:
 
 
 def assert_frozen_bytes(name: str, current: bytes, historical: bytes) -> None:
-    """仅兼容获批准的单行 checkpoint 改写，其余字节必须完全一致。"""
+    """仅兼容获批准的 checkpoint／CSS 差异，其余字节必须完全一致。"""
     expected = historical
     if name == "tests/test_ui_polish.py":
         old_sha = b"5a6a1d14cb95e1a79ab11a1b16e4835d2bce5873"
@@ -107,6 +107,31 @@ def assert_frozen_bytes(name: str, current: bytes, historical: bytes) -> None:
         assert historical.count(old_sha) == 1, name
         assert historical.splitlines(keepends=True).count(old_line) == 1, name
         expected = historical.replace(old_line, new_line, 1)
+    elif name == "ui/visual_system.py":
+        # The authorized rendering repair changes only these exact CSS fragments.
+        replacements = (
+            (
+                b'    .block-container {max-width:1200px; padding-top:1.7rem; padding-bottom:3rem;}\n',
+                b'    [data-testid="stMainBlockContainer"] {max-width:1200px; padding-top:calc(3.75rem + var(--orange-space-md)); padding-bottom:3rem;}\n',
+            ),
+            (
+                b'    [data-testid="stSidebar"] {background:var(--orange-surface); border-right:1px solid var(--orange-line);}\n',
+                b'    [data-testid="stSidebar"] {background:var(--orange-surface); color:var(--orange-ink); border-right:1px solid var(--orange-line);}\n'
+                b'    [data-testid="stSidebar"] h2 {color:var(--orange-ink);}\n'
+                b'    [data-testid="stWidgetLabel"],\n'
+                b'    [data-testid="stRadio"] [data-testid="stRadioOption"],\n'
+                b'    [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"],\n'
+                b'    [data-testid="stCheckbox"] [data-baseweb="checkbox"],\n'
+                b'    [data-testid="stCheckbox"] [data-testid="stMarkdownContainer"] {color:var(--orange-ink);}\n',
+            ),
+            (
+                b'      .block-container {padding-left:1rem; padding-right:1rem;}\n',
+                b'      [data-testid="stMainBlockContainer"] {padding-left:1rem; padding-right:1rem;}\n',
+            ),
+        )
+        for before, after in replacements:
+            assert expected.count(before) == 1, name
+            expected = expected.replace(before, after, 1)
     assert current == expected, name
 
 
@@ -136,6 +161,22 @@ def test_frozen_compatibility_rejects_all_unapproved_differences():
     for path, current, original in invalid_cases:
         with pytest.raises(AssertionError):
             assert_frozen_bytes(path, current, original)
+
+
+def test_ui_rendering_repair_keeps_every_other_byte_frozen():
+    name = "ui/visual_system.py"
+    historical = git("show", f"{CHECKPOINT}:{name}")
+    current = (ROOT / name).read_bytes()
+    assert_frozen_bytes(name, current, historical)
+    for path, modified, original in (
+        (name, current + b"\n", historical),
+        (name, current.replace(b"import streamlit as st", b"import streamlit as other", 1), historical),
+        (name, current, historical + b"    .block-container {max-width:1200px; padding-top:1.7rem; padding-bottom:3rem;}\n"),
+        (name, current, current),
+        ("ui/components.py", current, historical),
+    ):
+        with pytest.raises(AssertionError):
+            assert_frozen_bytes(path, modified, original)
 
 
 def test_phase8c_checkpoint_and_original_tests_preserved():
