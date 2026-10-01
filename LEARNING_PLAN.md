@@ -416,6 +416,30 @@ Profile refinement／role recall、change choices、reference validation、Job�
 
 完整回归、Golden suite、安全与实际 public Demo 验收完成后停止。只建立已授权 Phase 8A checkpoint；Phase 8B 不 commit/push，不开始 8C/8D。
 
+## Phase 8C — Product & Demo Polish
+
+### Codex 负责
+
+验证既有基线并建立获授权的唯一 Phase 8B local checkpoint；集中轻量视觉系统、固定旅程与连续文案、渐进披露、CTA 和状态设计、十个视图打磨。添加 UI 契约／长文本／escape tests，保留全部原 tests 与 Golden statuses；用 public synthetic live UI 验收，无自动截图或外部请求。
+
+### 开发者亲手完成（恰好一个可选任务，不是 quiz）
+
+Run Orange from Welcome through the complete public Demo journey. Review the ten screenshot-target views as if you were seeing the project for the first time. Check whether each screen makes the current decision, evidence state and next action obvious without relying on developer knowledge.
+
+### 必须理解的概念与验收／面试问题
+
+信息层级、progressive disclosure、视觉状态系统、CTA hierarchy、product vs developer surfaces、empty/error-state design、design consistency、screenshot readiness，以及 UI presentation 不定义 authority。
+
+1. 为什么 UI polish 不应改变 authority semantics？显示强调不是新证据；确认门、来源和 lifecycle 决定权威。
+2. 为什么渐进披露优于一次展示所有 domain fields？主视图支持当前判断，依据／历史按需查阅，保留可核验性而减少认知负担。
+3. 为什么 Match progress bar 不合适？长度暗示可比较的总体分，把多维未知和证据关系压缩成虚假的确定性。
+4. 为什么 current Memory 与 history 视觉优先级不同？当前记录可支持现有上下文，旧记录仅解释变化；两者不能混成当前权威。
+5. 为什么 Developer Trace 次要？诊断帮助工程定位，而不是用户职业判断；默认折叠保持产品主线和内容最小化。
+
+### 停止条件
+
+工程／产品验收通过后停止，Phase 8C 不自动 commit/push；不开始 8D。可选体验不强制考试，也不授权扩大范围。
+
 ## Phase 8 — Observability（历史路线，非当前实施范围）
 
 ### 1. 学习目标

@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 7C COMPLETE；Phase 8A Evaluation Framework 已实现。8A.1 live 与 8B/8C/8D 未开始。**
+**状态：Phase 8B COMPLETE（本地 checkpoint `5a6a1d1`）；当前 Phase 8C 仅表现层打磨。8A.1 live 与 8D 未开始。**
 
 ## 1. 架构目标
 
@@ -513,3 +513,11 @@ DemoController 持有自己的 collector 和 opaque run/thread/subject identity�
 Recorder failure 只累加安全 `recording_failure_count`，不改变业务返回／原异常；collector 有 4000-event 上限且返回 deep copy。长期不重置会截断后续诊断，显式计数而非静默成功。无 telemetry DB、global singleton、cloud trace 或 exporter。Observability 描述发生了什么；evaluation 判断是否符合规则，两者不互相代替。
 
 报告只新增 `diagnostic_run_id` 和最多八个 `related_event_ids`，不嵌入事件。动态 ID 在独立 scenario deterministic snapshot 中排除，在完整报告 serializer 中显式加入，保持原 scenario comparisons 可重复。发生 synthetic failure 时可定位 scenario → run → failed evaluation-check event；EVALUATION event 不是新的 production failure taxonomy。
+
+## 26. Phase 8C presentation-only visual system
+
+Production semantics → `ui/presentation.py` 的既有只读 presentation models → `ui/components.py` + `ui/visual_system.py` 的 Orange UI component system → Streamlit。
+
+视觉系统只定义有限 tokens、escaped badges/panels、固定 journey grouping／transition copy 和 CSS。`ui/app.py` 只调整信息层级、轻量导航文案、details disclosure、CTA、safe error 与 reset feedback。原生 columns 保留，窄屏 CSS 堆叠；依据／历史／诊断次要，不隐藏权威边界。
+
+UI 不定义 authority。Agent/domain models／prompts／workflow gate／DemoController／Match relations／Memory lifecycle／evaluation／observability backend 均冻结。Journey 不路由，badge 不确认，current/history 展示不 supersede；Action 状态不证明技能；diagnostic metric 只是执行数／实测时长，不是产品适配分。无新 core data contract、Agent、持久化、provider 或 frontend dependency。

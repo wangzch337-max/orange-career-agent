@@ -20,8 +20,9 @@
 | Day 9.7 | 7B | Semantic & Hybrid Memory Retrieval | local embedding、derived sqlite-vec、canonical validation、RRF、bounded context |
 | Day 9.8 | 7C | Context-Aware Memory Integration | explicit policies、profile refinement、role recall、human-confirmed changes |
 | Day 10 | 8A | Evaluation Framework | contract / semantic Golden / journey、安全报告 |
-| Day 10.5 | 8B | Safe Observability & Diagnostics | local collector、安全事件、折叠 trace、evaluation links；未提交 |
-| 后续（未开始） | 8A.1 / 8C / 8D | optional live / polish / public readiness | 必须分别授权 |
+| Day 10.5 | 8B | Safe Observability & Diagnostics | COMPLETE；checkpoint `5a6a1d1`，无 push |
+| Day 10.6 | 8C | Product & Demo Polish | 表现层 visual system／信息层级／UX acceptance，未提交 |
+| 后续（未开始） | 8A.1 / 8D | optional live / public portfolio readiness | 必须分别授权 |
 | Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
 | Day 12 | 10 | Course Data Adapter | mock + sanitized export provider |
 | Day 13 | 11 | Reliability & Cost | 测试、错误处理、重试、成本控制 |
@@ -170,9 +171,19 @@
 
 **Exit criteria：**保留 668 原回归；strict metadata、录制故障、scope/reset/isolation、HITL resume、Memory/vector/Match counts 和 synthetic failure links 验证；Golden statuses 不变；public synthetic 实际 Streamlit 手动验收；secret-safe、无私有内容、无网络／推理泄露。最终证据以 Phase 8B 报告为准。
 
-**停止条件：**Phase 8B 修改留在 working tree，等待明确批准；不得 commit/push 或开始 8C/8D。唯一可选学习任务见 LEARNING_PLAN 的 Phase 8B。
+**状态：COMPLETE。** 743 tests、27 scenarios（20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW）。用户明确批准建立唯一 local checkpoint `5a6a1d1`：`feat: add safe observability diagnostics`，无 push／remote／runtime artifacts。
 
 **风险／取舍：**bounded local collector 不是无限历史或生产 telemetry；粗粒度 spans 不代表每个内部验证分步时长；旧 source timestamps 与当前 span 可能交错，由 timestamp/sequence/ID 稳定排序；Fake/stub 验证不证明 live 模型行为。
+
+## Phase 8C — Product & Demo Polish
+
+**范围：**现有 Streamlit 的集中有限 visual system、typography／spacing／card／badge／CTA、一致中文文案、conversation continuity／named journey、动态画像、Profile Review、三方向、role／Match／Action／map／Memory／安全诊断的表现层。无新依赖、截图生成、业务功能或 backend semantic changes。
+
+**验收：**先验证 743-test／27-Golden 基线再创建上述 checkpoint；全部原测试不修改，新增 meaningful UI product contracts，Golden statuses 不变。十个目标视图、50 个手动步骤、窄屏／长文案、错误／空状态按 `docs/PRODUCT_UX_ACCEPTANCE.md` 验收；不制造 numeric UX score。具体最终状态以执行报告为准。
+
+**状态：COMPLETE（本地工程／产品验收）。** 783 passed / 0 failed；Golden 27 / 20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW。全部十个视图及 50 步按本地结构／交互／布局验收 PASS；无截图生成，最终 live 审美复核保留为唯一可选开发者任务。
+
+**停止条件：**所有 Phase 8C 变更留在 working tree，等待明确批准提交；不 push／创建 remote。Phase 8D — Public Portfolio Readiness 仅为未来计划，不开始 live evaluation、包装／发布／云部署或任何其他扩展。
 
 ## Phase 8 — Observability（历史初始路线）
 

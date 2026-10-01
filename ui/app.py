@@ -25,7 +25,8 @@ from ui.components import (
     render_public_demo_banner,
     render_role_card,
 )
-from ui.conversation import QuestionKind, conversation_progress
+from ui.conversation import QuestionKind
+from ui.visual_system import TRANSITIONS, render_badges, render_journey, render_panel, render_safe_error
 from ui.demo_controller import (
     APPROVED_ROLE_IDS,
     PROFILE_CALIBRATION_OPTIONS,
@@ -77,6 +78,7 @@ def _reset_demo() -> None:
     st.session_state[SESSION_PAGE] = "welcome"
     st.session_state[SESSION_SELECTED_ROLE] = None
     st.session_state[SESSION_ERROR] = None
+    st.session_state["orange_reset_notice"] = True
     st.rerun()
 
 
@@ -90,7 +92,7 @@ def _workflow_complete(controller: DemoController) -> bool:
 def _sidebar(controller: DemoController) -> None:
     with st.sidebar:
         st.markdown("## 🍊 Orange")
-        st.caption("Interactive Demo v0.2")
+        st.caption("先理解自己，再探索职业")
         state = controller.state
         if state is None:
             st.caption("职业理解：正在通过对话形成")
@@ -100,7 +102,7 @@ def _sidebar(controller: DemoController) -> None:
             st.caption("职业画像：已确认")
         else:
             st.caption("流程：需要处理")
-
+        st.caption("职业探索")
         if st.button("欢迎", key="nav_welcome", use_container_width=True):
             _go("welcome")
         if not _workflow_complete(controller):
@@ -110,6 +112,7 @@ def _sidebar(controller: DemoController) -> None:
             if st.button("画像确认", key="nav_profile", use_container_width=True):
                 _go("profile")
         if _workflow_complete(controller):
+            st.caption("岗位探索")
             if st.button("值得探索的方向", key="nav_directions", use_container_width=True):
                 _go("directions")
             if st.session_state.get(SESSION_SELECTED_ROLE):
@@ -124,6 +127,7 @@ def _sidebar(controller: DemoController) -> None:
             if st.button("Orange 对你的长期理解", key="nav_memory", use_container_width=True):
                 _go("memory")
         st.divider()
+        st.caption("仅重置本次公开演示，不影响真实资料。")
         if st.button("重新开始 Demo", key="reset_demo", use_container_width=True):
             _reset_demo()
 
@@ -135,13 +139,11 @@ def _welcome() -> None:
         "Orange 不会替你决定应该做什么工作。它会帮助你梳理经历与偏好、"
         "看见仍需验证的问题，并规划下一轮职业探索。"
     )
-    badges = st.columns(3)
-    badges[0].success("公开合成资料")
-    badges[1].success("离线模型")
-    badges[2].success("不做岗位排名")
+    st.caption("不做岗位排名 · 从理解你开始，而不是从岗位列表开始")
     with st.container(border=True):
         st.markdown("#### 这次对话会做什么")
-        st.write("回答几个结构化问题 → 校准职业画像 → 探索三个方向 → 制定验证行动。")
+        st.write("聊聊你的经历与偏好 → 一起校准职业画像 → 了解值得探索的方向 → 制定验证行动。")
+    st.caption("开始职业探索 · 可以保留不确定，也不用现在选定一个职称")
     if st.button("开始和 Orange 对话", type="primary", use_container_width=True):
         _go("conversation")
 
@@ -157,11 +159,11 @@ def _conversation(controller: DemoController) -> None:
         _go("profile")
         return
 
-    current, total = conversation_progress(controller.conversation.stage)
-    st.caption(f"引导对话 · {current} / {total}")
+    render_journey(controller.conversation.stage)
     left, right = st.columns([1.08, 0.92], gap="large")
     with left:
         st.markdown('<p class="orange-kicker">ORANGE 想先了解</p>', unsafe_allow_html=True)
+        st.write(TRANSITIONS[question.stage])
         st.header(question.prompt)
         if question.helper:
             st.caption(question.helper)
@@ -170,11 +172,12 @@ def _conversation(controller: DemoController) -> None:
             answer = st.multiselect("请选择", question.options, key=widget_key)
         else:
             answer = st.radio("请选择", question.options, index=None, key=widget_key)
-        note = st.text_input(
-            "可选：再补充一句",
-            max_chars=240,
-            key=f"note_{question.stage.value}",
-        )
+        with st.expander("可选：再补充一句", expanded=False):
+            note = st.text_input(
+                "可选：再补充一句",
+                max_chars=240,
+                key=f"note_{question.stage.value}",
+            )
         can_continue = bool(answer)
         if st.button(
             "继续",
@@ -205,6 +208,7 @@ def _profile(controller: DemoController) -> None:
     if controller.state is None:
         _go("conversation")
         return
+    render_journey(controller.conversation.stage)
     left, right = st.columns([1.2, 0.8], gap="large")
     with left:
         render_profile_review(controller.profile_review_payload())
@@ -250,6 +254,8 @@ def _profile(controller: DemoController) -> None:
 def _directions(controller: DemoController) -> None:
     st.header("值得探索的方向")
     st.write("下面不是排名，而是三个值得进一步了解的方向。")
+    render_badges(("职业画像已确认", "confirmed"))
+    st.caption("以下顺序不代表推荐排名；每个方向都有已有交集和仍需验证的部分。")
     jobs = controller.job_records()
     records = {item.job_id: item for item in controller.job_intelligence()}
     results = {item.job_id: item for item in controller.match_results()}
@@ -283,7 +289,14 @@ def _role(controller: DemoController) -> None:
     profile = controller.confirmed_profile()
     overview, clarify, ask = st.tabs(("岗位理解", "探索澄清", "和 Orange 聊聊这个岗位"))
     with overview:
-        st.info("这是值得了解的方向，不是适配结论。")
+        st.caption("这是值得了解的方向，不是适配结论。")
+        render_job_intelligence(job, record)
+        render_panel("你的情况", "以下交集来自当前已确认职业画像和已验证关系，不修改上方岗位事实。")
+        card = career_direction_card_view(job, record, result, profile)
+        st.markdown("### 你目前已有的交集")
+        st.write("、".join(card.validated_overlaps) or "当前还没有直接证据")
+        st.markdown("### 还需要确认什么")
+        st.write(card.clarification_need)
         _, memory_statements = controller.role_memory_context(selected)
         memory_records = tuple(
             controller.memory_service.memory_store.get(
@@ -298,7 +311,6 @@ def _role(controller: DemoController) -> None:
                 tuple(record for record in memory_records if record is not None),
             )
         )
-        render_job_intelligence(job, record)
     with clarify:
         st.header("先验证你对这种工作方式的真实感受")
         prompt = controller.role_clarification_prompt(selected)
@@ -407,7 +419,7 @@ def _role(controller: DemoController) -> None:
         st.write(ask_orange_answer(question, record, result, profile))
         st.caption("回答来自预定义菜单和已验证数据；这里没有自由聊天或在线模型。")
     nav = st.columns(3)
-    if nav[0].button("查看 Match Insights", use_container_width=True):
+    if nav[0].button("查看 Match Insights", type="primary", use_container_width=True):
         _go("match")
     if nav[1].button("查看行动计划", use_container_width=True):
         _go("actions")
@@ -425,9 +437,9 @@ def _match(controller: DemoController) -> None:
     follow_up = controller.memory_aware_match_follow_up(selected)
     if follow_up is not None:
         with st.container(border=True):
-            st.markdown("### Memory-aware follow-up context")
+            st.markdown("### 来自长期理解的补充问题")
             st.write(follow_up.text)
-            st.caption("来自你之前确认的信息；这不是 Authoritative Match Insight。")
+            st.caption("来自你之前确认的信息；与已验证 Match 洞察分开展示，不改变关系结论。")
     columns = st.columns(2)
     if columns[0].button("打开行动计划", type="primary", use_container_width=True):
         _go("actions")
@@ -466,7 +478,7 @@ def _map(controller: DemoController) -> None:
 def _memory(controller: DemoController) -> None:
     profile = controller.current_profile_from_memory()
     if profile is None:
-        st.warning("当前没有已确认画像。")
+        render_panel("长期理解还未形成", "当前没有已确认画像。完成对话并确认职业画像后，才会展示你确认的信息。")
         return
     view = memory_summary_view(
         profile,
@@ -481,7 +493,7 @@ def _memory(controller: DemoController) -> None:
     )
     render_memory_summary(view)
     if controller.pending_profile_refinement is not None:
-        st.markdown("### Profile Review")
+        st.markdown("### 职业画像修订 · 待确认")
         st.write("当前会话已生成画像草案，但尚未确认，也尚未改变 MatchResult。")
         if st.button("确认画像修订", type="primary"):
             controller.confirm_pending_profile_refinement()
@@ -503,12 +515,12 @@ def _set_graph_error(state) -> None:
 
 def _error() -> None:
     st.header("Demo 需要重新开始")
-    st.error(safe_error_message(st.session_state.get(SESSION_ERROR) or "unexpected_failure"))
+    render_safe_error(safe_error_message(st.session_state.get(SESSION_ERROR) or "unexpected_failure"))
 
 
 def main() -> None:
     st.set_page_config(
-        page_title="Orange Interactive Demo v0.2",
+        page_title="Orange · 职业探索",
         page_icon="🍊",
         layout="wide",
         initial_sidebar_state="expanded",
@@ -517,9 +529,12 @@ def main() -> None:
     controller = _initialize_session()
     _sidebar(controller)
     render_public_demo_banner()
+    if st.session_state.pop("orange_reset_notice", False):
+        st.success("已重新开始公开演示。上一轮会话、长期理解和诊断已清空。")
     page = st.session_state[SESSION_PAGE]
     protected = {"directions", "role", "match", "actions", "map", "memory"}
     if page in protected and not _workflow_complete(controller):
+        render_panel("职业方向还未开放", "请先完成对话并确认职业画像。Orange 不会跳过你的确认直接给出岗位方向。")
         page = "profile" if controller.state else "conversation"
         st.session_state[SESSION_PAGE] = page
     try:
@@ -537,13 +552,13 @@ def main() -> None:
         }[page]()
     except DemoControllerError:
         st.session_state[SESSION_ERROR] = "workflow_failure"
-        st.error(safe_error_message("workflow_failure"))
+        render_safe_error(safe_error_message("workflow_failure"))
     except (KeyError, TypeError, ValueError):
         st.session_state[SESSION_ERROR] = "validation_failure"
-        st.error(safe_error_message("validation_failure"))
+        render_safe_error(safe_error_message("validation_failure"))
     except Exception:
         st.session_state[SESSION_ERROR] = "unexpected_failure"
-        st.error(safe_error_message("unexpected_failure"))
+        render_safe_error(safe_error_message("unexpected_failure"))
     render_developer_trace(controller.safe_trace(), controller.diagnostics_snapshot())
 
 

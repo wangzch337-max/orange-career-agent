@@ -364,4 +364,26 @@ Closed keys/values 比 denylist/free-form summary 更能防止新字段泄露；
 无持久化／exporter，Reset 后不能恢复历史 trace；4000-event cap 可截断诊断且会显式计数。Coarse spans 不提供每个内部 validation stage 的独立时长；旧事件顺序按 timestamp/sequence/ID 稳定排序。动态 IDs 只在 report transport 加入，不污染 deterministic scenario comparisons。Fake/stub 与合成 Demo 不等于 live/private quality validation。
 
 **Status**
-Accepted — Phase 8B，本阶段 working tree 等待明确批准；没有 8C/8D。
+Accepted — Phase 8B 已获明确批准建立本地 checkpoint `5a6a1d1`；后续 8C 只改变表现层，8D 未开始。
+
+## ADR-021 — Polish existing Streamlit product before public portfolio packaging
+
+### Context
+
+核心 workflow、证据关系、确认门、长期理解及安全诊断已通过 743 tests 和 27 Golden scenarios。产品体验需要更清晰的层级和一致性，而不是新业务能力。用户授权唯一 Phase 8B 本地 checkpoint，Phase 8C 仅 Product & Demo Polish；8D 需要另行批准。
+
+### Decision
+
+保留 Streamlit 和全部 backend semantics。集中轻量 tokens、native card、escaped badge/panel、固定 journey copy，优先对话 workspace／动态职业画像，再打磨 direction、role、Match、Action、Memory 和折叠诊断。采用渐进披露，岗位事实／用户情况／Memory 分离；十个产品视图达到本地展示准备状态，不自动生成截图。无 frontend rewrite，无评分／排名可视化，无新依赖。
+
+### Reason
+
+在已验证产品链上改进信息层级，成本小、风险可测，用户能更快理解当前证据状态和下一步。视觉 prominence 不能把兴趣变能力、未知变缺点、session input 变长期 Memory，或把 diagnostic observation 变权威。
+
+### Tradeoffs
+
+使用稳定原生结构和少量 CSS，不能达到专用前端的任意布局能力；CSS 依赖已固定版本 Streamlit 的结构，应在升级时重新验收。保留英文 evidence 原文而不翻译／改写冻结语义；中文 product framing 负责解释。AppTest 不做脆弱像素快照，窄布局采用真实浏览器 DOM/几何 smoke，最终审美仍由开发者在 live UI 中复核。
+
+### Status
+
+Accepted — Phase 8C，表现层修改不自动 commit/push；Phase 8D 未开始。

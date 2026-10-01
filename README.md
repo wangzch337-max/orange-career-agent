@@ -3,7 +3,7 @@
 > AI Career Discovery Agent for University Students
 > 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 8B — Safe Observability & Diagnostics（本地、离线、安全结构化事件）；Phase 8A 已建立本地 checkpoint `e707063`。Phase 8B 修改等待明确批准提交。**
+**当前状态：Phase 8C — Product & Demo Polish；Phase 8B COMPLETE，本地 checkpoint `5a6a1d1`，无 push。8C 仅打磨现有 Streamlit 表现层，修改等待明确批准提交；8D 未开始。**
 
 Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
 
@@ -177,8 +177,9 @@ Demo 先通过选择题、多选和可选短文本进行 guided discovery，右�
 - Phase 7C：Context-Aware Memory Integration（完成，本地 checkpoint `1c64e7a`）
 - Phase 8A：Evaluation Framework（完成，本地 checkpoint `e707063`）
 - Phase 8A.1：optional live evaluation（未开始，必须另行授权）
-- Phase 8B：Safe Observability & Diagnostics（已实现，本地验收；未提交）
-- Phase 8C：polish；8D：public readiness（均未开始）
+- Phase 8B：Safe Observability & Diagnostics（完成，本地 checkpoint `5a6a1d1`）
+- Phase 8C：Product & Demo Polish（表现层验收，未提交）
+- Phase 8D：Public Portfolio Readiness（未开始，需单独授权）
 - Phase 9–10：Streamlit UI 与课程数据适配器
 - Phase 11–13：测试、成本控制、演示案例与最终打磨
 
@@ -202,7 +203,21 @@ Demo 先通过选择题、多选和可选短文本进行 guided discovery，右�
 
 `observability/` 是 session-local observer，不是数据库、遥测 exporter 或评分器。Profile Review interrupt/resume 使用同一 diagnostic run；渲染不生成事件，Reset 清空旧 collector 并创建新 identity。Golden evaluation 每个 scenario 独立 run，只在报告中保存 bounded run/event references，不嵌入 trace。未知是正常产品状态，不自动成为诊断 warning。
 
-全程无需新增服务、环境变量或依赖。离线测试与 Demo 使用 Fake providers；Qwen instrumentation 仅通过 transport stub 测试，没有 live 请求。使用与限制见 [observability/README.md](observability/README.md)。Phase 8C/8D 未授权、未实现；不自动提交或 push。
+全程无需新增服务、环境变量或依赖。离线测试与 Demo 使用 Fake providers；Qwen instrumentation 仅通过 transport stub 测试，没有 live 请求。使用与限制见 [observability/README.md](observability/README.md)。8B 已建立唯一获授权本地 checkpoint；8C 不自动提交或 push，8D 未开始。
+
+## Phase 8C — Product & Demo Polish
+
+保持 Streamlit，不改写前端或业务层。`ui/visual_system.py` 集中维护有限颜色、字体／间距尺度、圆角、surface、badge、空状态、旅程与安全错误表现。橙色只用于品牌和主要 CTA；组件使用原生 bordered containers、可折叠依据与稳定结构，HTML 文案统一 escape，没有 JavaScript、外部 CSS／字体／CDN 或新依赖。
+
+欢迎页先解释职业探索：先理解自己，再理解岗位，不排名、不替用户做最终决定。公开演示／虚构数据／离线 AI 以轻量持续标签呈现。对话 workspace 保留左侧 guided conversation、右侧动态职业画像；窄屏堆叠，旅程用「了解你／经历／工作偏好／探索目标／确认画像」以及已聊过／当前／接下来，**不是画像完整度百分比**。阶段过渡是固定文案，不由 LLM 生成，不提供跳过确认门的导航。
+
+职业画像区分已有证据、你刚刚表达、待确认、尚不确定。Profile Review 是校准时刻，完整分类可展开，确认按钮明确；UI 标签不产生 authority。三张方向卡使用同一结构／权重：角色含义、为何值得探索、已有交集、关键未知。固定顺序不代表推荐排名。
+
+岗位事实、你的情况、Orange 记得分别展示；Memory 依据保留确认内容、类型、状态与时间，不在主视图展示 opaque IDs。Match 保留八类既有 relation，并用交集／补证据／偏好／待确认摩擦／未知的辅助文案解释；「当前没有足够证据，不代表你不具备它」始终可见，没有分数、星级、仪表或适配进度条。Action cards 区分 WHY／WHAT／EVIDENCE／STATUS，状态只属于本次会话，完成不自动确认能力。探索地图仍不是最终职业决定。
+
+长期理解突出当前确认信息，把真实画像版本和 superseded history 放到次要折叠区，不删除历史、不编造版本。Developer Diagnostics 留在页面底部且默认折叠；只改善 safe projection 的排版／表格，不改变 Phase 8B 验证与录制契约。空状态说明原因和下一步，错误只用既有安全类别文案；已有同步 spinner 不宣称后台工作。Reset 仍清理原 session／Memory／diagnostics 并创建新 identity。
+
+使用公开合成 Demo，FakeLLMProvider／FakeEmbeddingProvider 为默认；不读取私有 Golden Case、真实画像、Memory 或凭据，不进行任何外部 runtime 请求。产品验收范围／人工步骤见 [docs/PRODUCT_UX_ACCEPTANCE.md](docs/PRODUCT_UX_ACCEPTANCE.md)。本阶段不自动生成截图；十个目标视图供开发者在本地 UI 中最终审美复核，不是 Phase 8D 作品集包装。
 
 ## 本地验证 Local Validation
 
