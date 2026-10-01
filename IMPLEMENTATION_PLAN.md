@@ -17,7 +17,7 @@
 | Day 9 | 7A | Structured & Persistent Memory | confirmed profile versions、curated records、lexical retrieval、purge |
 | Day 9.5 | 7.5 | Interactive Demo Vertical Slice | Streamlit presentation adapter、真实 graph confirmation、三角色 Demo |
 | Day 9.6 | 7.6 | Conversation-First Product Redesign | guided discovery、动态画像、role clarification、task UX、exploration map |
-| Later | 7B | Semantic/Vector Retrieval | 单独评估 embedding、vector backend 与检索质量；未开始 |
+| Day 9.7 | 7B | Semantic & Hybrid Memory Retrieval | local embedding、derived sqlite-vec、canonical validation、RRF、bounded context |
 | Day 10 | 8 | Observability | Agent/Tool/workflow events 与脱敏 trace |
 | Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
 | Day 12 | 10 | Course Data Adapter | mock + sanitized export provider |
@@ -129,13 +129,17 @@
 
 **主要风险与 fallback：**guided answers 可能被误读为历史证据或长期事实。Fallback 是对每项显示 authority label，session answer 默认不持久化，Memory 写入必须经过显式「保存」，且 conversation state 不参与 domain routing／Match mutation。
 
-## Phase 7B — Semantic/Vector Retrieval（未开始）
+## Phase 7B — Semantic & Hybrid Memory Retrieval
 
-**范围：**另行评估 semantic retrieval 的实际需求、embedding 模型、local vector backend、privacy/retention、版本兼容和 retrieval evaluation；Phase 7A 不预选 Chroma、sqlite-vec 或其他 vector store。
+**范围：**通过 `EmbeddingProvider`／`FakeEmbeddingProvider`／`LocalEmbeddingProvider`，为 active confirmed `MemoryRecord` 建立独立、可丢弃、可重建的 sqlite-vec index。`SemanticMemoryRetriever` 在向量命中后必须回查 canonical `MemoryStore`；`HybridMemoryRetriever` 用固定 `k=60` 的一基 rank RRF 融合原有 lexical 与 semantic 结果；`MemoryContextBuilder` 只生成有数量／字符边界的 structured context。
 
-**Exit criteria：**尚未定义为已实现。必须在新的明确授权与设计审查后确定，且 semantic relevance 不得获得事实权威。
+**Exit criteria：**canonical DB 继续使用 stdlib sqlite3；vector DB 只使用 pysqlite3 + sqlite-vec 且保持 separate/private；candidate、superseded、archived 和 stale rows 不可进入结果；subject isolation、lifecycle sync、rebuild、purge、RRF provenance 与 public multilingual local-model acceptance 全部通过；normal pytest 只用 Fake 且零网络；没有自动 Agent/LangGraph injection。
 
-**主要风险与 fallback：**vector similarity 可能召回语义相近但过时或非权威记录，并增加依赖与隐私面。Fallback 是保留已验证的 metadata + deterministic lexical retrieval。
+**可选用户参与：**运行 public semantic-memory Demo，对比 lexical、semantic 与 hybrid rank，然后 supersede top Memory 并观察旧记录从 active retrieval 消失。
+
+**主要风险与 fallback：**两个 DB 无法共享一个 SQLite transaction，canonical 写入始终优先；derived sync 失败记录安全 diagnostic，并通过 rebuild 恢复。vector DB 丢失时 canonical operations 不受影响，hybrid 可显式 surfaced lexical-only fallback。
+
+**状态：COMPLETE（以最终自动化、离线 real-model acceptance 与安全扫描为准）。** 下一阶段的 Agent-aware memory context integration 仍明确 deferred。
 
 ## Phase 8 — Observability
 

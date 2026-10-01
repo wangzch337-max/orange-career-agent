@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 7.6 Conversation-First Product Redesign / Demo v0.2；Phase 7B vector retrieval 与生产 UI 仍未实现。**
+**状态：Phase 7B Semantic & Hybrid Memory Retrieval；Agent-aware memory injection 与 Phase 8 尚未开始。**
 
 ## 1. 架构目标
 
@@ -102,7 +102,13 @@ flowchart LR
     C --> PS[StructuredProfileStore<br/>authoritative confirmed versions]
     C --> MS[MemoryStore<br/>curated durable records]
     MS --> LR[Deterministic lexical retriever]
-    LR -. relevant context, not authority .-> C
+    MS --> EP[Local EmbeddingProvider]
+    EP --> VI[(Derived sqlite-vec index<br/>pysqlite3 only)]
+    VI --> SR[SemanticMemoryRetriever<br/>canonical revalidation]
+    LR --> HR[HybridMemoryRetriever<br/>RRF k=60]
+    SR --> HR
+    HR --> MCB[MemoryContextBuilder<br/>bounded structured context]
+    MCB -. explicit retrieval only .-> C
     PS --> DB[(Separate private memory SQLite DB)]
     MS --> DB
 ```
@@ -110,8 +116,9 @@ flowchart LR
 - **Workflow checkpoint**：Phase 6 的可恢复执行状态，使用独立数据库；不是长期记忆。
 - **StructuredProfileStore**：confirmed `UserProfile` 的权威、不可变版本历史和显式 current pointer。
 - **MemoryStore**：少量 curated facts／feedback／evidence references／insights；不是 conversation transcript。
-- **MemoryRetriever**：Phase 7A 只做 subject-scoped exact／lexical relevance，结果始终保留 status 与 provenance。
-- **Phase 7B vector retrieval**：尚未实现，也不使用已安装的 transitive `sqlite-vec`。
+- **MemoryRetriever**：Phase 7A exact／lexical path 原样保留，始终 subject-scoped 并保留 status 与 provenance。
+- **Semantic／Hybrid retrieval**：只为 active confirmed `MemoryRecord` 建立 derived vector；每次命中都回查 canonical store。RRF 只融合 rank，不产生 truth／confidence／fit score。
+- **SQLite binding boundary**：canonical `orange_memory.sqlite3` 继续使用 stdlib `sqlite3`；derived `orange_vectors.sqlite3` 单独使用 `pysqlite3 + sqlite-vec`，不替换 `sys.modules["sqlite3"]`。
 
 **为什么 persistence、checkpoint 与 retrieval 分离：**画像字段需要确定类型、版本、用户确认状态和精确更新；workflow checkpoint 只恢复当前执行；retrieval 只回答“什么可能相关”，不能回答“什么是真的”。任何候选或模型推断都不会因 confidence 或 relevance 自动成为 authoritative confirmed memory。
 
@@ -437,3 +444,27 @@ flowchart TB
 Role clarification 与 action status 属于 session interaction。Clarification 默认不写 Memory；只有用户明确选择保存时，controller 才经 `MemoryService.record_user_feedback(..., confirmed_by_user=True)` 写入该 browser session 的 temporary DB。Role deprioritization 只进入 Exploration Map，不修改 `MatchResult` 或生成 gap。Action task view 以 validated `ActionItem.rationale`、description、target、related insights 与 expected evidence 为权威，只叠加按 `ActionType` 固定的执行步骤和 session status。
 
 Phase 7.6 view models 包括 `CareerProfileView`、`CareerDirectionCardView`、`MatchInsightGroupView`、`ActionTaskView`、`ExplorationMapView` 与 `MemorySummaryView`。它们只能转换显示，不得回写 domain object。Reset 关闭当前 temporary DB，并替换 conversation、workflow、subject、checkpointer、role feedback、action status 与 exploration state。Phase 7.6 不包含自由聊天、LLM routing、live provider、private mode、external jobs、Canvas 或 vector retrieval。
+
+## 22. Phase 7B semantic and hybrid retrieval
+
+```mermaid
+flowchart TB
+    CM[(orange_memory.sqlite3<br/>stdlib sqlite3<br/>canonical authority)] --> AC[active confirmed MemoryRecord]
+    AC --> EP[EmbeddingProvider<br/>Fake tests / local FastEmbed runtime]
+    EP --> DV[(orange_vectors.sqlite3<br/>pysqlite3 + sqlite-vec<br/>derived only)]
+    DV --> SR[SemanticMemoryRetriever]
+    SR --> CV[canonical get + subject/status/hash revalidation]
+    CM --> LR[Deterministic lexical retriever]
+    CV --> HR[HybridMemoryRetriever]
+    LR --> HR
+    HR --> RRF[one-based RRF k=60<br/>score = Σ 1/(60+rank)]
+    RRF --> CB[MemoryContextBuilder<br/>max records + character budget]
+```
+
+Vector entry 只持有 opaque `memory_id`／`subject_id`、type、provider／model／dimension、content hash、indexed timestamp、schema／normalization version 和 vector；被 embed 的文本严格为 `memory_type + newline + content`，不包含 ID、时间、profile、evidence document、transcript、credential 或 hidden reasoning。
+
+RRF 对两个来源都使用一基 rank，固定 `k=60`。排序依次为 fusion score 降序、best source rank 升序、canonical `created_at` 升序、`memory_id` 升序；同一 Memory 去重并保留 `lexical_rank`、`semantic_rank`、`fusion_rank`。RRF 数值只供 deterministic ordering，不是事实 confidence、career fit 或 authority。
+
+Lifecycle coordination 在 canonical write 成功后更新 derived index。跨两个文件不存在单一 SQLite transaction：index failure 不回滚或否定 canonical authority，而是留下 safe diagnostic，随后可 rebuild；purge 先删除 canonical long-term data，再删除 subject vectors，vector cleanup failure 标记 `cleanup_required`。Workflow checkpoint DB 永远不属于该 purge。
+
+`MemoryService.retrieve_context()` 是唯一新增的显式未来 integration surface。四个 Agent 与 LangGraph 均未自动调用它；删除／损坏 vector DB 时 canonical read/write 继续工作，hybrid retrieval 可明确降级为 lexical-only mode。

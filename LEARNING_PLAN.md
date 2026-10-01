@@ -308,9 +308,35 @@ guided conversation design、progressive disclosure、information hierarchy、se
 
 Conversation、dynamic profile、role clarification、Match、Action、exploration map、Memory 与 reset 都有自动化及手动验证；界面无 profile completeness、score/ranking 或自由 LLM routing；公开合成／Fake-only／temporary-storage 边界保持成立。
 
-## Phase 7B — Semantic/Vector Retrieval（未开始）
+## Phase 7B — Semantic & Hybrid Memory Retrieval
 
-未来单独学习 embedding、semantic similarity、vector metadata filter、retrieval evaluation 与隐私/retention tradeoff。开始前必须先证明 lexical retrieval 不足，并重新确认：semantic relevance 仍不能覆盖 explicit confirmation。
+### 1. 学习目标
+
+理解 embedding 只表示检索相关性，为什么 vector index 必须与 authoritative Memory 分离，以及怎样用 lifecycle、canonical revalidation 与 RRF 建立可审计的 hybrid retrieval。
+
+### 2. 需要理解的概念
+
+embedding abstraction、local vs cloud embeddings、vector index vs source of truth、semantic similarity vs authority、content hash、model identity、index lifecycle、stale-vector defense、rebuildable index、subject isolation、cross-language retrieval、one-based RRF、rank provenance 与 context budget。
+
+### 3. Codex 负责
+
+实现 provider abstraction、stable-hash Fake、offline-first FastEmbed adapter、pysqlite3/sqlite-vec derived index、lifecycle sync、semantic／hybrid retriever、bounded structured context、public Demo、自动化测试、real-model acceptance 与安全文档；不把 retrieval 自动接入 Agent。
+
+### 4. OPTIONAL DEVELOPER HANDS-ON TASK
+
+运行 public semantic-memory Demo，对比中文 query 对英文 confirmed Memory 的 lexical-only、semantic-only 与 hybrid RRF 结果；再 supersede top Memory 并重复 query，观察旧记录不再进入 active retrieval。
+
+### 5. 验收／面试问题
+
+为什么 vector index 不是 source of truth？为什么向量命中后必须回查 canonical Memory？为什么 RRF 比直接相加 lexical score 与 cosine score 更合适？为什么 superseded Memory 即使最相似也必须消失？
+
+### 6. 面试中应该能如何解释
+
+画出 stdlib canonical SQLite 与 pysqlite3 derived SQLite 的边界；说明 model/dimension/content hash 如何保证 index identity；用 stale-row test 解释 similarity 不会改变 authority。
+
+### 7. 完成／停止条件
+
+Fake-only default tests、public real-model multilingual acceptance、rebuild、purge、subject isolation 与安全扫描全部通过后停止。不得自动进入 Agent-aware context integration 或 Phase 8。
 
 ## Phase 8 — Observability
 

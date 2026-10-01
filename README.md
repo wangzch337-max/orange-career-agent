@@ -3,7 +3,7 @@
 > AI Career Discovery Agent for University Students
 > 面向大学生的 AI 职业探索 Agent
 
-**当前状态：Phase 7.6 — Conversation-First Product Redesign / Demo v0.2**
+**当前状态：Phase 7B — Semantic & Hybrid Memory Retrieval**
 
 Orange 是一个严肃的作品集项目，帮助大学生在职业选择中形成更清晰、可解释、可行动的判断。它遵循一个简单原则：**先理解自己，再理解工作，最后做职业决策。**
 
@@ -47,7 +47,8 @@ flowchart TD
     R --> M
     M --> B[Report Builder]
     O -. events .-> OBS[Observability]
-    O --> MEM[Curated Long-term Memory<br/>profile / records / lexical retrieval]
+    O --> MEM[Curated Long-term Memory<br/>canonical authority / lexical retrieval]
+    MEM --> VEC[Derived Local Vector Index<br/>semantic + RRF / explicit only]
     O --- T[Tool Layer]
 ```
 
@@ -117,7 +118,7 @@ flowchart TD
 - 独立 Git-ignored SQLite long-term memory DB、subject isolation、transactional hard purge；
 - deterministic exact／lexical retrieval，结果保留 authority、provenance、confidence 与 supersedes metadata；
 - LangGraph 在显式 profile confirmation 后可通过注入的 `MemoryService` 幂等保存画像；默认 workflow policy 不自动跳过 review；
-- 不保存完整 chat transcript，不使用 embedding、sqlite-vec、Chroma 或任何 vector retrieval。
+- 不保存完整 chat transcript；Phase 7A canonical Memory DB 仍不包含 vector table。
 - Orange Interactive Demo v0.2：中文优先、conversation-first 的 Streamlit workspace，使用公开合成 persona、`FakeLLMProvider`、session-scoped in-memory checkpoint 与 temporary memory DB；
 - 确定性引导问题、随回答演进且区分「已有证据／用户刚刚表达／待确认／尚不确定」的动态职业画像；
 - Profile Confirm 使用真实 LangGraph interrupt／resume 和同一 thread，Self-Discovery 不因 Streamlit rerun 重跑；
@@ -125,6 +126,12 @@ flowchart TD
 - role clarification 可仅用于当前 session，也可经明确选择保存为 confirmed Demo `USER_FEEDBACK`；
 - Match Insights 保留八类关系，Action Plan 使用 Why／What／Evidence／Status 任务卡，结尾提供无评分的 Career Exploration Map；
 - 「Orange 对你的长期理解」只显示已确认画像、active confirmed feedback 与真实画像历史；另有可折叠安全 trace 和 session-isolated Reset Demo。
+- `EmbeddingProvider` 抽象与 deterministic `FakeEmbeddingProvider`；normal pytest 不加载模型、不联网；
+- local-only FastEmbed adapter，选择 384-d `paraphrase-multilingual-MiniLM-L12-v2`，model-specific query／passage 行为封装在 provider 内；
+- canonical `orange_memory.sqlite3` 继续使用 stdlib sqlite3；separate derived `orange_vectors.sqlite3` 只使用 pysqlite3 + sqlite-vec；
+- active confirmed-only indexing、content hash／model identity metadata、subject isolation、lifecycle sync、stale-vector canonical revalidation、rebuild 与 coordinated purge；
+- 原有 deterministic lexical retriever 保留；semantic + lexical 通过固定一基 RRF `k=60` 融合并保留 lexical／semantic／fusion rank；
+- `MemoryContextBuilder` 生成 bounded structured authoritative context，但不自动注入 Self-Discovery、Job Intelligence、Match 或 LangGraph。
 
 Phase 5 的 Match & Insight 从证据关系开始，不从分数开始。`evidence_missing` 只表示当前画像缺少验证材料，绝不自动变成能力弱或 `confirmed_gap`。结果保持原始 dataset／用户选择顺序，不选择最佳角色。
 
@@ -134,7 +141,7 @@ Phase 2 provider live gate 已通过。Phase 3 的 Self-Discovery 由 LLM 提取
 
 ### 计划中 Planned
 
-- Phase 7B semantic/vector retrieval；
+- Agent-aware memory context integration（只有 retrieval quality 继续验证后才考虑）；
 - 后续生产级 UI／认证／部署（Interactive Demo v0.2 不代表最终前端架构）；
 - 真实职位来源和脱敏课程导出 adapter。
 
@@ -160,13 +167,13 @@ Demo 先通过选择题、多选和可选短文本进行 guided discovery，右�
 - Phase 6：LangGraph Workflow Integration + Human-in-the-Loop Orchestration（完成）
 - Phase 7A：Structured & Persistent Memory（完成）
 - Phase 7.5：Orange Interactive Demo Vertical Slice（完成并建立本地 checkpoint）
-- Phase 7.6：Conversation-First Product Redesign / Demo v0.2（当前已实现）
-- Phase 7B：Semantic／Vector Retrieval（计划中）
+- Phase 7.6：Conversation-First Product Redesign / Demo v0.2（完成并建立本地 checkpoint）
+- Phase 7B：Semantic & Hybrid Memory Retrieval（当前已实现，待提交）
 - Phase 8：Observability
 - Phase 9–10：Streamlit UI 与课程数据适配器
 - Phase 11–13：测试、成本控制、演示案例与最终打磨
 
-约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Phase 7B。
+约 15 天能力里程碑见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，学习路径见 [LEARNING_PLAN.md](LEARNING_PLAN.md)。未经明确批准，不进入 Agent-aware memory integration 或 Phase 8。
 
 ## 本地验证 Local Validation
 
@@ -187,6 +194,9 @@ python3 -m venv .venv
 # 使用上一条命令输出的 workflow_id：
 .venv/bin/python -m workflows.langgraph_demo --checkpoint sqlite --sqlite-action resume --workflow-id <workflow_id>
 .venv/bin/python -m memory.demo
+.venv/bin/python -m memory.semantic_demo
+# 模型已明确下载并缓存后，完全本地运行：
+HF_HUB_OFFLINE=1 .venv/bin/python -m memory.local_embedding_validation
 .venv/bin/streamlit run ui/app.py
 ```
 
@@ -195,3 +205,7 @@ Phase 6 LangGraph Demo 默认使用公开 fixture、`FakeLLMProvider` 和内存 
 Phase 7A public memory Demo 默认使用临时 SQLite 文件、synthetic subject、公开合成 confirmed profile 与 synthetic MemoryRecords，不读取或迁移 private Golden Case。显式 `--persistent-memory` 才会使用 `data/private/memory/orange_memory.sqlite3`。Workflow checkpoint 和 long-term memory 使用不同数据库；memory retrieval 的相关性不会改变记录的 authority status。
 
 Phase 7.6 Streamlit Demo 继续完全离线：每个 browser session 拥有独立 controller、deterministic guided-conversation state、`InMemorySaver`、opaque workflow/subject IDs 与 temporary memory DB。Conversation state 只负责产品交互；UI 仍只映射已验证 domain output，不重新实现 Self-Discovery、Job Intelligence、Match、actions、memory authority 或 graph routing。角色澄清默认只留在 session，只有用户选择「保存」时才进入该 session 的 temporary Demo Memory。
+
+Phase 7B public semantic Demo 只建立 temporary canonical/vector DB 和 synthetic subject。默认使用 `FakeEmbeddingProvider`；real-model validation 是单独、显式、cache-only 的命令。Embedding dependency／public model 下载可以联网，但 runtime retrieval 不调用云端，任何 private profile、Memory、query、向量或凭据都不会上传。删除 derived vector DB 不影响 canonical profile／Memory，并可通过 `rebuild_subject_index()` 从 active confirmed records 重建。
+
+公开模型默认缓存到 `~/.cache/orange/fastembed`，不进入仓库。`LocalEmbeddingProvider` 默认 `allow_download=False`；正常 runtime 若缓存缺失会安全失败，不会静默联网。

@@ -54,7 +54,7 @@ def test_default_public_demo_does_not_create_private_memory_database(tmp_path, m
     assert not private_path.exists()
 
 
-def test_memory_code_has_no_vector_embedding_qwen_or_network_imports() -> None:
+def test_memory_code_has_no_cloud_vector_embedding_or_network_imports() -> None:
     forbidden_roots = {
         "chromadb",
         "faiss",
@@ -62,8 +62,6 @@ def test_memory_code_has_no_vector_embedding_qwen_or_network_imports() -> None:
         "weaviate",
         "qdrant_client",
         "pymilvus",
-        "sentence_transformers",
-        "sqlite_vec",
         "openai",
         "httpx",
         "requests",
@@ -78,6 +76,13 @@ def test_memory_code_has_no_vector_embedding_qwen_or_network_imports() -> None:
             elif isinstance(node, ast.ImportFrom) and node.module:
                 imported_roots.add(node.module.split(".")[0])
     assert imported_roots.isdisjoint(forbidden_roots)
+
+    vector_source = (PROJECT_ROOT / "memory" / "vector_index.py").read_text(
+        encoding="utf-8"
+    )
+    assert "import pysqlite3" in vector_source
+    assert "import sqlite_vec" in vector_source
+    assert "sys.modules" not in vector_source
 
 
 def test_agents_contain_no_sql_or_memory_database_access() -> None:

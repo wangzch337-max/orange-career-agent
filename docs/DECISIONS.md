@@ -291,3 +291,24 @@ Phase 7.6 采用 conversation-first split workspace：左侧是小型、显式�
 
 **Status**
 Accepted — Phase 7.6
+
+## ADR-017 — Derived local vector index、confirmed-only authority 与 RRF
+
+**Context**
+Phase 7A lexical retrieval 无法稳定覆盖中英文改写，但 semantic similarity 也可能召回过时、candidate 或错误 subject 的内容。当前 stdlib sqlite3 不支持 loadable extensions，而 canonical store 已有稳定 authority／lifecycle 语义，不能为了 vector backend 被全局替换。
+
+**Decision**
+Canonical `orange_memory.sqlite3` 和 `memory/sqlite_store.py` 继续只使用 stdlib sqlite3。Derived `orange_vectors.sqlite3` 单独使用 `pysqlite3 0.6.0 + sqlite-vec 0.1.9`，不 monkey-patch `sys.modules`；index 可删除、可重建，不成为 source of truth。
+
+Private long-term Memory 的 embedding 默认使用 local provider。Normal tests 注入 stable SHA-256 `FakeEmbeddingProvider`；显式 real validation 使用 FastEmbed CPU 与 Apache-2.0 `paraphrase-multilingual-MiniLM-L12-v2`。只有 active confirmed `MemoryRecord` 默认入索引，StructuredProfileStore、transcript、JobRecord、MatchResult 和 ActionItem 不自动 vectorize。
+
+每个 semantic hit 必须用 subject + memory ID 回查 canonical store，并重新验证 confirmed status、active lifecycle、type 与 content hash。Lexical path 保留；hybrid 用固定 one-based RRF `k=60`，不相加 raw lexical/cosine score。`MemoryContextBuilder` 只构造 bounded structured context；自动 Agent/LangGraph injection deferred。
+
+**Reason**
+物理和 binding 分离保护已验证的 canonical semantics；local embeddings 避免 private Memory 离开设备；confirmed-only + lookup defense 阻止 stale vectors 复活非权威内容。RRF 能融合异质 rank，而不伪装成统一 truth scale。
+
+**Tradeoffs**
+两个 DB 无法共享 atomic transaction，index sync failure 必须 diagnostic + rebuild；ONNX model 增加约 0.22 GB local cache 与首次加载成本；semantic quality 只能通过有限 acceptance cases 观察，不能据此声称普遍准确。删除 vector DB 会暂时触发 surfaced lexical fallback，但不会损坏 canonical Memory。
+
+**Status**
+Accepted — Phase 7B

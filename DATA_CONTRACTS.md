@@ -258,6 +258,32 @@ Phase 7A 的 curated long-term record；它不是聊天记录，也不复制完�
 | `supersedes_memory_id` | `str?` | 新记录所替代的旧记录；旧记录仍保留 | 调用方／store | 否 | `memory_<uuid>` |
 | `metadata` | `map[str, JSON]` | 可 exact-filter 的最小结构化 metadata | 调用方 | 否 | `{"topic":"direction"}` |
 
+## 19. Phase 7B Embedding／Vector／Retrieval contracts
+
+### `EmbeddingVector`
+
+内部 local-only contract：`values: list[float]`、`provider_name`、`model_id`、`dimension`、`normalization_version`。`values` 必须 finite 且长度等于 dimension；不会写入日志、graph state 或 canonical Memory。
+
+### `VectorIndexEntry`
+
+Derived metadata：`memory_id`、`subject_id`、`memory_type`、`embedding_provider`、`embedding_model_id`、`embedding_dimension`、`content_hash`、`indexed_at`、`index_schema_version`、`embedding_normalization_version`。它只用于 rebuild／mismatch／stale 检查，不拥有 `MemoryRecord.status` 或事实权威。
+
+### `SemanticMemoryRetrievalResult`
+
+保留完整 canonical `MemoryRecord`，另加 `semantic_rank`、`semantic_distance`、`embedding_provider` 与 `embedding_model_id`。Distance 是检索 metadata，不是 probability／confidence／fit。
+
+### `HybridMemoryRetrievalResult`
+
+保留 canonical `MemoryRecord` 与 nullable `lexical_rank`／`semantic_rank`、one-based `fusion_rank`、内部 deterministic `rrf_score`。至少一个 source rank 必须存在；同一 Memory 只出现一次。
+
+### `MemoryContext`
+
+`subject_id`、authoritative `MemoryContextItem[]`、`max_records`、`character_count` 与 `truncated`。每个 item 保留 memory ID／type／confirmed status／content／source／confidence／`active_confirmed` authority 及 retrieval ranks；candidate、superseded、archived 和 wrong-subject records 会被省略。
+
+### `VectorIndexRebuildResult`／purge extension
+
+Rebuild 只返回 subject 与 cleared／eligible／indexed counts，不返回 raw content 或 vectors。`PurgeResult` 增加 `vector_records_deleted` 和 `vector_cleanup_required`；后者明确表达两文件 cleanup 不是 cross-file atomic transaction。
+
 `MemoryType` 固定为 `profile_signal`、`career_preference`、`goal`、`project_evidence`、`course_evidence`、`user_feedback`、`career_insight`。`MemoryStatus` 固定为 `candidate`、`confirmed`、`superseded`、`archived`。模型推断默认只能建立 `candidate`；即使 confidence 很高，也必须通过显式确认操作才能成为 `confirmed`。
 
 ## 19. `Report`

@@ -27,3 +27,15 @@ class CorruptStoredProfileError(MemoryLayerError):
 
 class MemoryStoreError(MemoryLayerError):
     pass
+
+
+class EmbeddingProviderError(MemoryLayerError):
+    """Local embedding initialization or inference failed safely."""
+
+
+class VectorIndexError(MemoryLayerError):
+    """Derived vector index operation failed without changing authority."""
+
+
+class VectorIndexConfigurationError(VectorIndexError):
+    """Stored derived-index identity does not match the active provider."""

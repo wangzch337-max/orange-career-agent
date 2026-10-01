@@ -15,6 +15,7 @@ venv/
 htmlcov/
 
 *.log
+*.ses
 
 # Private local inputs must never enter the public repository.
 data/private/

@@ -235,6 +235,13 @@ class EventType(str, Enum):
     MEMORY_ARCHIVED = "memory_archived"
     MEMORY_RETRIEVED = "memory_retrieved"
     MEMORY_SUBJECT_PURGED = "memory_subject_purged"
+    MEMORY_EMBEDDING_CREATED = "memory_embedding_created"
+    MEMORY_VECTOR_INDEXED = "memory_vector_indexed"
+    MEMORY_VECTOR_REMOVED = "memory_vector_removed"
+    MEMORY_VECTOR_INDEX_REBUILT = "memory_vector_index_rebuilt"
+    MEMORY_SEMANTIC_RETRIEVED = "memory_semantic_retrieved"
+    MEMORY_HYBRID_RETRIEVED = "memory_hybrid_retrieved"
+    MEMORY_VECTOR_STALE_FILTERED = "memory_vector_stale_filtered"
 
 
 class AgentName(str, Enum):
