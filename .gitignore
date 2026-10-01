@@ -20,3 +20,5 @@ htmlcov/
 # Private local inputs must never enter the public repository.
 data/private/
 data/local/
+# Phase 8A generated synthetic reports and isolated temporary stores
+artifacts/evaluation/

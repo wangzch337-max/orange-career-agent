@@ -19,7 +19,8 @@
 | Day 9.6 | 7.6 | Conversation-First Product Redesign | guided discovery、动态画像、role clarification、task UX、exploration map |
 | Day 9.7 | 7B | Semantic & Hybrid Memory Retrieval | local embedding、derived sqlite-vec、canonical validation、RRF、bounded context |
 | Day 9.8 | 7C | Context-Aware Memory Integration | explicit policies、profile refinement、role recall、human-confirmed changes |
-| Day 10 | 8 | Observability | Agent/Tool/workflow events 与脱敏 trace |
+| Day 10 | 8A | Evaluation Framework | contract / semantic Golden / journey、安全报告 |
+| 后续（未开始） | 8A.1 / 8B / 8C / 8D | optional live / diagnostics / polish / public readiness | 必须分别授权 |
 | Day 11 | 9 | Streamlit UI | 输入、画像确认、洞察、trace 界面 |
 | Day 12 | 10 | Course Data Adapter | mock + sanitized export provider |
 | Day 13 | 11 | Reliability & Cost | 测试、错误处理、重试、成本控制 |
@@ -152,7 +153,15 @@
 
 **主要风险与 fallback：**retrieval context 可能被误当权威或静默污染 Match。Fallback 是 closed policy、read/write path 分离、每条个性化 statement 强制 `memory_refs`，并把 profile confirmation 置于未来 Match 之前。
 
-**状态：COMPLETE（待最终自动化、UI 与安全验收；不自动提交）。** Phase 8 未开始。
+**状态：COMPLETE。** 493 baseline tests 通过；本地 checkpoint `1c64e7a`：`feat: integrate context-aware career memory`，无 push。
+
+## Phase 8A — Evaluation Framework
+
+**范围：**独立 `evaluation/` observer；三层评估、27 个公开合成场景、closed status/taxonomy、required/forbidden/uncertainty/provenance/relation/lifecycle/workflow checks、registry、isolated deterministic runner 与 JSON/Markdown CLI reports。仅 FakeLLMProvider／FakeEmbeddingProvider，不改生产 engine，不引入模型 judge／分数／排名／private input。
+
+**Exit criteria：**Phase 7C checkpoint、493 原回归保留、新测试与 complete Golden suite 通过；不隐藏 FAIL/review；任意 authority/subject/private/gate/lifecycle/network BLOCKING failure 必须 NEEDS REVIEW。报告保存在 ignored artifacts，Phase 8A 不自动 commit/push。
+
+**状态：COMPLETE（以最终报告验证结果为准）。** 后续 8A.1 optional live 必须显式授权；8B diagnostic UI、8C polish、8D public readiness 均未开始。下面旧 Phase 8–13 保留为历史初始路线，不授权当前扩展。
 
 ## Phase 8 — Observability
 

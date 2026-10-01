@@ -1,0 +1,20 @@
+{
+  "application": {
+    "career_question": "我有几个方向，但不知道怎么选",
+    "activity_preference": "把一个想法真正做成系统",
+    "implementation_detail": "把多个 API / 模块连起来",
+    "ai_interest": ["用现有 AI / LLM 做真正的应用"],
+    "project_evidence": "Campus Helper Prototype",
+    "project_contribution": ["Python", "API integration", "LLM integration", "testing"],
+    "work_style": "大部分时间亲手实现东西",
+    "career_goal": "找到自己最擅长的方向"
+  },
+  "unknown": {
+    "career_question": "我完全不知道自己适合什么岗位",
+    "activity_preference": "我还说不清楚",
+    "ai_interest": ["我还不知道"],
+    "project_evidence": "我还不能判断哪个项目最能代表我",
+    "work_style": "目前还不知道",
+    "career_goal": "找到自己最擅长的方向"
+  }
+}

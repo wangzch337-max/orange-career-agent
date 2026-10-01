@@ -368,7 +368,33 @@ memory-use policy、deterministic query construction、read path vs write path�
 
 Profile refinement／role recall、change choices、reference validation、Job／Match non-consumer、reset、public UI、Fake-only zero-network、安全扫描与全部 regressions 通过后停止。不得开始 Phase 8。
 
-## Phase 8 — Observability
+## Phase 8A — Evaluation Framework
+
+### 1. 学习目标与概念
+
+理解 regression test 与产品 Golden scenario 的区别；required/forbidden/uncertainty/provenance、relation minimums、authority/lifecycle/workflow、closed taxonomy、隔离与 determinism、expected uncertainty、non-contract manual review。
+
+### 2. Codex 负责
+
+建立外部 observer、合成 fixture 与 27 个案例、schemas、registry、offline guards、runner、CLI/report、adversarial tests 与文档；不把 evaluation 放入生产组件，不引入 live 或 judge。
+
+### 3. OPTIONAL DEVELOPER HANDS-ON TASK（本阶段恰好一个）
+
+运行完整 Orange Golden Evaluation Suite，打开生成的 Markdown report；检查一个 PASS、一个 EXPECTED_UNCERTAINTY，以及如果存在的一个 FAIL／NEEDS_REVIEW。把每个结果追溯到 scenario 的 required/forbidden/provenance rules，而不是主观评价 prose。这是可选体验，不是 quiz／完成门。
+
+### 4. 验收／面试问题与简答
+
+1. Golden Scenario 为什么比总体 0–100 分更有用？它说明具体情境、边界、证据与可修复失败，避免无依据的聚合。
+2. 为什么“不知道”有时成功？证据不足时保留未知比编造能力／缺口更守约。
+3. 为什么不用 exact natural language matching？等义表达可变，字段／关系／引用才是稳定行为。
+4. 为什么不用 LLM judge？先建立可复现、可解释、离线且无额外隐私／模型偏差的基础。
+5. Regression 与 Golden evaluation 有何不同？前者防止已有实现回退；后者以产品场景验证跨组件语义和边界，二者互补。
+
+### 5. 停止条件
+
+完整回归与 Golden suite 运行、安全边界通过、所有 findings 如实报告后停止。不得自动 commit/push，不开始 8A.1 live、8B、8C 或 8D。下面原 Phase 8–13 是历史学习路线。
+
+## Phase 8 — Observability（历史路线，非当前实施范围）
 
 ### 1. 学习目标
 

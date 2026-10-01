@@ -1,6 +1,6 @@
 # Orange 系统架构 System Architecture
 
-**状态：Phase 7C Context-Aware Memory Integration；Phase 8 尚未开始。**
+**状态：Phase 7C COMPLETE；Phase 8A Evaluation Framework 已实现。8A.1 live 与 8B/8C/8D 未开始。**
 
 ## 1. 架构目标
 
@@ -491,3 +491,13 @@ Profile refinement 明确保留三层：当前 session input 是本次会话最�
 Structured change detection 只读取带 `signal_dimension`、`signal_value`、`signal_version` metadata 的 active confirmed Memory，并只比较同维度、已注册 value。`MemoryChangeCandidate` 只存在于 session；free-text semantic similarity 永远不创建 contradiction／change。Update command 经现有 `MemoryService.supersede()` 写 canonical history并触发 derived vector lifecycle；defer／uncertain 对 canonical Memory、vector index 与 profile 都是零写入。
 
 Role recall 与 post-Match follow-up 是独立 presentation context。前者不改 `JobIntelligenceRecord`；后者不改八类 `MatchResult` relation。任何由 Memory 引起的个性化 statement 都必须在呈现前重新解析同 subject、active confirmed 的 `memory_refs`；stale ref 会被拒绝。
+
+## 24. Phase 8A external evaluation observer
+
+`GoldenScenario registry → isolated runner → existing production adapters → structured observations → deterministic checks → safe JSON/Markdown report`。
+
+Evaluation 包位于生产依赖图之外。三层分别验证 contract、semantic Golden case、E2E journey；不增加 Agent，不改变 Prompt/LLM/schema/Memory authority 或 UI。Adapters 只执行既有 Self-Discovery/JI/Match、MemoryService、GuidedConversation、DemoController 与真实 graph，检查器不生成关系或 repair 结果。
+
+每个 scenario 使用独立 FakeLLMProvider/FakeEmbeddingProvider、memory checkpointer、临时 canonical/vector DB 和 subject。读取 Memory 前后比较完整 canonical history/status/timestamps 与 vector metadata snapshot；current input、defer、显式 supersede 和另行 profile v2 confirmation 分别观察，不把 Memory recall 视为 Match 修改许可。
+
+Offline accident guards 在执行期间阻断网络、live/model constructors、私有文件与 root 外数据库；attempt 即使被捕获仍为 BLOCKING FAIL。全部测试不需要 credentials。默认报告只持有 checks/findings 与安全 run metadata，observations 不持久化。没有 judge、overall quality score、Match score 或角色 ranking；诊断 UI 8B 未实现。

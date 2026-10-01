@@ -1,6 +1,6 @@
 # Orange 概念数据契约 Data Contracts
 
-**状态：Phase 4。核心领域实现位于 `data/models.py`；Self-Discovery 与 Job Intelligence extraction 分别位于各自的 Agent contract 模块。**
+**状态：Phase 8A。核心领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；evaluation contracts 独立位于 `evaluation/models.py`，不修改领域语义。**
 
 ## 1. 通用约定
 
@@ -443,3 +443,15 @@ State 不包含 provider／client／SQLite connection、API key、Authorization�
 ### Database and state boundary
 
 Long-term memory 使用 schema version 1 的 `data/private/memory/orange_memory.sqlite3`；workflow checkpoint 继续使用 `data/private/runtime/orange_workflow.sqlite3`。Graph state 最多保存 `subject_id` 与当前 profile reference，不保存 store、retriever、SQLite connection、全部 memory history 或 credential。
+
+## 27. Phase 8A Evaluation contracts（独立于 domain）
+
+`EvaluationReport.schema_version = orange.evaluation.v1`。严格 JSON envelope 包含 `run`、`summary`、`scenarios`。Run 保存 opaque run ID、UTC timestamp、local git commit、Python version、selected/executed counts、tags、Fake provider names、offline_synthetic mode 与 boundary attempt counts。Summary 只有 total/pass/fail/expected_uncertainty/needs_review counts，无 quality score。
+
+`GoldenScenario`：稳定 SD/JI/MI/MEM/CONV/ACT/E2E ID、title、description、三层 layer、capability、allowlisted public fixture refs、expected_status、tags、checks、空 expected_failures_allowed、notes、可选 ordered journey_steps。ID/check ID 唯一；journey 必须有步骤；uncertainty-oriented 场景必须有 UncertaintyExpectation。Registry 不执行任意输入代码。
+
+`EvaluationStatus` closed：PASS、FAIL、EXPECTED_UNCERTAINTY、NEEDS_REVIEW。mandatory failure 优先 FAIL；明确 non-contract ambiguity 才 review；全部规则满足且 uncertainty-oriented 才 expected uncertainty；其余通过为 PASS。安全／authority／subject／lifecycle／gate failure 不可被 review 或允许失败清单豁免。
+
+`EvaluationFailure`：failure_id、taxonomy、scenario_id、check_id、summary、expected、safe observed、source_component、evidence_refs、memory_refs、固定 severity。Taxonomy 26 要求类别 + PRESENTATION_AMBIGUITY；BLOCKING/MAJOR/MINOR 在 `evaluation/taxonomy.py` 闭合映射，不能降级。Expected/observed 不携带完整输入、private profile、credential、exception text 或 hidden reasoning。
+
+Expectations 为 discriminated union：Required、Forbidden、Uncertainty、Provenance、Relation、Lifecycle、Workflow，以及只用于 presentation ambiguity 的 Review。检查结构 fields/enums/IDs/refs 与窄 claim fragments，不匹配自然语言整句。Match provenance 验证 evidence ownership union；unknown uncertainty signal 可合法拥有空 evidence_refs，但 referenced signal 本身必须存在。Action expected evidence 是 authoritative ActionRenderer recipe，不是模型自由建议。

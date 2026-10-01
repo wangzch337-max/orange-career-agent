@@ -331,3 +331,20 @@ Explicit policy 防止 consumer 扩权；read/write 分离防止 retrieval 自�
 
 **Status**
 Accepted — Phase 7C
+
+## ADR-019 — Golden evaluation 是离线外部 observer，不是总体评分或模型 judge
+
+**Context**
+Phase 7C 已完成。单元／回归测试能保护实现，但作品集还需要说明在职业探索情境中如何保持 uncertainty、evidence ownership、authority、lifecycle 和 human confirmation。总体分数会掩盖不同类型的失败，LLM judge 又增加不可复现、成本与隐私风险。
+
+**Decision**
+新增独立 `evaluation/`，保留 deterministic contract、semantic Golden、end-to-end journey 三层。27 个公开合成案例只用 FakeLLMProvider/FakeEmbeddingProvider 与隔离 temporary stores，观察既有生产 pipeline，不 repair、不重写 Match、不改变 UI。Closed statuses/taxonomy 产生可追溯 checks/findings；unknown 正确保留可为 EXPECTED_UNCERTAINTY，security/authority/subject/gate/lifecycle/network 必须 FAIL/BLOCKING。NEEDS_REVIEW 只用于明确 non-contract presentation ambiguity。
+
+**Reason**
+显式 required/forbidden/provenance 等规则使评价可重复、可定位、可手工解释；隔离状态与 latched offline guards 防止 private/network fallback。JSON 和 failures-first Markdown 同时服务脚本与人工审阅，不引入无依据的聚合质量分。
+
+**Tradeoffs**
+Fake suite 不能证明 live LLM 或真实 embedding 质量；label normalization 与窄 claim checks 不是通用 semantic entailment。Guard 是单线程 Python accident defense，不是恶意 native code sandbox。后续 8A.1 live 需要显式授权，8B diagnostics、8C polish、8D public readiness 均 deferred。Phase 8A 代码保留未提交，等待开发者明确批准。
+
+**Status**
+Accepted — Phase 8A

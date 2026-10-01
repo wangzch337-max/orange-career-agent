@@ -1,0 +1,9 @@
+{
+  "profile_id": "profile_synthetic_evaluation",
+  "program": "Fictional Computing Student",
+  "project_experiences": [{"name": "Synthetic Service Prototype", "evidence": "Implemented Python, API integration and LLM API usage with structured output and automated testing using fictional records."}],
+  "career_interest": "Explore AI application work and AI product work without choosing one title",
+  "career_goal": "Build Orange as a bounded portfolio project",
+  "career_values": ["Practical impact"],
+  "career_preferences": ["Hands-on implementation"]
+}
