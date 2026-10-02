@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import ast
+import hashlib
 from pathlib import Path
 import re
 import subprocess
@@ -98,7 +100,7 @@ def historical_blobs() -> tuple[tuple[str, str], ...]:
 
 
 def assert_frozen_bytes(name: str, current: bytes, historical: bytes) -> None:
-    """仅兼容获批准的 checkpoint／CSS 差异，其余字节必须完全一致。"""
+    """仅兼容获批准的 checkpoint／CSS／v1.1 UI 接线，其余字节完全冻结。"""
     expected = historical
     if name == "tests/test_ui_polish.py":
         old_sha = b"5a6a1d14cb95e1a79ab11a1b16e4835d2bce5873"
@@ -128,6 +130,21 @@ def assert_frozen_bytes(name: str, current: bytes, historical: bytes) -> None:
                 b'      .block-container {padding-left:1rem; padding-right:1rem;}\n',
                 b'      [data-testid="stMainBlockContainer"] {padding-left:1rem; padding-right:1rem;}\n',
             ),
+        )
+        for before, after in replacements:
+            assert expected.count(before) == 1, name
+            expected = expected.replace(before, after, 1)
+    elif name == "ui/app.py":
+        source = historical.decode()
+        sidebar = next(node for node in ast.parse(source).body if isinstance(node, ast.FunctionDef) and node.name == "_sidebar")
+        old = ast.get_source_segment(source, sidebar).encode()
+        assert hashlib.sha256(old).hexdigest() == "c5d501d908f1841f4b9ea9bfd8111db934a3579e592ca37195bfbfa1ce028284"
+        replacements = (
+            (b"from ui.conversation import QuestionKind\n", b"from ui.conversation import QuestionKind\nfrom ui.app_bar import render_app_bar\nfrom ui.onboarding import render_onboarding\n"),
+            (old, b"def _app_bar(controller: DemoController) -> None:\n    render_app_bar(controller, go=_go, reset=_reset_demo)"),
+            (b'        initial_sidebar_state="expanded",\n', b'        initial_sidebar_state="collapsed",\n'),
+            (b"    _sidebar(controller)\n", b"    _app_bar(controller)\n"),
+            (b"    render_developer_trace(controller.safe_trace(), controller.diagnostics_snapshot())\n", b"    render_developer_trace(controller.safe_trace(), controller.diagnostics_snapshot())\n    render_onboarding()\n"),
         )
         for before, after in replacements:
             assert expected.count(before) == 1, name

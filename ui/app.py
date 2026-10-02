@@ -26,6 +26,8 @@ from ui.components import (
     render_role_card,
 )
 from ui.conversation import QuestionKind
+from ui.app_bar import render_app_bar
+from ui.onboarding import render_onboarding
 from ui.visual_system import TRANSITIONS, render_badges, render_journey, render_panel, render_safe_error
 from ui.demo_controller import (
     APPROVED_ROLE_IDS,
@@ -89,47 +91,8 @@ def _workflow_complete(controller: DemoController) -> bool:
     )
 
 
-def _sidebar(controller: DemoController) -> None:
-    with st.sidebar:
-        st.markdown("## 🍊 Orange")
-        st.caption("先理解自己，再探索职业")
-        state = controller.state
-        if state is None:
-            st.caption("职业理解：正在通过对话形成")
-        elif state["workflow_status"] == GraphWorkflowStatus.WAITING_FOR_HUMAN.value:
-            st.caption("职业画像：等待你的确认")
-        elif state["workflow_status"] == GraphWorkflowStatus.COMPLETED.value:
-            st.caption("职业画像：已确认")
-        else:
-            st.caption("流程：需要处理")
-        st.caption("职业探索")
-        if st.button("欢迎", key="nav_welcome", use_container_width=True):
-            _go("welcome")
-        if not _workflow_complete(controller):
-            if st.button("引导对话", key="nav_conversation", use_container_width=True):
-                _go("profile" if state else "conversation")
-        if state and state["workflow_status"] == GraphWorkflowStatus.WAITING_FOR_HUMAN.value:
-            if st.button("画像确认", key="nav_profile", use_container_width=True):
-                _go("profile")
-        if _workflow_complete(controller):
-            st.caption("岗位探索")
-            if st.button("值得探索的方向", key="nav_directions", use_container_width=True):
-                _go("directions")
-            if st.session_state.get(SESSION_SELECTED_ROLE):
-                if st.button("岗位深入了解", key="nav_role", use_container_width=True):
-                    _go("role")
-                if st.button("Match Insights", key="nav_match", use_container_width=True):
-                    _go("match")
-                if st.button("行动计划", key="nav_actions", use_container_width=True):
-                    _go("actions")
-            if st.button("Career Exploration Map", key="nav_map", use_container_width=True):
-                _go("map")
-            if st.button("Orange 对你的长期理解", key="nav_memory", use_container_width=True):
-                _go("memory")
-        st.divider()
-        st.caption("仅重置本次公开演示，不影响真实资料。")
-        if st.button("重新开始 Demo", key="reset_demo", use_container_width=True):
-            _reset_demo()
+def _app_bar(controller: DemoController) -> None:
+    render_app_bar(controller, go=_go, reset=_reset_demo)
 
 
 def _welcome() -> None:
@@ -523,11 +486,11 @@ def main() -> None:
         page_title="Orange · 职业探索",
         page_icon="🍊",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="collapsed",
     )
     apply_demo_style()
     controller = _initialize_session()
-    _sidebar(controller)
+    _app_bar(controller)
     render_public_demo_banner()
     if st.session_state.pop("orange_reset_notice", False):
         st.success("已重新开始公开演示。上一轮会话、长期理解和诊断已清空。")
@@ -560,6 +523,7 @@ def main() -> None:
         st.session_state[SESSION_ERROR] = "unexpected_failure"
         render_safe_error(safe_error_message("unexpected_failure"))
     render_developer_trace(controller.safe_trace(), controller.diagnostics_snapshot())
+    render_onboarding()
 
 
 if __name__ == "__main__":

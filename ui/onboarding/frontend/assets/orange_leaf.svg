@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="orange-leaf-primary" x1=".2" y1=".8" x2=".9" y2=".1">
+      <stop stop-color="#294f35" stop-opacity=".86"/>
+      <stop offset=".42" stop-color="#658b43" stop-opacity=".8"/>
+      <stop offset=".78" stop-color="#88aa57" stop-opacity=".76"/>
+      <stop offset="1" stop-color="#c4cf82" stop-opacity=".87"/>
+    </linearGradient>
+    <linearGradient id="orange-leaf-secondary" x1=".8" y1="1" x2=".1" y2="0">
+      <stop stop-color="#355d35" stop-opacity=".84"/>
+      <stop offset=".5" stop-color="#799945" stop-opacity=".78"/>
+      <stop offset="1" stop-color="#bdca77" stop-opacity=".87"/>
+    </linearGradient>
+    <linearGradient id="orange-leaf-rim" x1=".2" y1=".1" x2=".8" y2="1">
+      <stop stop-color="#ebebbb" stop-opacity=".54"/>
+      <stop offset=".5" stop-color="#d7d995" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#f1c465" stop-opacity=".66"/>
+    </linearGradient>
+    <radialGradient id="orange-leaf-transmission" cx=".58" cy=".9" r=".7">
+      <stop stop-color="#eca945" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#eca945" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orange-leaf-specular" cx=".81" cy=".38" r=".4">
+      <stop stop-color="#f0efcc" stop-opacity=".46"/>
+      <stop offset=".35" stop-color="#d8e0a9" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#d8e0a9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g class="leaf-group">
+    <path class="secondary-leaf" d="M39 68C14 73 0 50 3 23C34 16 50 38 39 68Z" fill="url(#orange-leaf-secondary)" stroke="#36572c" stroke-opacity=".28" stroke-width=".8"/>
+    <path class="primary-leaf" d="M39 70C36 36 57 11 97 3C95 43 79 77 39 70Z" fill="url(#orange-leaf-primary)" stroke="#2c512f" stroke-opacity=".28" stroke-width=".8"/>
+    <path d="M39 70C36 36 57 11 97 3C95 43 79 77 39 70ZM39 68C14 73 0 50 3 23C34 16 50 38 39 68Z" fill="url(#orange-leaf-transmission)"/>
+    <path d="M39 70C36 36 57 11 97 3C95 43 79 77 39 70Z" fill="url(#orange-leaf-specular)"/>
+    <path d="M40 69C70 77 90 53 96 6M38 67C15 70 4 49 4 25" fill="none" stroke="url(#orange-leaf-rim)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M40 66C39 39 57 16 94 5" fill="none" stroke="url(#orange-leaf-rim)" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M46 45C52 26 70 15 88 9C69 22 57 30 46 45Z" fill="#e3e9b0" fill-opacity=".24"/>
+    <path d="M8 28C21 26 31 34 35 42C24 32 15 31 8 28Z" fill="#eef0ba" fill-opacity=".25"/>
+    <path d="M78 20Q84 16 88 13" fill="none" stroke="#f1eed0" stroke-opacity=".5" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M39 67Q42 72 40 77" fill="none" stroke="#5e7337" stroke-opacity=".7" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>

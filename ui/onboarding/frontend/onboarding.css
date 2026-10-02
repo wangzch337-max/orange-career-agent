@@ -1,0 +1,112 @@
+:host { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #202a35; }
+.intro { position: fixed; inset: 0; box-sizing: border-box; width: 100vw; height: 100dvh;
+  max-width: none; max-height: none; margin: 0; border: 0; padding: 28px;
+  color: #202a35; background: transparent; overflow: auto; outline: none; }
+.intro[open] { display: flex; justify-content: center; align-items: center; }
+.intro::backdrop { background: rgba(250,249,246,.68); backdrop-filter: blur(16px);
+  transition: backdrop-filter 1500ms ease, background 1500ms ease; }
+.intro-controls { position: absolute; right: max(20px, env(safe-area-inset-right));
+  top: max(20px, env(safe-area-inset-top)); display: flex; gap: 8px; }
+button { background: rgba(255,255,255,.65); border: 1px solid rgba(89,101,116,.18);
+  color: #596574; border-radius: 999px; padding: 0 16px; min-height: 44px;
+  font: inherit; font-size: 13px; cursor: pointer; }
+button:focus-visible { outline: 2px solid #9a4209; outline-offset: 3px; }
+.intro-content { width: min(680px, 100%); text-align: center; padding-bottom: 20px; }
+.mascot-stage { --normal-size: clamp(180px, 19vw, 236px); width: calc(var(--normal-size) * .667); aspect-ratio: 1; margin: 0 auto 36px; }
+.mascot { position: relative; width: 100%; height: 100%; transform-origin: center; }
+.sphere-shell { position: absolute; inset: 0; }
+.sphere-body { position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  isolation: isolate; box-shadow: 0 12px 32px -18px rgba(170,78,12,.35); }
+.sphere-texture, .sphere-art { display: block; width: 100%; height: 100%; }
+.video-buffers { position: absolute; inset: 0; opacity: 0; transition: opacity 180ms ease; }
+.video-buffers.ready { opacity: 1; }
+/* Inscribed source crop: (216,260), 516px square, from the 912x992 video.
+   All observed loop frames remain orange at the circular mask boundary. */
+.thinking-video { position: absolute; left: -41.860465%; top: -50.387597%;
+  width: 176.744186%; height: 192.248062%; max-width: none;
+  object-fit: fill; pointer-events: none; opacity: 0; }
+.intro[data-motion="THINKING"] .sphere-body {
+  animation: sphere-organic 6.6s ease-in-out -.8s infinite; }
+/* The core is a sibling of the responding shell, so it can lag independently. */
+.leaf-anchor { position: absolute; left: 66%; top: 35.5%; width: 26%; transform: translate(-50%, -50%); }
+.leaf { position: relative; opacity: .94; transform-origin: 50% 72%; }
+.leaf svg { display: block; width: 100%; height: auto; }
+.front-optics { position: absolute; inset: 0; pointer-events: none; }
+.front-glass { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse at 66% 36%, rgba(255,200,110,.075), transparent 28%),
+    linear-gradient(145deg, transparent 40%, rgba(255,205,131,.035) 56%, transparent 70%); }
+.glass-glaze { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse at 40% 17%, rgba(255,238,193,.09), transparent 47%); }
+.intro[data-motion="RESPOND"] .sphere-shell, .intro[data-motion="RESPOND"] .front-optics {
+  animation: sphere-response 560ms cubic-bezier(.22,.61,.36,1) both; animation-delay: var(--response-delay, 0ms); }
+.leaf.inertia { animation: leaf-inertia 780ms ease-in-out both; animation-delay: var(--leaf-delay, 0ms); }
+.sentence { width: min(660px, 100%); font-size: clamp(22px, 2.5vw, 30px); font-weight: 550;
+  line-height: 1.65; letter-spacing: .01em; min-height: 3.3em; margin: 0 auto;
+  overflow-wrap: anywhere; text-wrap: balance; }
+.sentence.entering { animation: text-enter 1450ms cubic-bezier(.35,.08,.25,1) both; }
+.sentence-word { display: inline-block; white-space: nowrap; }
+.sentence.exiting { animation: text-exit 760ms cubic-bezier(.4,0,.65,1) both; }
+.hint { margin: 24px 0 0; font-size: 13px; color: #596574; letter-spacing: .06em; }
+.intro.finishing::backdrop { backdrop-filter: blur(0); background: rgba(250,249,246,0); }
+.intro.finishing .mascot { animation: sphere-finish 1500ms ease both; animation-delay: var(--finish-delay, 0ms); }
+.intro.finishing .sentence { animation: text-exit 760ms cubic-bezier(.4,0,.65,1) both; animation-delay: var(--finish-delay, 0ms); }
+.intro.finishing .glass-glaze { animation: finish-glow 1500ms ease both;
+  background: radial-gradient(ellipse at 40% 17%, rgba(255,238,193,.16), transparent 47%); }
+.intro.finishing .hint, .intro.finishing .intro-controls { opacity: 0; transition: opacity 240ms ease; }
+.intro.skipping::backdrop { transition-duration: 180ms; }
+.intro.skipping .intro-content { animation: simple-fade 180ms ease both; }
+.intro.skipping .mascot, .intro.skipping .sentence, .intro.skipping .leaf { animation: none; }
+@keyframes sphere-organic {
+  0%,100% { transform: scale(1,1); border-radius: 50%; }
+  22% { transform: scale(1.018,.988); border-radius: 49.6% 50.4% 50% 50%; }
+  48% { transform: scale(.992,1.018); border-radius: 50% 49.8% 50.2% 50%; }
+  71% { transform: scale(1.012,.993); border-radius: 50.3% 49.7% 50% 50%; }
+}
+@keyframes sphere-response {
+  0%,100% { transform: translateY(0) scale(1); }
+  20% { transform: translateY(2px) scale(1.03,.97); }
+  52% { transform: translateY(-10px) scale(.985,1.025); }
+  82% { transform: translateY(3px) scale(1.008,.992); }
+}
+@keyframes leaf-inertia {
+  0%,100% { transform: translate(0,0) rotate(0deg); }
+  15.4% { transform: translate(calc(var(--leaf-x) * .12),calc(var(--leaf-y) * .2)) rotate(calc(var(--leaf-angle) * .15)); }
+  35.9% { transform: translate(var(--leaf-x),var(--leaf-y)) rotate(var(--leaf-angle)); }
+  61.5% { transform: translate(calc(var(--leaf-x) * -.3),calc(var(--leaf-y) * -.25)) rotate(calc(var(--leaf-angle) * -.35)); }
+  83.3% { transform: translate(calc(var(--leaf-x) * .09),calc(var(--leaf-y) * .12)) rotate(calc(var(--leaf-angle) * .08)); }
+}
+@keyframes text-enter {
+  from { opacity: 0; filter: blur(16px); transform: translateY(5px) scale(.98); }
+  to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
+}
+@keyframes text-exit {
+  from { opacity: 1; filter: blur(0); transform: scale(1); }
+  to { opacity: 0; filter: blur(14px); transform: scale(1.01); }
+}
+@keyframes sphere-finish { 0%,25% { transform: scale(1); opacity: 1; } 55% { transform: scale(.97); opacity: .88; } 100% { transform: scale(.78); opacity: 0; } }
+@keyframes finish-glow { 0% { opacity: .56; } 40% { opacity: .85; } 100% { opacity: 0; } }
+@keyframes simple-fade { to { opacity: 0; } }
+.intro[data-video="fallback"] .sphere-texture::after { content: ""; position: absolute; inset: 8%; border-radius: 50%;
+  background: radial-gradient(ellipse at 35% 58%, rgba(255,218,130,.14), transparent 58%);
+  animation: fallback-light 7.4s ease-in-out infinite; }
+@keyframes fallback-light { 0%,100% { opacity: .35; } 50% { opacity: .7; } }
+@media (max-width: 600px) {
+  .intro { padding: 24px; }
+  .mascot-stage { --normal-size: clamp(130px, 40vw, 176px); margin-bottom: 28px; }
+  .sentence { font-size: 23px; min-height: 5em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro[data-motion="THINKING"] .sphere-body { animation: none; }
+  .intro.finishing .glass-glaze { animation: none; }
+  .intro[data-motion="RESPOND"] .sphere-shell, .intro[data-motion="RESPOND"] .front-optics {
+    animation: reduced-response 120ms ease both; animation-delay: var(--response-delay, 0ms); }
+  .leaf.inertia { animation: none; }
+  .sentence.entering { animation: reduced-enter 180ms ease both; }
+  .sentence.exiting { animation: simple-fade 120ms ease both; }
+  .intro.finishing .mascot, .intro.finishing .sentence { animation: simple-fade 180ms ease both; }
+  .intro::backdrop { transition-duration: 180ms; }
+  .intro[data-video="fallback"] .sphere-texture::after { animation: none; }
+  .video-buffers { transition: none; }
+  @keyframes reduced-response { 50% { transform: scale(.995); } }
+  @keyframes reduced-enter { from { opacity: 0; } to { opacity: 1; } }
+}

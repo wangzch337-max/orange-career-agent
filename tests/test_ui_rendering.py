@@ -140,10 +140,22 @@ with st.expander("Expander", expanded=True):
 
 
 def test_repair_scope_has_no_other_ui_backend_dependency_or_test_edits():
+    # The original rendering repair plus explicitly authorized v1.1 presentation scope.
     changed = subprocess.check_output(["git", "diff", "--name-only", BASELINE], cwd=ROOT, text=True).splitlines()
     untracked = subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard"], cwd=ROOT, text=True).splitlines()
     assert set(changed + untracked) <= {
         "ui/visual_system.py", "tests/test_public_readiness.py", "tests/test_ui_rendering.py",
+        "ui/app.py", "ui/app_bar.py", "ui/onboarding/__init__.py", "ui/onboarding/component.py",
+        "ui/onboarding/frontend/index.html", "ui/onboarding/frontend/onboarding.css",
+        "ui/onboarding/frontend/onboarding.js", "ui/onboarding/frontend/mascot.svg",
+        "tests/test_onboarding.py", "tests/frontend_onboarding.mjs",
+        "ui/onboarding/assets.py", "ui/onboarding/frontend/assets/orange_app_icon.jpg",
+        "ui/onboarding/frontend/assets/orange_leaf.svg", "tests/test_mascot_motion.py",
+        "ui/onboarding/frontend/assets/orange_thinking.mp4", "tests/test_onboarding_tuning.py",
+        "ui/onboarding/frontend/assets/orange_mascot_master_reference.png", "tests/test_seamless_thinking.py",
     }
-    for name in ("ui/app.py", "ui/components.py", "requirements.txt", ".streamlit/config.toml"):
+    for name in ("ui/components.py", "requirements.txt", ".streamlit/config.toml"):
         assert (ROOT / name).read_bytes() == subprocess.check_output(["git", "show", f"{BASELINE}:{name}"], cwd=ROOT)
+    # ui/app.py is separately checked byte-for-byte except for five exact UI wiring edits.
+    from tests.test_public_readiness import assert_frozen_bytes
+    assert_frozen_bytes("ui/app.py", (ROOT / "ui/app.py").read_bytes(), subprocess.check_output(["git", "show", f"{BASELINE}:ui/app.py"], cwd=ROOT))
