@@ -1,0 +1,5 @@
+[
+  {"case": "exploration", "text": "公开合成用户希望基于已有项目比较适合探索的方向。", "damage": "missing_arguments"},
+  {"case": "recall", "text": "请回顾公开合成资料中已经体现的技术能力。", "damage": "tool_state"},
+  {"case": "change", "text": "公开合成用户现在希望更多探索产品和需求工作。", "damage": "response_mode"}
+]

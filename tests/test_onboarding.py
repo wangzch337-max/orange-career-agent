@@ -220,7 +220,7 @@ def test_allowed_navigation_still_opens_every_original_surface(page):
 @pytest.mark.parametrize('directory',['agents','providers','memory','workflows','evaluation','observability','data','config/prompts'])
 def test_domain_sources_prompts_and_public_fixtures_unchanged(directory):
     for name in subprocess.check_output(['git','ls-tree','-r','--name-only',BASELINE,directory],cwd=ROOT,text=True).splitlines():
-        if name == 'workflows/langgraph_workflow.py':
+        if name in {'workflows/langgraph_workflow.py', 'observability/models.py'}:
             from tests.v12_contract import assert_v12_delta
             assert_v12_delta(name, (ROOT/name).read_bytes(), subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT))
             continue

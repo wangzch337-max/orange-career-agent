@@ -269,7 +269,11 @@ def _submit(workspace, text: str, thread_id: str, *, suggested: bool = False) ->
         if text not in choices:
             return
     try:
-        workspace.submit(text, source="suggestion" if suggested else "typed")
+        if workspace.agent_session.consent:
+            workspace.agent_session.queue(text, "suggestion" if suggested else "typed",
+                allow_proposal=bool(st.session_state.get("orange_agent_allow_proposal", False)))
+        else:
+            workspace.submit(text, source="suggestion" if suggested else "typed")
     except ValueError:
         st.session_state["orange_chat_notice"] = "这条消息暂时无法保存，请勿在聊天中输入密钥等敏感信息。"
         return
@@ -361,13 +365,21 @@ def render_conversation_shell(controller: DemoController, workspace=None) -> Non
     if notice := st.session_state.pop("orange_chat_notice", None):
         st.warning(notice)
     chat = workspace.chat
+    from ui.agent_activity import render_activity, render_candidates, render_consent, render_pending
+    render_consent(workspace)
     st.session_state[CHAT_KEY] = chat
     if not chat.messages:
-        st.markdown('<div class="orange-chat-empty">' + orange_mark() + '<h1>现在开始吧</h1></div>', unsafe_allow_html=True)
-        _suggestions(workspace, INITIAL_SUGGESTIONS)
+        if workspace.agent_session.pending is None:
+            st.markdown('<div class="orange-chat-empty">' + orange_mark() + '<h1>现在开始吧</h1></div>', unsafe_allow_html=True)
+            if not workspace.agent_session.consent:
+                _suggestions(workspace, INITIAL_SUGGESTIONS)
+        if workspace.agent_session.pending:
+            with st.container(key="orange_transcript", height=600, autoscroll=True):
+                render_pending(workspace)
     else:
         # Native autoscroll follows appended messages without a new JS subsystem.
         with st.container(key="orange_transcript", height=600, autoscroll=True):
+            stored = workspace.store.list_messages(workspace.owner_scope_id, workspace.thread.thread_id)
             for index, message in enumerate(chat.messages):
                 with st.chat_message(message.role, avatar=sphere_markup() if message.role == "assistant" else None):
                     # User text is escaped, not interpreted as arbitrary Markdown/HTML.
@@ -375,10 +387,14 @@ def render_conversation_shell(controller: DemoController, workspace=None) -> Non
                         st.markdown(escape(message.content).replace("\n", "<br>"), unsafe_allow_html=True)
                     else:
                         st.write(message.content)
+                        if index < len(stored):
+                            render_activity(stored[index].metadata.get("agent_activity", []), key=stored[index].message_id)
                     if message.structured_payload:
                         _render_payload(message.structured_payload)
                 if message.role == "assistant" and index == len(chat.messages) - 1:
                     _suggestions(workspace, message.suggestions)
+            render_pending(workspace)
+            render_candidates(workspace)
     with st.bottom:
         with st.container(key="orange_composer"):
             text = st.chat_input("和 Orange 说点什么…", key="orange_chat_input", max_chars=2000)

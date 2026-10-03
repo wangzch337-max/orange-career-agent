@@ -109,6 +109,7 @@ class Workspace:
         self._thread: ConversationThread | None = None
         self._closed = False
         self.last_checkpoint_cleanup = "not_requested"
+        self._agent_session = None
         try:
             threads = self.store.list_threads(self.owner_scope_id)
             if threads:
@@ -118,6 +119,13 @@ class Workspace:
         except Exception:
             self.close()
             raise
+
+    @property
+    def agent_session(self):
+        from career_runtime.session import AgentSession
+        if self._agent_session is None:
+            self._agent_session = AgentSession(self)
+        return self._agent_session
 
     @property
     def controller(self) -> DemoController:
@@ -202,6 +210,13 @@ class Workspace:
             raise
         if self._controller is not None:
             self._controller.close()
+        if self._agent_session is not None and self._thread is not None and self._thread.thread_id != thread_id:
+            self._agent_session.cancel_pending()
+            self._agent_session.last_result = None
+            self._agent_session.last_error = None
+            self._agent_session.last_failure = None
+            self._agent_session.failure_persisted = False
+            self._agent_session.pending = None
         self._controller, self._chat, self._thread = controller, chat, thread
         return thread
 

@@ -123,6 +123,14 @@ def _mirror_client_scope() -> None:
 
 def assert_onboarding_bridge_delta(name, current, historical):
     """Allow only opaque-scope/entry callbacks; freeze every motion/audio byte."""
+    committed = {
+        "ui/onboarding/component.py": "ae6872600d02039f9a5dd5263550fd34e0727ea39c10553d41895b8b20e0eec0",
+        "ui/onboarding/frontend/onboarding.js": "be7a680ba5d5e09d7aaebb9cfc69083cd7a1c33a7748cfca0e1ea4e2b357b54e",
+    }
+    # HEAD may already contain the approved bridge, not the pre-v1.3A source.
+    if hashlib.sha256(historical).hexdigest() == committed.get(name):
+        assert current == historical, name
+        return
     source = historical.decode()
     if name == "ui/onboarding/component.py":
         replacements = (
@@ -180,11 +188,40 @@ def approved_ui_test_source(name, source):
         )
     if name == "tests/test_ui_security.py":
         source = source.replace('        "chat_input(",\n        "chat_message(",\n', '', 1)
+    if name == "tests/test_onboarding.py":
+        source = source.replace("        if name == 'workflows/langgraph_workflow.py':\n", "        if name in {'workflows/langgraph_workflow.py', 'observability/models.py'}:\n", 1)
     return source
 
 
 def assert_v12_delta(name, current, expected):
     """Reject every byte outside the listed presentation compatibility edits."""
+    if name == "observability/models.py":
+        # v1.3B.1 adds ONE closed, runtime-only detail; existing metadata stays frozen.
+        current = current.replace(b', field_validator, model_validator\n', b', field_validator\n', 1)
+        current = current.replace(b'from career_runtime.diagnostics import RuntimeDiagnostic\n', b'', 1)
+        detail = b'''    agent_detail: RuntimeDiagnostic | None = None
+
+    @model_validator(mode="after")
+    def agent_detail_scope(self):
+        if self.agent_detail is not None and self.operation not in {"agent_turn", "agent_plan", "agent_tool", "agent_response"}:
+            raise ValueError("Agent detail is limited to runtime events.")
+        return self
+'''
+        assert current.count(detail) == 1
+        current = current.replace(detail, b'', 1)
+        approved = b'    "agent_turn", "agent_plan", "agent_tool", "agent_response",\n'
+        assert current.count(approved) == 1
+        current = current.replace(approved, b'', 1)
+    if name in METHOD_HASHES:
+        class_name = "DemoController" if name == "ui/demo_controller.py" else "OrangeGraphRunner"
+        try:
+            _assert_approved_methods(name, expected.decode(), class_name)
+        except (AssertionError, StopIteration):
+            pass
+        else:
+            # Already-committed compatibility: still reject every extra byte.
+            assert current == expected, name
+            return
     if name == "ui/app.py":
         expected = expected.replace(b'def main() -> None:\n', b'def legacy_main() -> None:\n', 1)
         expected = expected.replace(b'if __name__ == "__main__":\n', NEW_MAIN.encode() + b'if __name__ == "__main__":\n', 1)
@@ -212,5 +249,7 @@ def assert_v12_delta(name, current, expected):
         assert source.count(before) == 1
         current = source.replace(before, 'from memory.models import new_subject_id\n', 1).encode()
     elif name.startswith("tests/"):
+        if name == "tests/test_ui_rendering.py":
+            current = current.replace(b'    from tests.runtime_contract import V13B_PATHS\n', b'', 1).replace(b'    } | V13B_PATHS\n', b'    }\n', 1)
         expected = approved_ui_test_source(name, expected.decode()).encode()
     assert current == expected, name

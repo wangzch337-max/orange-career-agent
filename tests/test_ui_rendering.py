@@ -144,6 +144,7 @@ def test_repair_scope_has_no_other_ui_backend_dependency_or_test_edits():
     # The original rendering repair plus explicitly authorized v1.1 presentation scope.
     changed = subprocess.check_output(["git", "diff", "--name-only", BASELINE], cwd=ROOT, text=True).splitlines()
     untracked = subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard"], cwd=ROOT, text=True).splitlines()
+    from tests.runtime_contract import V13B_PATHS
     assert set(changed + untracked) <= {
         "ui/visual_system.py", "tests/test_public_readiness.py", "tests/test_ui_rendering.py",
         "ui/app.py", "ui/app_bar.py", "ui/onboarding/__init__.py", "ui/onboarding/component.py",
@@ -161,7 +162,7 @@ def test_repair_scope_has_no_other_ui_backend_dependency_or_test_edits():
         "ui/conversation_store.py", "tests/test_conversation_store.py",
         "ui/chat_runtime.py", "tests/test_chat_runtime.py", "tests/test_chat_theme.py",
         "tests/test_chat_product.py", "tests/test_observability_integration.py",
-    }
+    } | V13B_PATHS
     for name in ("ui/components.py", "requirements.txt", ".streamlit/config.toml"):
         assert (ROOT / name).read_bytes() == subprocess.check_output(["git", "show", f"{BASELINE}:{name}"], cwd=ROOT)
     # ui/app.py is separately checked byte-for-byte except for five exact UI wiring edits.

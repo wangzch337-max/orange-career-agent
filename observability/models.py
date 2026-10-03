@@ -5,7 +5,8 @@ from enum import Enum
 from typing import Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from career_runtime.diagnostics import RuntimeDiagnostic
 
 from data.models import EventType
 from observability.redaction import safe_id, validate_metadata, validate_counts, UnsafeDiagnosticMetadata
@@ -48,6 +49,7 @@ OPERATIONS = {item.value for item in EventType} | {
     "embedding_batch", "evaluation_scenario_run", "evaluation_check", "diagnostic_rejected", "vector_rebuild",
     "memory_confirm", "memory_archive", "memory_supersede", "memory_purge", "memory_candidate",
     "vector_sync", "memory_retrieval_sources",
+    "agent_turn", "agent_plan", "agent_tool", "agent_response",
 }
 
 
@@ -88,6 +90,13 @@ class DiagnosticEvent(ObservabilityContext):
     safe_metadata: dict[str, str | int | float | bool | list[str] | None] = Field(default_factory=dict)
     error_category: Literal["validation_failure", "provider_failure", "unexpected_failure", "diagnostic_failure"] | None = None
     source_event_type: EventType | None = None
+    agent_detail: RuntimeDiagnostic | None = None
+
+    @model_validator(mode="after")
+    def agent_detail_scope(self):
+        if self.agent_detail is not None and self.operation not in {"agent_turn", "agent_plan", "agent_tool", "agent_response"}:
+            raise ValueError("Agent detail is limited to runtime events.")
+        return self
 
     @field_validator("timestamp", "started_at")
     @classmethod

@@ -30,7 +30,7 @@ _SNAPSHOT_KEYS = frozenset(
     ("stage", "answers", "notes", "pending_note", "revising", "selected_role")
 )
 _METADATA_KEYS = frozenset(
-    ("kind", "structured_payload_type", "suggestions", "evidence_refs", "source")
+    ("kind", "structured_payload_type", "suggestions", "evidence_refs", "source", "agent_activity", "agent_usage", "agent_failure", "agent_diagnostics", "agent_accounting", "agent_provider_attempts", "agent_stream", "agent_turn_status", "agent_profile_stamp")
 )
 _PAYLOAD_KINDS = frozenset(("text", "profile", "directions", "match", "actions", "memory"))
 _CREDENTIAL_PATTERNS = (
@@ -137,6 +137,65 @@ def _metadata(value: Mapping[str, object] | None) -> dict[str, object]:
     if not isinstance(value, Mapping) or set(value) - _METADATA_KEYS:
         raise ConversationStoreError("Unsupported presentation metadata.")
     result: dict[str, object] = {}
+    if "agent_turn_status" in value:
+        from career_runtime.models import TurnStatus
+        try:
+            result["agent_turn_status"] = TurnStatus(value["agent_turn_status"]).value
+        except (ValueError, TypeError):
+            raise ConversationStoreError("Turn status is invalid.") from None
+    if "agent_profile_stamp" in value:
+        from career_runtime.models import ProfileContextStamp
+        try:
+            stamp = ProfileContextStamp.model_validate(value["agent_profile_stamp"])
+            _identifier(stamp.profile_id)
+            result["agent_profile_stamp"] = stamp.model_dump()
+        except ValueError:
+            raise ConversationStoreError("Profile context stamp is invalid.") from None
+    if "agent_stream" in value:
+        from career_runtime.models import StreamMetrics
+        try:
+            result["agent_stream"] = StreamMetrics.model_validate(value["agent_stream"]).model_dump()
+        except ValueError:
+            raise ConversationStoreError("Stream metadata is invalid.") from None
+    from career_runtime.diagnostics import RuntimeDiagnostic, CallAccounting, ProviderAttempt
+    for key, model, limit in (("agent_diagnostics", RuntimeDiagnostic, 48), ("agent_provider_attempts", ProviderAttempt, 7)):
+        if key in value:
+            items = value[key]
+            if not isinstance(items, list) or len(items) > limit:
+                raise ConversationStoreError("Runtime diagnostic list is invalid.")
+            try:
+                result[key] = [model.model_validate(item).model_dump() for item in items]
+            except ValueError:
+                raise ConversationStoreError("Runtime diagnostic metadata is invalid.") from None
+    if "agent_accounting" in value:
+        try:
+            result["agent_accounting"] = CallAccounting.model_validate(value["agent_accounting"]).model_dump()
+        except ValueError:
+            raise ConversationStoreError("Runtime accounting metadata is invalid.") from None
+    if "agent_failure" in value:
+        from career_runtime.models import SafeFailure
+        try:
+            result["agent_failure"] = SafeFailure.model_validate(value["agent_failure"]).model_dump()
+        except ValueError:
+            raise ConversationStoreError("Failure metadata is invalid.") from None
+    if "agent_usage" in value:
+        from career_runtime.models import SafeUsage
+        usages = value["agent_usage"]
+        if not isinstance(usages, list) or len(usages) > 5:
+            raise ConversationStoreError("Usage list is invalid.")
+        try:
+            result["agent_usage"] = [SafeUsage.model_validate(item).model_dump() for item in usages]
+        except ValueError:
+            raise ConversationStoreError("Usage metadata is invalid.") from None
+    if "agent_activity" in value:
+        from career_runtime.models import Activity
+        items = value["agent_activity"]
+        if not isinstance(items, list) or len(items) > 32:
+            raise ConversationStoreError("Activity list is invalid.")
+        try:
+            result["agent_activity"] = [Activity.model_validate(item).model_dump() for item in items]
+        except ValueError:
+            raise ConversationStoreError("Activity metadata is invalid.") from None
     if "kind" in value and "structured_payload_type" in value:
         raise ConversationStoreError("Presentation kind must be specified once.")
     for key in ("kind", "structured_payload_type"):
@@ -162,6 +221,8 @@ def _metadata(value: Mapping[str, object] | None) -> dict[str, object]:
             for item in items:
                 _identifier(item)
         result[key] = list(items)
+    if result.get("agent_turn_status") == "COMPLETED" and "agent_failure" in result:
+        raise ConversationStoreError("Completed turn cannot contain failure status.")
     return result
 
 
@@ -355,11 +416,16 @@ class ConversationStore:
             rows = db.execute("SELECT * FROM conversation_threads WHERE owner_scope_id = ? ORDER BY updated_at DESC, thread_id ASC", (_scope(owner_scope_id),)).fetchall()
         return tuple(self._thread(row) for row in rows)
 
-    def list_messages(self, owner_scope_id: str, thread_id: str) -> tuple[ConversationMessage, ...]:
+    def list_messages(self, owner_scope_id: str, thread_id: str, *, limit: int | None = None) -> tuple[ConversationMessage, ...]:
         owner = _scope(owner_scope_id)
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= 12):
+            raise ConversationStoreError("Runtime history limit is invalid.")
         with self._connect() as db:
             self._owned(db, owner, thread_id)
-            rows = db.execute("SELECT * FROM conversation_messages WHERE owner_scope_id = ? AND thread_id = ? ORDER BY position ASC", (owner, thread_id)).fetchall()
+            if limit is None:
+                rows = db.execute("SELECT * FROM conversation_messages WHERE owner_scope_id = ? AND thread_id = ? ORDER BY position ASC", (owner, thread_id)).fetchall()
+            else:
+                rows = list(reversed(db.execute("SELECT * FROM conversation_messages WHERE owner_scope_id = ? AND thread_id = ? ORDER BY position DESC LIMIT ?", (owner, thread_id, limit)).fetchall()))
         return tuple(self._message(row) for row in rows)
 
     def load_snapshot(self, owner_scope_id: str, thread_id: str) -> dict[str, object]:
@@ -416,7 +482,8 @@ class ConversationStore:
                     assistant_metadata: Mapping[str, object] | None = None,
                     snapshot: Mapping[str, object] | None = None,
                     workflow_thread_id: str | None = None, profile_id_ref: str | None = None,
-                    profile_version_ref: int | None = None) -> tuple[ConversationMessage, ConversationMessage]:
+                    profile_version_ref: int | None = None,
+                    turn_id: str | None = None) -> tuple[ConversationMessage, ConversationMessage]:
         """Atomically persist two visible messages and their guided presentation state."""
         owner = _scope(owner_scope_id)
         user, assistant = _content(user_content), _content(assistant_content)
@@ -424,16 +491,37 @@ class ConversationStore:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             row = self._owned(db, owner, thread_id)
+            if turn_id is not None:
+                _identifier(turn_id)
+                existing = self._turn(db, owner, thread_id, turn_id)
+                if existing:
+                    if (existing[0].content, existing[1].content) != (user, assistant):
+                        raise ConversationStoreError("Turn identity has already completed.")
+                    return existing
             now = self._updated(db, owner)
             result = []
             for role, content, metadata in zip(("user", "assistant"), (user, assistant), meta):
-                message_id = f"message_{uuid4().hex}"
+                message_id = f"message_{turn_id}_{role}" if turn_id else f"message_{uuid4().hex}"
                 db.execute("INSERT INTO conversation_messages(owner_scope_id, message_id, thread_id, role, content, created_at, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
                            (owner, message_id, thread_id, role, content, now, json.dumps(metadata, ensure_ascii=False)))
                 result.append(ConversationMessage(message_id, thread_id, role, content, datetime.fromisoformat(now), metadata))
             title = " ".join(user.split())[:INITIAL_TITLE_LIMIT] if not row["title_initialized"] else None
             self._save(db, owner, thread_id, row, now, snapshot, workflow_thread_id, profile_id_ref, profile_version_ref, title)
             return tuple(result)
+
+    def _turn(self, db, owner, thread_id, turn_id):
+        rows = db.execute("SELECT * FROM conversation_messages WHERE owner_scope_id=? AND thread_id=? AND message_id IN (?, ?) ORDER BY position",
+                          (owner, thread_id, f"message_{turn_id}_user", f"message_{turn_id}_assistant")).fetchall()
+        if len(rows) not in (0, 2):
+            raise ConversationStoreError("Incomplete stored turn.")
+        return tuple(self._message(row) for row in rows)
+
+    def get_turn(self, owner_scope_id, thread_id, turn_id):
+        _identifier(turn_id)
+        owner = _scope(owner_scope_id)
+        with self._connect() as db:
+            self._owned(db, owner, thread_id)
+            return self._turn(db, owner, thread_id, turn_id)
 
     def save_snapshot(self, owner_scope_id: str, thread_id: str, snapshot: Mapping[str, object], *,
                       workflow_thread_id: str | None = None, profile_id_ref: str | None = None,

@@ -381,6 +381,12 @@ def test_legacy_page_functions_are_byte_preserved(name):
 
 @pytest.mark.parametrize("scope", ["agents", "providers", "memory", "workflows", "evaluation", "observability", "data", "config/prompts", "requirements.txt", "ui/visual_system.py", "ui/app_bar.py"])
 def test_v12_does_not_change_authority_or_dependencies(scope):
+    if scope == "observability":
+        from tests.v12_contract import assert_v12_delta
+        name = "observability/models.py"
+        assert_v12_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT))
+        assert subprocess.check_output(["git", "diff", "--name-only", CHECKPOINT, "--", scope], cwd=ROOT, text=True).splitlines() == [name]
+        return
     if scope == "workflows":
         from tests.v12_contract import assert_v12_delta
         name = "workflows/langgraph_workflow.py"
