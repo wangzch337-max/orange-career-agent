@@ -12,13 +12,69 @@ from urllib.parse import unquote, urlsplit
 
 import pytest
 
+from tests.v12_contract import approved_ui_test_source
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CHECKPOINT = "8ba7f1facca42dc03f29e92e2d5d6761dbef06e2"
+# Resolved from the authenticated GitHub API before publication, not guessed.
+# Pin the public destination so pytest stays offline and needs no credentials.
+PUBLIC_GITHUB_OWNER = "wangzch337-max"
 
 
 def git(*args: str) -> bytes:
     return subprocess.check_output(["git", *args], cwd=ROOT)
+
+
+def safe_github_remote_url(url: str, expected_owner: str) -> bool:
+    """Accept only credential-free, canonical URLs for this public repository."""
+    if not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?", expected_owner):
+        return False
+    match = re.fullmatch(
+        r"(?:https://github[.]com/|git@github[.]com:|ssh://git@github[.]com/)"
+        r"([A-Za-z0-9-]+)/orange-career-agent(?:[.]git)?", url,
+    )
+    return bool(match and match.group(1).casefold() == expected_owner.casefold())
+
+
+def remote_configuration_safe(remotes: dict[str, tuple[tuple[str, ...], tuple[str, ...]]], expected_owner: str) -> bool:
+    """Publication permits no remotes, or one exact origin for fetch and push."""
+    if not remotes:
+        return True
+    if set(remotes) != {"origin"}:
+        return False
+    fetch, push = remotes["origin"]
+    return (len(fetch) == len(push) == 1
+            and all(safe_github_remote_url(url, expected_owner) for url in (*fetch, *push)))
+
+
+def publication_remote_is_safe(root: Path = ROOT, expected_owner: str = PUBLIC_GITHUB_OWNER) -> bool:
+    """Read local Git metadata only; never emit a potentially unsafe remote URL."""
+    def read(*args: str, optional: bool = False) -> tuple[str, ...]:
+        result = subprocess.run(["git", *args], cwd=root, capture_output=True, check=False)
+        if optional and result.returncode == 1:
+            return ()
+        if result.returncode:
+            raise ValueError("Invalid local remote configuration.")
+        return tuple(result.stdout.decode().splitlines())
+
+    try:
+        names = read("remote")
+        if not names:
+            return not read("config", "--get-regexp", r"^remote[.]", optional=True)
+        if names != ("origin",):
+            return False
+        raw_fetch = read("config", "--get-all", "remote.origin.url")
+        raw_push = read("config", "--get-all", "remote.origin.pushurl", optional=True)
+        if len(raw_fetch) != 1 or len(raw_push) > 1:
+            return False
+        if not all(safe_github_remote_url(url, expected_owner) for url in (*raw_fetch, *raw_push)):
+            return False
+        effective = {"origin": (read("remote", "get-url", "--all", "origin"),
+                                read("remote", "get-url", "--push", "--all", "origin"))}
+        return remote_configuration_safe(effective, expected_owner)
+    except (OSError, ValueError, UnicodeError):
+        return False
 
 
 def public_paths() -> list[Path]:
@@ -470,8 +526,164 @@ SOFTWARE.
     assert "不重新许可" in notes and "原许可证" in notes
     readme = (ROOT / "README.md").read_text()
     assert "[MIT License](LICENSE)" in readme and "不重新许可第三方依赖" in readme
-    assert git("remote").strip() == b""
+    if not publication_remote_is_safe():
+        pytest.fail("Unexpected publication remote configuration (URLs withheld).", pytrace=False)
 
 
 def test_diff_whitespace_clean():
     assert git("diff", "--check") == b""
+
+
+OBSERVABILITY_TEST = "tests/test_observability_integration.py"
+OWNER = "synthetic-owner"
+HTTPS_URL = f"https://github.com/{OWNER}/orange-career-agent.git"
+SSH_PREFIX = "git@" + "github.com:"
+
+
+def historical_observability_source():
+    return git("show", f"{CHECKPOINT}:{OBSERVABILITY_TEST}")
+
+
+def test_exact_ancestry_repair_preserves_entire_frozen_observability_test():
+    historical = historical_observability_source()
+    current = (ROOT / OBSERVABILITY_TEST).read_bytes()
+    assert_frozen_bytes(OBSERVABILITY_TEST, current, historical)
+    assert b'"merge-base", "--is-ancestor", checkpoint, "HEAD"' in current
+    assert b'"3fb50b47594bde069f2d31585c06657e764205b4"' in current
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda source: source.replace(b"3fb50b47594bde069f2d31585c06657e764205b4", b"0" * 40),
+    lambda source: source.replace(
+        b'    subprocess.check_call(["git", "merge-base", "--is-ancestor", checkpoint, "HEAD"], cwd=ROOT)\n', b""),
+    lambda source: source.replace(b"    assert message.strip() ==", b"    assert message =="),
+    lambda source: source.replace(b"        assert dependency not in requirements\n", b""),
+    lambda source: source.replace(b'        assert "import httpx" not in source and "import requests" not in source\n', b""),
+    lambda source: source + b"# Unapproved future change\n",
+])
+def test_frozen_observability_rejects_every_unapproved_mutation(mutation):
+    with pytest.raises(AssertionError):
+        assert_frozen_bytes(OBSERVABILITY_TEST, mutation((ROOT / OBSERVABILITY_TEST).read_bytes()),
+                            historical_observability_source())
+
+
+def test_old_window_check_and_other_filename_are_not_allowed_repairs():
+    historical = historical_observability_source()
+    old_current = historical.replace(b"from streamlit.testing.v1 import AppTest\n",
+                                     b"from streamlit.testing.v1 import AppTest\nfrom tests.ui_legacy import legacy_app\n")
+    with pytest.raises(AssertionError):
+        assert_frozen_bytes(OBSERVABILITY_TEST, old_current, historical)
+    with pytest.raises(AssertionError):
+        assert_frozen_bytes("tests/unrelated.py", (ROOT / OBSERVABILITY_TEST).read_bytes(), historical)
+
+
+@pytest.mark.parametrize("source", [b"# missing historical check\n", historical_observability_source() * 2])
+def test_ancestry_compatibility_rejects_missing_or_duplicate_historical_check(source):
+    with pytest.raises(AssertionError):
+        approved_ui_test_source(OBSERVABILITY_TEST, source.decode())
+
+
+@pytest.mark.parametrize("url", [
+    HTTPS_URL, HTTPS_URL.removesuffix(".git"),
+    SSH_PREFIX + f"{OWNER}/orange-career-agent.git",
+    SSH_PREFIX + f"{OWNER}/orange-career-agent",
+    "ssh://git@" + f"github.com/{OWNER}/orange-career-agent.git",
+    HTTPS_URL.replace(OWNER, OWNER.upper()),
+])
+def test_only_canonical_safe_https_and_ssh_destinations_pass(url):
+    assert safe_github_remote_url(url, OWNER)
+    assert remote_configuration_safe({"origin": ((url,), (url,))}, OWNER)
+
+
+@pytest.mark.parametrize("url", [
+    f"https://example.invalid/{OWNER}/orange-career-agent.git",
+    HTTPS_URL.replace("orange-career-agent", "another-repository"),
+    HTTPS_URL.replace(OWNER, "other-owner"),
+    HTTPS_URL.replace("https://", "https://synthetic-token@"),
+    HTTPS_URL.replace("https://", "https://synthetic-user:synthetic-password@"),
+    "http://" + HTTPS_URL.removeprefix("https://"),
+    "https://github.com.evil.invalid/" + f"{OWNER}/orange-career-agent.git",
+    HTTPS_URL + "?token=synthetic-token", HTTPS_URL + "#fragment", HTTPS_URL + "/extra",
+    " " + HTTPS_URL, HTTPS_URL + "\n", HTTPS_URL.replace("github.com", "github.com:443"),
+    HTTPS_URL.replace("/orange", "/../orange"), "../orange-career-agent.git",
+    "", SSH_PREFIX.replace("git@", "synthetic-token@") + f"{OWNER}/orange-career-agent.git",
+])
+def test_unsafe_credential_malformed_host_owner_and_repository_urls_fail(url):
+    assert not safe_github_remote_url(url, OWNER)
+    assert not remote_configuration_safe({"origin": ((url,), (url,))}, OWNER)
+
+
+@pytest.mark.parametrize("remotes", [
+    {"origin": ((HTTPS_URL,), (HTTPS_URL,)), "backup": ((HTTPS_URL,), (HTTPS_URL,))},
+    {"upstream": ((HTTPS_URL,), (HTTPS_URL,))},
+    {"origin": ((), (HTTPS_URL,))}, {"origin": ((HTTPS_URL,), ())},
+    {"origin": ((HTTPS_URL, HTTPS_URL), (HTTPS_URL,))},
+    {"origin": ((HTTPS_URL,), (HTTPS_URL, HTTPS_URL))},
+    {"origin": ((HTTPS_URL,), (HTTPS_URL.replace(OWNER, "other-owner"),))},
+])
+def test_second_remote_missing_urls_multiple_urls_and_competing_push_fail(remotes):
+    assert not remote_configuration_safe(remotes, OWNER)
+
+
+def test_prepublication_accepts_zero_remotes():
+    assert remote_configuration_safe({}, OWNER)
+
+
+@pytest.fixture
+def local_repo(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True, capture_output=True)
+    return tmp_path
+
+
+def configure(root: Path, *args: str):
+    subprocess.run(["git", "config", "--local", *args], cwd=root, check=True, capture_output=True)
+
+
+def test_actual_local_remote_lifecycle_is_offline_and_credential_independent(local_repo, monkeypatch):
+    original = subprocess.run
+    calls = []
+
+    def local_git_only(args, **kwargs):
+        assert args[0] == "git" and args[1] in {"remote", "config"}
+        assert kwargs["cwd"] == local_repo
+        calls.append(tuple(args))
+        return original(args, **kwargs)
+
+    configure(local_repo, "remote.origin.url", HTTPS_URL)
+    monkeypatch.setattr(subprocess, "run", local_git_only)
+    assert publication_remote_is_safe(local_repo, OWNER)
+    assert calls  # No gh, auth, credential access, fetch, push or network command.
+
+
+def test_actual_repository_pre_and_post_publication_states(local_repo):
+    assert publication_remote_is_safe(local_repo, OWNER)
+    configure(local_repo, "remote.origin.url", HTTPS_URL)
+    assert publication_remote_is_safe(local_repo, OWNER)
+    configure(local_repo, "remote.origin.pushurl", SSH_PREFIX + f"{OWNER}/orange-career-agent.git")
+    assert publication_remote_is_safe(local_repo, OWNER)
+    configure(local_repo, "remote.backup.url", HTTPS_URL)
+    assert not publication_remote_is_safe(local_repo, OWNER)
+
+
+@pytest.mark.parametrize("key,value", [
+    ("remote.origin.url", HTTPS_URL.replace("https://", "https://synthetic-token@")),
+    ("remote.origin.url", HTTPS_URL.replace("orange-career-agent", "wrong-repo")),
+    ("remote.origin.url", "https://example.invalid/other.git"),
+    ("remote.origin.pushurl", HTTPS_URL.replace(OWNER, "other-owner")),
+    ("remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"),
+])
+def test_actual_repository_rejects_bad_raw_remote_configuration(local_repo, key, value):
+    if key != "remote.origin.fetch":
+        configure(local_repo, "remote.origin.url", HTTPS_URL)
+    configure(local_repo, key, value)
+    assert not publication_remote_is_safe(local_repo, OWNER)
+
+
+def test_git_url_rewrites_cannot_bypass_raw_or_effective_destination_check(local_repo):
+    unsafe = "https://example.invalid/synthetic.git"
+    configure(local_repo, "remote.origin.url", unsafe)
+    configure(local_repo, f"url.{HTTPS_URL}.insteadOf", unsafe)
+    assert not publication_remote_is_safe(local_repo, OWNER)
+    configure(local_repo, "remote.origin.url", HTTPS_URL)
+    configure(local_repo, f"url.{unsafe}.pushInsteadOf", HTTPS_URL)
+    assert not publication_remote_is_safe(local_repo, OWNER)

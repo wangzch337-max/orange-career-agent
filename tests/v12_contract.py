@@ -164,7 +164,18 @@ def assert_onboarding_bridge_delta(name, current, historical):
 
 
 def approved_ui_test_source(name, source):
-    """Only opt legacy rendering tests into the retained legacy entry."""
+    """Apply only the enumerated legacy-entry and release-test repairs."""
+    if name == "tests/test_observability_integration.py":
+        before = '''    messages = subprocess.check_output(["git", "log", "--format=%s", "-10"], cwd=ROOT, text=True)
+    assert "feat: add scenario-based evaluation framework" in messages
+'''
+        after = '''    checkpoint = "3fb50b47594bde069f2d31585c06657e764205b4"
+    subprocess.check_call(["git", "merge-base", "--is-ancestor", checkpoint, "HEAD"], cwd=ROOT)
+    message = subprocess.check_output(["git", "show", "-s", "--format=%s", checkpoint], cwd=ROOT, text=True)
+    assert message.strip() == "feat: add scenario-based evaluation framework"
+'''
+        assert source.count(before) == 1, name
+        source = source.replace(before, after, 1)
     if name in {"tests/test_streamlit_app.py", "tests/test_ui_polish.py", "tests/test_ui_rendering.py", "tests/test_onboarding.py", "tests/test_observability_integration.py"}:
         source = source.replace("from streamlit.testing.v1 import AppTest\n", "from streamlit.testing.v1 import AppTest\nfrom tests.ui_legacy import legacy_app\n", 1)
         for old, new in (

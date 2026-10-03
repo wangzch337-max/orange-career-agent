@@ -38,8 +38,10 @@ def dump(controller):
 
 
 def test_phase8a_checkpoint_and_no_telemetry_dependencies():
-    messages = subprocess.check_output(["git", "log", "--format=%s", "-10"], cwd=ROOT, text=True)
-    assert "feat: add scenario-based evaluation framework" in messages
+    checkpoint = "3fb50b47594bde069f2d31585c06657e764205b4"
+    subprocess.check_call(["git", "merge-base", "--is-ancestor", checkpoint, "HEAD"], cwd=ROOT)
+    message = subprocess.check_output(["git", "show", "-s", "--format=%s", checkpoint], cwd=ROOT, text=True)
+    assert message.strip() == "feat: add scenario-based evaluation framework"
     requirements = (ROOT / "requirements.txt").read_text().casefold()
     for dependency in ("langsmith", "langfuse", "sentry", "datadog", "opentelemetry", "posthog", "mixpanel"):
         assert dependency not in requirements
