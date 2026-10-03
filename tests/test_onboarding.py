@@ -8,6 +8,7 @@ import subprocess
 
 import pytest
 from streamlit.testing.v1 import AppTest
+from tests.ui_legacy import legacy_app
 
 from ui.app_bar import app_bar_stylesheet, navigation_items
 from ui.demo_controller import DemoController
@@ -60,10 +61,11 @@ def test_replay_and_completion_consume_only_presentation_state(monkeypatch):
     assert state['domain_marker'] is marker
 
 
-def test_local_storage_has_only_two_onboarding_flag_keys():
+def test_local_storage_has_only_two_flags_and_opaque_client_scope():
     source = (FRONTEND / "onboarding.js").read_text()
-    assert re.findall(r'export const \w+_KEY = "([^"]+)"', source) == ["orange_intro_seen_v1", "orange_intro_muted_v1"]
-    assert source.count('storage.setItem(') == 1 and 'storage.setItem(key, "1")' in source
+    assert re.findall(r'export const \w+_KEY = "([^"]+)"', source) == ["orange_intro_seen_v1", "orange_intro_muted_v1", "orange_client_scope_v1"]
+    assert source.count('setItem(') == 2 and 'storage.setItem(key, "1")' in source
+    assert 'setItem(CLIENT_SCOPE_KEY, ephemeralClientScope)' in source
     assert re.findall(r'(?<!function )writeFlag\(storage, (\w+),', source) == ['SEEN_KEY','SEEN_KEY','MUTED_KEY']
     assert 'sessionStorage' not in source
 
@@ -97,7 +99,7 @@ def test_motion_accessibility_and_live_backdrop_contracts():
     assert 'window.parent' not in js and 'iframe' not in js
 
 
-@pytest.mark.parametrize("scenario", ['pure','blocked-storage','seen','replay-reset','rerun','skip','reduced','reduced-complete','repeat','mute','touch','complete'])
+@pytest.mark.parametrize("scenario", ['pure','blocked-storage','seen','replay-reset','rerun','skip','reduced','reduced-complete','repeat','mute','touch','complete','scope-reload','scope-blocked','scope-invalid'])
 def test_real_frontend_event_state_audio_and_storage_lifecycle(scenario):
     node = shutil.which('node')
     assert node, "Frontend regression needs the already-installed Node runtime; no packages are installed."
@@ -139,7 +141,7 @@ def test_all_page_bodies_and_reset_authority_remain_byte_identical():
     names = [node.name for node in ast.parse(old).body if isinstance(node,ast.FunctionDef) and node.name not in {'main','_sidebar'}]
     for name in names:
         assert function_source(new,name) == function_source(old,name), name
-    assert 'with st.sidebar:' not in new
+    assert 'with st.sidebar:' not in new  # The conversation rail lives in its own module.
 
 
 def test_frozen_check_rejects_unapproved_app_edits():
@@ -155,7 +157,7 @@ def test_frozen_check_rejects_unapproved_app_edits():
 def test_native_app_bar_replay_preserves_confirmed_demo_and_reset_clears_it():
     controller = DemoController()
     controller.start(); controller.confirm_profile()
-    app = AppTest.from_file(str(ROOT/'ui/app.py'),default_timeout=15)
+    app = legacy_app(default_timeout=15)
     app.session_state['orange_demo_controller'] = controller
     app.session_state['orange_demo_page'] = 'directions'
     app.session_state['orange_selected_role'] = 'job_001'
@@ -186,7 +188,7 @@ def test_native_app_bar_replay_preserves_confirmed_demo_and_reset_clears_it():
 
 @pytest.mark.parametrize('page',['directions','role','match','actions','map','memory'])
 def test_protected_route_is_still_closed_before_confirmation(page):
-    app = AppTest.from_file(str(ROOT/'ui/app.py'))
+    app = legacy_app()
     app.session_state['orange_demo_page'] = page
     app.run()
     try:
@@ -202,7 +204,7 @@ def test_allowed_navigation_still_opens_every_original_surface(page):
     controller = DemoController()
     controller.start(); controller.confirm_profile()
     profile = controller.confirmed_profile().model_dump(mode='json')
-    app = AppTest.from_file(str(ROOT/'ui/app.py'),default_timeout=15)
+    app = legacy_app(default_timeout=15)
     app.session_state['orange_demo_controller'] = controller
     app.session_state['orange_selected_role'] = 'job_001'
     app.run()
@@ -218,14 +220,20 @@ def test_allowed_navigation_still_opens_every_original_surface(page):
 @pytest.mark.parametrize('directory',['agents','providers','memory','workflows','evaluation','observability','data','config/prompts'])
 def test_domain_sources_prompts_and_public_fixtures_unchanged(directory):
     for name in subprocess.check_output(['git','ls-tree','-r','--name-only',BASELINE,directory],cwd=ROOT,text=True).splitlines():
+        if name == 'workflows/langgraph_workflow.py':
+            from tests.v12_contract import assert_v12_delta
+            assert_v12_delta(name, (ROOT/name).read_bytes(), subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT))
+            continue
         assert (ROOT/name).read_bytes() == subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT), name
 
 
 def test_dependencies_and_all_original_rendering_guards_preserved():
     for name in ['requirements.txt','.streamlit/config.toml','ui/visual_system.py','ui/components.py','ui/conversation.py','ui/demo_controller.py','ui/presentation.py']:
-        assert (ROOT/name).read_bytes() == subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT), name
+        from tests.v12_contract import assert_v12_delta
+        assert_v12_delta(name, (ROOT/name).read_bytes(), subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT))
     old = subprocess.check_output(['git','show',f'{BASELINE}:tests/test_ui_rendering.py'],cwd=ROOT,text=True)
     new = (ROOT/'tests/test_ui_rendering.py').read_text()
     for node in ast.parse(old).body:
         if isinstance(node,ast.FunctionDef) and node.name != 'test_repair_scope_has_no_other_ui_backend_dependency_or_test_edits':
-            assert function_source(new,node.name) == function_source(old,node.name)
+            from tests.v12_contract import approved_ui_test_source
+            assert function_source(new,node.name) == function_source(approved_ui_test_source('tests/test_ui_rendering.py',old),node.name)

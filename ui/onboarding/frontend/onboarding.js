@@ -1,6 +1,18 @@
 // Only presentation state. No product data, network, or framework runtime.
 export const SEEN_KEY = "orange_intro_seen_v1";
 export const MUTED_KEY = "orange_intro_muted_v1";
+export const CLIENT_SCOPE_KEY = "orange_client_scope_v1";
+
+let ephemeralClientScope = null;
+export function resolveClientScope(storage) {
+  // Opaque local isolation only, never authentication or user/profile content.
+  let existing;
+  try { existing = storage?.getItem(CLIENT_SCOPE_KEY); } catch { existing = null; }
+  if (typeof existing === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(existing)) return existing.toLowerCase();
+  if (!ephemeralClientScope) ephemeralClientScope = window.crypto.randomUUID();
+  try { storage?.setItem(CLIENT_SCOPE_KEY, ephemeralClientScope); } catch { /* This session remains usable without persistence. */ }
+  return ephemeralClientScope;
+}
 export const TIMING = Object.freeze({ exit: 760, pause: 260, enter: 1450, respond: 560, leaf: 780, finish: 1500 });
 export const REDUCED_TIMING = Object.freeze({ exit: 120, pause: 0, enter: 180, respond: 120, leaf: 120, finish: 180 });
 // Reproducible suspended-core motion: right, left, down, up-right, right, left.
@@ -167,6 +179,7 @@ let lastReplay = null;
 let reported = false;
 let muted = false;
 let lastSession = null;
+let entrySeen = false;
 
 export default function(component) {
   const { parentElement, data, setStateValue } = component;
@@ -186,6 +199,8 @@ export default function(component) {
   if (data.presentation_session !== lastSession) {
     lastSession = data.presentation_session;
     reported = false;
+    entrySeen = readFlag(storage, SEEN_KEY);
+    setStateValue("client_scope", resolveClientScope(storage));
   }
   const replay = Boolean(data.replay_token && data.replay_token !== lastReplay);
   if (replay) {
@@ -210,7 +225,11 @@ export default function(component) {
   delete dialog.dataset.lastCue;
 
   function reportComplete() {
-    if (!reported) { reported = true; setStateValue("completed", true); }
+    if (!reported) {
+      reported = true;
+      setStateValue("entry_seen", entrySeen);
+      setStateValue("completed", true);
+    }
   }
   function updateMute() {
     mute.textContent = muted ? "声音：关" : "声音：开";

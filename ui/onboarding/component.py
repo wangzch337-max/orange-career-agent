@@ -1,7 +1,7 @@
 """Local Streamlit v2 bridge; no domain data crosses this component boundary."""
 
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 from weakref import WeakKeyDictionary
 
 import streamlit as st
@@ -24,6 +24,7 @@ COMPONENT_KEY = "orange_intro_component"
 COMPLETED_KEY = "orange_intro_completed"
 REPLAY_KEY = "orange_intro_replay_request"
 SESSION_KEY = "orange_intro_presentation_session"
+CLIENT_SCOPE_KEY = "orange_client_scope_v1"
 
 _renderers = WeakKeyDictionary()
 
@@ -67,6 +68,24 @@ def _mirror_completion() -> None:
         st.session_state.pop(REPLAY_KEY, None)
 
 
+def _mirror_entry() -> None:
+    """Remember the browser's entry flag, not the flag after this intro finishes."""
+    seen = st.session_state.get(COMPONENT_KEY, {}).get("entry_seen")
+    if isinstance(seen, bool):
+        st.session_state.setdefault("orange_intro_entry_seen_v1", seen)
+
+
+def _mirror_client_scope() -> None:
+    """Accept only an opaque UUID; this local demo scope is not authentication."""
+    value = st.session_state.get(COMPONENT_KEY, {}).get("client_scope")
+    try:
+        parsed = UUID(value) if isinstance(value, str) else None
+    except ValueError:
+        return
+    if parsed is not None and parsed.version == 4:
+        st.session_state.setdefault(CLIENT_SCOPE_KEY, str(parsed))
+
+
 def render_onboarding() -> None:
     """Mount one stable component and mirror its completion for presentation only."""
     st.session_state.setdefault(SESSION_KEY, uuid4().hex)
@@ -78,8 +97,14 @@ def render_onboarding() -> None:
             "completed": bool(st.session_state.get(COMPLETED_KEY, False)),
             "presentation_session": st.session_state[SESSION_KEY],
         },
-        default={"completed": False},
+        default={"completed": False, "entry_seen": None, "client_scope": None},
         on_completed_change=_mirror_completion,
+        on_entry_seen_change=_mirror_entry,
+        on_client_scope_change=_mirror_client_scope,
         height=0,
     )
     st.session_state[COMPLETED_KEY] = bool(result.completed)
+    if result.entry_seen is not None:
+        st.session_state.setdefault("orange_intro_entry_seen_v1", bool(result.entry_seen))
+    if result.client_scope is not None:
+        _mirror_client_scope()

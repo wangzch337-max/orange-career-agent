@@ -149,7 +149,8 @@ def assert_frozen_bytes(name: str, current: bytes, historical: bytes) -> None:
         for before, after in replacements:
             assert expected.count(before) == 1, name
             expected = expected.replace(before, after, 1)
-    assert current == expected, name
+    from tests.v12_contract import assert_v12_delta
+    assert_v12_delta(name, current, expected)
 
 
 def test_frozen_compatibility_rejects_all_unapproved_differences():

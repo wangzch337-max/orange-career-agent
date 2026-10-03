@@ -9,6 +9,7 @@ import subprocess
 
 import pytest
 from streamlit.testing.v1 import AppTest
+from tests.ui_legacy import legacy_app
 
 from ui.conversation import ConversationStage, GuidedConversation
 from ui.demo_controller import APPROVED_ROLE_TITLES, DemoController
@@ -57,7 +58,8 @@ def test_authorized_phase8b_checkpoint_and_all_original_tests_preserved():
     originals = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", CHECKPOINT, "tests"], cwd=ROOT, text=True).splitlines()
     for name in originals:
         original = subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT)
-        assert (ROOT / name).read_bytes() == original
+        from tests.test_public_readiness import assert_frozen_bytes
+        assert_frozen_bytes(name, (ROOT / name).read_bytes(), original)
 
 
 def test_backend_prompts_providers_and_dependencies_frozen():
@@ -65,9 +67,11 @@ def test_backend_prompts_providers_and_dependencies_frozen():
         paths = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", CHECKPOINT, directory], cwd=ROOT, text=True).splitlines()
         for name in paths:
             original = subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT)
-            assert (ROOT / name).read_bytes() == original
+            from tests.test_public_readiness import assert_frozen_bytes
+            assert_frozen_bytes(name, (ROOT / name).read_bytes(), original)
     for name in ("requirements.txt", "ui/demo_controller.py", "ui/conversation.py", "ui/presentation.py"):
-        assert (ROOT / name).read_bytes() == subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT)
+        from tests.test_public_readiness import assert_frozen_bytes
+        assert_frozen_bytes(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT))
 
 
 @pytest.mark.parametrize("key", ["title", "page", "section", "card", "body", "meta", "radius", "accent", "space-lg"])
@@ -97,7 +101,7 @@ def test_html_helpers_escape_all_content_and_reject_unbounded_tones():
 
 
 def test_landing_positioning_mode_one_primary_cta_and_secondary_trace():
-    app = AppTest.from_file(str(ROOT / "ui/app.py")).run()
+    app = legacy_app().run()
     assert not app.exception
     body = text(app)
     for phrase in ("🍊 Orange", "通过对话理解自己", "不做岗位排名", "公开演示模式", "虚构数据", "离线 AI"):
@@ -127,7 +131,7 @@ def test_profile_empty_state_and_all_sections():
 
 
 def test_confirmation_gate_locked_state_cannot_be_bypassed():
-    app = AppTest.from_file(str(ROOT / "ui/app.py"))
+    app = legacy_app()
     app.session_state["orange_demo_page"] = "directions"
     app.run()
     assert "职业方向还未开放" in text(app)

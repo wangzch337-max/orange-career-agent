@@ -30,6 +30,7 @@ from memory.models import (
     MemoryContext,
     MemoryRecord,
     MemoryType,
+    ProfileReference,
     ProfileRefinementResult,
     StructuredSessionSignal,
     new_subject_id,
@@ -61,6 +62,7 @@ from workflows.langgraph_state import (
     OrangeGraphState,
     ProfileReviewAction,
     ProfileReviewDecision,
+    UnknownWorkflowError,
 )
 from workflows.langgraph_workflow import (
     OrangeGraphRunner,
@@ -104,21 +106,30 @@ class DemoValidationError(DemoControllerError):
 class DemoController:
     """Own one browser-session graph, in-memory checkpoint and temporary memory DB."""
 
-    def __init__(self, *, diagnostics_enabled: bool = True) -> None:
-        self.workflow_id = new_workflow_id()
-        self.subject_id = new_subject_id()
+    def __init__(self, *, diagnostics_enabled: bool = True,
+                 memory_service: MemoryService | None = None, checkpointer=None,
+                 subject_id: str | None = None, workflow_id: str | None = None,
+                 profile_reference: ProfileReference | None = None,
+                 seed_public_memory: bool = True, checkpoint_mode: str = "memory") -> None:
+        self.workflow_id = workflow_id or new_workflow_id()
+        self.subject_id = subject_id or new_subject_id()
+        self.profile_reference = profile_reference
+        self.checkpoint_mode = checkpoint_mode
         self.diagnostics_enabled = diagnostics_enabled
         self.diagnostic_collector = DiagnosticEventCollector()
         self.diagnostic_context = ObservabilityContext(run_id=run_id(), workflow_id=self.workflow_id,
                                                        thread_id=self.workflow_id, subject_id=self.subject_id)
-        self._temporary_directory = TemporaryDirectory(prefix="orange_ui_demo_")
-        memory_path = Path(self._temporary_directory.name) / "orange_demo_memory.sqlite3"
-        vector_path = Path(self._temporary_directory.name) / "orange_demo_vectors.sqlite3"
-        self.memory_service = build_semantic_memory_service(
-            memory_path=memory_path,
-            vector_path=vector_path,
-            embedding_provider=FakeEmbeddingProvider(),
-        )
+        self._temporary_directory = None
+        if memory_service is None:
+            self._temporary_directory = TemporaryDirectory(prefix="orange_ui_demo_")
+            memory_path = Path(self._temporary_directory.name) / "orange_demo_memory.sqlite3"
+            vector_path = Path(self._temporary_directory.name) / "orange_demo_vectors.sqlite3"
+            memory_service = build_semantic_memory_service(
+                memory_path=memory_path,
+                vector_path=vector_path,
+                embedding_provider=FakeEmbeddingProvider(),
+            )
+        self.memory_service = memory_service
         self.memory_context_coordinator = MemoryContextCoordinator(self.memory_service)
         self.role_memory_service = RoleMemoryContextService(
             self.memory_service, self.memory_context_coordinator
@@ -140,7 +151,7 @@ class DemoController:
         if not all(isinstance(provider, FakeLLMProvider) for provider in providers):
             raise DemoValidationError("Public Demo requires offline fake providers.")
         self.dependencies = dependencies
-        self.checkpointer = create_memory_checkpointer()
+        self.checkpointer = checkpointer if checkpointer is not None else create_memory_checkpointer()
         self.runner = OrangeGraphRunner(
             build_orange_graph(
                 dependencies=dependencies,
@@ -161,11 +172,73 @@ class DemoController:
         self.role_memory_contexts: dict[str, MemoryContext] = {}
         self.role_memory_statements: dict[str, tuple[MemoryAwareStatement, ...]] = {}
         self.pending_profile_refinement: ProfileRefinementResult | None = None
-        self._seed_public_memory_scenario()
+        if seed_public_memory:
+            self._seed_public_memory_scenario()
 
     @property
     def state(self) -> OrangeGraphState | None:
         return self._state
+
+    def new_conversation(self) -> None:
+        """Start a fresh UI conversation/thread, retaining subject, stores and history.
+
+        Only the public offline runtime is rebuilt. The existing checkpointer
+        keeps earlier runs; neither Memory nor confirmed profiles are purged.
+        """
+        self.workflow_id = new_workflow_id()
+        self.diagnostic_context = ObservabilityContext(
+            run_id=run_id(), workflow_id=self.workflow_id,
+            thread_id=self.workflow_id, subject_id=self.subject_id,
+        )
+        self.dependencies = replace(
+            build_public_offline_dependencies(APPROVED_ROLE_IDS),
+            memory_service=self.memory_service,
+        )
+        self.runner = OrangeGraphRunner(build_orange_graph(
+            dependencies=self.dependencies, checkpointer=self.checkpointer,
+        ))
+        self._state = None
+        self.profile_reference = None
+        self.conversation = GuidedConversation()
+        self.profile_calibration.clear()
+        self.role_clarifications.clear()
+        self.role_exploration.clear()
+        self.role_deprioritization_reasons.clear()
+        self.structured_session_signals.clear()
+        self.memory_change_candidates.clear()
+        self.role_memory_contexts.clear()
+        self.role_memory_statements.clear()
+        self.pending_profile_refinement = None
+
+    def try_reuse_confirmed_profile(self) -> bool:
+        """Bind the exact stored confirmed version only in a fresh conversation."""
+        if self._state is not None:
+            return bool((self._state.get("profile") or {}).get("confirmed"))
+        reference = self.profile_reference
+        if reference is None:
+            profile = self.memory_service.get_current_confirmed_profile(self.subject_id)
+            if profile is None:
+                return False
+            reference = ProfileReference(subject_id=self.subject_id,
+                                         profile_id=profile.profile_id, version=profile.version)
+        self._state = self.runner.start_from_confirmed_profile(
+            create_initial_graph_state(selected_job_ids=APPROVED_ROLE_IDS,
+                                       checkpoint_mode=self.checkpoint_mode,
+                                       workflow_id=self.workflow_id, subject_id=self.subject_id),
+            memory_service=self.memory_service, profile_reference=reference,
+        )
+        self.profile_reference = reference
+        if self._state["workflow_status"] == GraphWorkflowStatus.COMPLETED.value:
+            self._validate_completed_roles()
+        return True
+
+    def restore_workflow(self) -> bool:
+        """Read an owned checkpoint without executing or replaying a workflow."""
+        try:
+            self._state = self.runner.checkpoint_state(self.workflow_id, subject_id=self.subject_id)
+        except UnknownWorkflowError:
+            return False
+        return True
 
     @property
     def public_persona(self) -> dict[str, object]:
@@ -180,7 +253,7 @@ class DemoController:
         self._state = self.runner.start(
             create_initial_graph_state(
                 selected_job_ids=APPROVED_ROLE_IDS,
-                checkpoint_mode="memory",
+                checkpoint_mode=self.checkpoint_mode,
                 workflow_id=self.workflow_id,
                 subject_id=self.subject_id,
             )
@@ -557,7 +630,8 @@ class DemoController:
 
     def close(self) -> None:
         self.diagnostic_collector.reset()
-        self._temporary_directory.cleanup()
+        if self._temporary_directory is not None:
+            self._temporary_directory.cleanup()
 
     def _seed_public_memory_scenario(self) -> None:
         self.memory_service.create_confirmed(

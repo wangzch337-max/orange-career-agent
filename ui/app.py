@@ -481,7 +481,7 @@ def _error() -> None:
     render_safe_error(safe_error_message(st.session_state.get(SESSION_ERROR) or "unexpected_failure"))
 
 
-def main() -> None:
+def legacy_main() -> None:
     st.set_page_config(
         page_title="Orange · 职业探索",
         page_icon="🍊",
@@ -524,6 +524,34 @@ def main() -> None:
         render_safe_error(safe_error_message("unexpected_failure"))
     render_developer_trace(controller.safe_trace(), controller.diagnostics_snapshot())
     render_onboarding()
+
+
+def main() -> None:
+    """Normal product entry; legacy surfaces are importable, never navigation."""
+    from ui.boot_loader import render_boot
+    from ui.conversation_shell import render_conversation_shell
+    from ui.chat_components import shell_stylesheet
+    from ui.chat_runtime import PersistentChatWorkspace
+    from ui.onboarding.component import CLIENT_SCOPE_KEY
+
+    st.set_page_config(
+        page_title="Orange Career", page_icon="🍊", layout="wide",
+        initial_sidebar_state="auto",
+    )
+    st.markdown(shell_stylesheet(st.session_state.get("orange_appearance", "跟随系统")), unsafe_allow_html=True)
+    render_boot()
+    scope = st.session_state.get(CLIENT_SCOPE_KEY)
+    if scope is None:
+        st.stop()
+    workspace = st.session_state.get("orange_chat_workspace_v1")
+    if workspace is None or workspace.owner_scope_id != scope:
+        if workspace is not None:
+            workspace.close()
+        workspace = PersistentChatWorkspace(scope, root=st.session_state.get("orange_chat_runtime_root"))
+        st.session_state["orange_chat_workspace_v1"] = workspace
+    controller = workspace.controller
+    st.session_state[SESSION_CONTROLLER] = controller
+    render_conversation_shell(controller)
 
 
 if __name__ == "__main__":

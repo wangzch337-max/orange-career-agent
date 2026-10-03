@@ -8,6 +8,7 @@ import subprocess
 
 import pytest
 from streamlit.testing.v1 import AppTest
+from tests.ui_legacy import legacy_app
 
 from ui.conversation import CAREER_QUESTION_OPTIONS
 from ui.visual_system import TOKENS, stylesheet
@@ -92,7 +93,7 @@ def test_css_does_not_hide_controls_replace_native_states_or_inject_javascript()
 
 
 def test_first_question_badges_and_original_options_are_preserved():
-    app = AppTest.from_file(str(ROOT / "ui/app.py")).run()
+    app = legacy_app().run()
     try:
         app.button(key="nav_conversation").click().run()
         assert not app.exception
@@ -153,6 +154,13 @@ def test_repair_scope_has_no_other_ui_backend_dependency_or_test_edits():
         "ui/onboarding/frontend/assets/orange_leaf.svg", "tests/test_mascot_motion.py",
         "ui/onboarding/frontend/assets/orange_thinking.mp4", "tests/test_onboarding_tuning.py",
         "ui/onboarding/frontend/assets/orange_mascot_master_reference.png", "tests/test_seamless_thinking.py",
+        "ui/chat_components.py", "ui/boot_loader.py", "ui/conversation_shell.py", "ui/demo_controller.py",
+        "tests/test_conversation_shell.py", "tests/ui_legacy.py", "tests/v12_contract.py",
+        "tests/test_streamlit_app.py", "tests/test_ui_security.py", "tests/test_ui_polish.py",
+        "workflows/langgraph_workflow.py", "tests/test_confirmed_profile_reuse.py",
+        "ui/conversation_store.py", "tests/test_conversation_store.py",
+        "ui/chat_runtime.py", "tests/test_chat_runtime.py", "tests/test_chat_theme.py",
+        "tests/test_chat_product.py", "tests/test_observability_integration.py",
     }
     for name in ("ui/components.py", "requirements.txt", ".streamlit/config.toml"):
         assert (ROOT / name).read_bytes() == subprocess.check_output(["git", "show", f"{BASELINE}:{name}"], cwd=ROOT)

@@ -110,8 +110,6 @@ def test_v02_has_no_unrestricted_chat_percentage_ranking_or_external_runtime() -
         path.read_text(encoding="utf-8") for path in UI_ROOT.rglob("*.py")
     ).casefold()
     for forbidden in (
-        "chat_input(",
-        "chat_message(",
         "profile 60%",
         "profile 80%",
         "match score",

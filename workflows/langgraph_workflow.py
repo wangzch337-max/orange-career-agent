@@ -26,7 +26,7 @@ from data.models import (
     UserProfile,
 )
 from providers.errors import LLMError, LLMStructuredOutputError
-from memory.models import new_subject_id
+from memory.models import ProfileReference, new_subject_id
 from memory.service import MemoryService
 from tools.report import DeterministicReportBuilder
 from workflows.langgraph_state import (
@@ -573,6 +573,102 @@ class OrangeGraphRunner:
             config=self._config(initial_state["workflow_id"]),
         )
 
+    def start_from_confirmed_profile(
+        self,
+        initial_state: OrangeGraphState,
+        *,
+        memory_service: MemoryService,
+        profile_reference: ProfileReference | Mapping[str, object] | None = None,
+    ) -> OrangeGraphState:
+        """Bind a fresh thread to the exact canonical, already-confirmed version.
+
+        This is a compatibility entry, not another confirmation path. Only the
+        authoritative store supplies the profile; no discovery, reconstruction,
+        confirmation or profile write occurs. The existing review-node outgoing
+        edge then runs the unchanged protected Job/Match/Report stages.
+        """
+
+        workflow_id = initial_state.get("workflow_id")
+        subject_id = initial_state.get("subject_id")
+        if not isinstance(workflow_id, str) or not workflow_id.strip():
+            raise ValueError("A fresh workflow identity is required.")
+        if not isinstance(subject_id, str) or not subject_id.strip():
+            raise ValueError("A canonical profile subject is required.")
+        if (
+            initial_state.get("workflow_status") != GraphWorkflowStatus.RUNNING.value
+            or initial_state.get("profile") is not None
+            or initial_state.get("current_profile_ref") is not None
+            or initial_state.get("self_discovery_call_count") != 0
+            or initial_state.get("review_outcome") is not None
+            or initial_state.get("safe_error") is not None
+            or initial_state.get("report") is not None
+            or any(initial_state.get(key) for key in (
+                "job_records", "job_intelligence", "match_results",
+            ))
+        ):
+            raise ValueError("Confirmed profile reuse requires a fresh graph state.")
+        job_ids = initial_state.get("selected_job_ids")
+        if (
+            not isinstance(job_ids, list)
+            or not job_ids
+            or any(not isinstance(value, str) or not value.strip() for value in job_ids)
+            or len(job_ids) != len(set(job_ids))
+        ):
+            raise ValueError("Selected job IDs must be nonempty and unique.")
+        config = self._config(workflow_id)
+        if self.graph.get_state(config).values:
+            raise UnknownWorkflowError("An existing workflow cannot be restarted by profile reuse.")
+        requested_reference = None
+        if profile_reference is None:
+            stored_profile = memory_service.get_current_confirmed_profile(subject_id)
+        else:
+            requested_reference = (
+                profile_reference
+                if isinstance(profile_reference, ProfileReference)
+                else ProfileReference.model_validate(profile_reference)
+            )
+            if requested_reference.subject_id != subject_id:
+                raise ValueError("A profile reference must belong to the workflow subject.")
+            stored_profile = memory_service.profile_store.get_profile_version(
+                subject_id, requested_reference.profile_id, requested_reference.version,
+            )
+        if stored_profile is None:
+            raise ProfileNotConfirmedError("A canonical confirmed profile is required for reuse.")
+        canonical_profile = UserProfile.model_validate(stored_profile)
+        if not canonical_profile.confirmed:
+            raise ProfileNotConfirmedError("An unconfirmed profile cannot be reused.")
+        if requested_reference is not None and (
+            canonical_profile.profile_id != requested_reference.profile_id
+            or canonical_profile.version != requested_reference.version
+        ):
+            raise ValueError("The canonical profile must match its stored reference.")
+        reference = ProfileReference(
+            subject_id=subject_id,
+            profile_id=canonical_profile.profile_id,
+            version=canonical_profile.version,
+        )
+        bound_state = {
+            **initial_state,
+            "profile": canonical_profile.model_dump(mode="json"),
+            "current_profile_ref": reference.model_dump(mode="json"),
+            # Used only by the existing outgoing route: confirmation for this
+            # immutable version already happened in its original workflow.
+            "review_outcome": ProfileReviewAction.CONFIRM.value,
+        }
+        checkpoint = _event(
+            bound_state,
+            EventType.CHECKPOINT_CREATED,
+            "New workflow checkpoint references an already confirmed profile.",
+            node_name="profile_review_gate",
+            metadata={
+                "checkpoint_mode": initial_state["checkpoint_mode"],
+                "profile_version": canonical_profile.version,
+            },
+        )
+        bound_state["graph_events"] = _append_events(bound_state, checkpoint)
+        self.graph.update_state(config, bound_state, as_node="profile_review_gate")
+        return self.graph.invoke(None, config=config)
+
     def resume(
         self,
         workflow_id: str,
@@ -599,6 +695,27 @@ class OrangeGraphRunner:
         if not snapshot.values:
             raise UnknownWorkflowError("No checkpoint exists for this workflow ID.")
         return snapshot.values
+
+    def checkpoint_state(
+        self, workflow_id: str, *, subject_id: str | None = None,
+    ) -> OrangeGraphState:
+        """Read an existing thread, restoring its pending interrupt without execution.
+
+        A completed thread retains its originally bound immutable version; a
+        waiting thread retains the existing explicit-confirmation checkpoint.
+        """
+
+        snapshot = self.graph.get_state(self._config(workflow_id))
+        if (
+            not snapshot.values
+            or snapshot.values.get("workflow_id") != workflow_id
+            or (subject_id is not None and snapshot.values.get("subject_id") != subject_id)
+        ):
+            raise UnknownWorkflowError("No owned checkpoint exists for this workflow ID.")
+        values = dict(snapshot.values)
+        if snapshot.interrupts:
+            values["__interrupt__"] = snapshot.interrupts
+        return values
 
 
 def validate_completed_state(state: OrangeGraphState) -> CareerReport:

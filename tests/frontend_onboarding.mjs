@@ -2,6 +2,7 @@
 // separately verified in Chromium; this harness checks event/state/audio lifecycles.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 
 const source = readFileSync(new URL('../ui/onboarding/frontend/onboarding.js', import.meta.url), 'utf8');
 const module = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
@@ -53,7 +54,7 @@ class Audio {
   createGain() { return { gain: { setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {}, disconnect() {} }; }
 }
 globalThis.document = doc;
-globalThis.window = { localStorage: storage, AudioContext: Audio,
+globalThis.window = { localStorage: storage, AudioContext: Audio, crypto: { randomUUID },
   matchMedia: () => ({ matches: scenario.startsWith('reduced') }),
   setTimeout: (fn, delay) => { timers.set(++timerId, { fn, delay, at: now + delay }); return timerId; },
   clearTimeout: id => timers.delete(id),
@@ -63,6 +64,8 @@ globalThis.window = { localStorage: storage, AudioContext: Audio,
 Object.defineProperty(globalThis, 'navigator', { value: { maxTouchPoints: scenario === 'touch' ? 1 : 0 }, configurable: true });
 Object.defineProperty(globalThis, 'performance', { value: { now: () => now }, configurable: true });
 const reports = [];
+const entryReports = [];
+const scopeReports = [];
 function mount(replay = null, session = 'test-session', messages = ['一','二','三','四','五','六']) {
   const elements = Object.fromEntries(['intro', 'sentence', 'hint', 'mascot', 'leaf', 'mute', 'skip', 'video-buffers'].map(key => [key, new Element()]));
   const videos = [new Video(),new Video()]; elements['thinking-video']=videos[0]; elements.videos=videos;
@@ -70,7 +73,7 @@ function mount(replay = null, session = 'test-session', messages = ['一','二',
   if(scenario==='loop-delayed' || scenario==='loop-stalled') videos[1].readyState=0;
   if(scenario==='video-loading') elements['thinking-video'].readyState=0;
   const cleanup = module.default({ parentElement: { querySelector: selector => elements[selector.slice(1)], querySelectorAll: () => videos },
-    data: { messages, replay_token: replay, presentation_session:session }, setStateValue: (key, value) => reports.push([key, value]) });
+    data: { messages, replay_token: replay, presentation_session:session }, setStateValue: (key, value) => (key==='client_scope'?scopeReports:key==='entry_seen'?entryReports:reports).push([key, value]) });
   return { ...elements, cleanup };
 }
 function move(ms) {
@@ -86,7 +89,27 @@ function move(ms) {
 function flush() { while (timers.size) move(Math.max(...[...timers.values()].map(timer => timer.at)) - now); }
 async function drift(ms) { for(let elapsed=0;elapsed<ms;) { const step=Math.min(16,ms-elapsed); move(step); elapsed+=step; await Promise.resolve(); } }
 function key(key = 'Enter', extra = {}) { doc.fire('keydown', { key, code: key, ...extra }); doc.fire('keyup', { key, code: key }); }
-if (scenario === 'pure') {
+if (scenario === 'scope-reload') {
+  let view=mount(); const scope=flags.get(module.CLIENT_SCOPE_KEY);
+  assert.match(scope,/^[0-9a-f-]{36}$/); assert.deepEqual(scopeReports,[['client_scope',scope]]);
+  view.skip.fire('click'); flush(); view.cleanup();
+  view=mount(null,'fresh-browser-session');
+  assert.equal(flags.get(module.CLIENT_SCOPE_KEY),scope);
+  assert.equal(scopeReports.at(-1)[1],scope); assert.equal(view.intro.open,false);
+  view.cleanup(); view=mount('replay-scope','third-session');
+  assert.equal(flags.get(module.CLIENT_SCOPE_KEY),scope);
+  assert.equal(scopeReports.at(-1)[1],scope);
+} else if (scenario === 'scope-blocked') {
+  const blocked={getItem(){throw Error();},setItem(){throw Error();}};
+  const scope=module.resolveClientScope(blocked);
+  assert.match(scope,/^[0-9a-f-]{36}$/);
+  assert.equal(module.resolveClientScope(blocked),scope);
+} else if (scenario === 'scope-invalid') {
+  flags.set(module.CLIENT_SCOPE_KEY,'not-a-valid-owner');
+  const scope=module.resolveClientScope(storage);
+  assert.match(scope,/^[0-9a-f-]{36}$/); assert.equal(flags.get(module.CLIENT_SCOPE_KEY),scope);
+  assert.equal(module.resolveClientScope(storage),scope);
+} else if (scenario === 'pure') {
   for (const key of ['Enter',' ','a','中','ArrowLeft']) assert.equal(module.validAdvanceKey({key}), true);
   for (const key of ['Control','Meta','Alt','Shift','Tab','F1']) assert.equal(module.validAdvanceKey({key}), false);
   for (const field of ['repeat','isComposing','ctrlKey','metaKey','altKey','shiftKey']) assert.equal(module.validAdvanceKey({key:'a',[field]:true}), false);

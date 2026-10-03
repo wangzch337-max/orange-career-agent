@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
+from tests.ui_legacy import legacy_app
 
 from ui.demo_controller import APPROVED_ROLE_TITLES
 
@@ -66,7 +67,7 @@ def _complete_profile(app: AppTest) -> None:
 
 
 def test_streamlit_conversation_then_real_interrupt_and_same_thread() -> None:
-    app = AppTest.from_file(APP_PATH, default_timeout=15).run()
+    app = legacy_app(default_timeout=15).run()
     assert not app.exception
     assert "🍊 Orange" in _text(app)
     assert "公开演示模式" in _text(app)
@@ -109,7 +110,7 @@ def test_streamlit_conversation_then_real_interrupt_and_same_thread() -> None:
 
 
 def test_streamlit_role_feedback_match_action_map_and_memory() -> None:
-    app = AppTest.from_file(APP_PATH, default_timeout=15).run()
+    app = legacy_app(default_timeout=15).run()
     _complete_profile(app)
 
     role_buttons = [item for item in app.button if item.label == "深入了解"]
@@ -182,7 +183,7 @@ def test_streamlit_role_feedback_match_action_map_and_memory() -> None:
 
 
 def test_reset_demo_clears_every_v02_session_concern() -> None:
-    app = AppTest.from_file(APP_PATH, default_timeout=15).run()
+    app = legacy_app(default_timeout=15).run()
     _complete_profile(app)
     [item for item in app.button if item.label == "深入了解"][1].click().run()
     controller = app.session_state["orange_demo_controller"]

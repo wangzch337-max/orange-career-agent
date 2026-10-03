@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
+from tests.ui_legacy import legacy_app
 
 from evaluation.boundaries import OfflineBoundary
 from evaluation.runner import EvaluationRunner, OUTPUT_ROOT
@@ -231,7 +232,7 @@ def test_synthetic_evaluator_failure_links_to_relevant_safe_event(monkeypatch):
 
 def test_developer_trace_sections_collapsed_safe_and_reset():
     from tests.test_streamlit_app import _complete_profile, _button
-    app = AppTest.from_file(ROOT / "ui/app.py", default_timeout=20).run()
+    app = legacy_app(default_timeout=20).run()
     trace = next(e for e in app.expander if e.label == "开发者执行轨迹（安全）")
     assert trace.proto.expanded is False
     _complete_profile(app)
