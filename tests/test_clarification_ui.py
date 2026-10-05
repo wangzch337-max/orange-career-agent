@@ -139,6 +139,9 @@ def test_native_ui_explicit_action_freeform_optional_route_general_qa_unchanged(
     workspace = value.session_state[WORKSPACE_KEY]
     try:
         fake = ready(workspace)
+        from tests.profile_refinement_doubles import DeltaFake
+        refiner = DeltaFake()
+        workspace.profile_refinement.provider_factory = lambda: refiner
         value.run()
         assert not value.exception and fake.call_count == 0
         before = snapshot(tmp_path)
@@ -146,18 +149,19 @@ def test_native_ui_explicit_action_freeform_optional_route_general_qa_unchanged(
         assert not value.exception and fake.call_count == 1
         question = workspace.clarification.current_question()
         assert question is not None and value.chat_input
-        assert not value.checkbox(key=f"orange_clarification_answer_{question.question_id}").value
+        assert not [x for x in value.checkbox if x.key and x.key.startswith("orange_clarification_answer_")]
         # Unrelated QA is not consumed as an answer or cause a clarification call.
         forwarded = []
         monkeypatch.setattr(workspace, "submit", lambda text, **kwargs: forwarded.append(text))
         value.chat_input[0].set_value("Python generator 和 iterator 有什么区别？").run()
         assert forwarded == ["Python generator 和 iterator 有什么区别？"]
         assert workspace.clarification.current_question() == question and fake.call_count == 1
-        value.checkbox(key=f"orange_clarification_answer_{question.question_id}").check().run()
         value.chat_input[0].set_value("我还没想好，两个方向都在考虑。").run()
         assert not value.exception and workspace.clarification.status == Status.ANSWER_RECORDED
         assert workspace.clarification.state.answer_candidates[0].uncertainty == "explicit_uncertainty"
-        assert fake.call_count == 1 and snapshot(tmp_path) == before
+        assert fake.call_count == refiner.call_count == 1 and snapshot(tmp_path) == before
+        assert workspace.profile_refinement.draft is not None
+        assert not workspace.store.list_messages(workspace.owner_scope_id, workspace.thread.thread_id)
         value.run()
         assert fake.call_count == 1  # No automatic second question/model call.
     finally:
@@ -169,12 +173,14 @@ def test_native_ui_optional_reply_and_dismiss_no_replay_on_theme(tmp_path):
     workspace = value.session_state[WORKSPACE_KEY]
     try:
         fake = ready(workspace)
+        from tests.profile_refinement_doubles import DeltaFake
+        workspace.profile_refinement.provider_factory = lambda: DeltaFake()
         value.run()
         value.button(key="orange_clarification_start").click().run()
         q = workspace.clarification.current_question()
         value.radio(key="orange_appearance").set_value("深色模式").run()
         assert fake.call_count == 1 and workspace.clarification.current_question() == q
-        value.button(key="orange_clarification_dismiss").click().run()
+        value.button(key=f"orange_profile_reply_{workspace.profile_conversation.generation}_1").click().run()
         assert not value.exception and fake.call_count == 1
         assert workspace.clarification.current_question() is None
     finally:

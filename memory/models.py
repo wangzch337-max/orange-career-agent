@@ -33,6 +33,7 @@ class MemoryStatus(str, Enum):
 class MemoryUseCase(str, Enum):
     PROFILE_REFINEMENT = "profile_refinement"
     ROLE_EXPLORATION = "role_exploration"
+    CAREER_DIRECTION_DISCOVERY = "career_direction_discovery"
 
 
 class MemoryRetrievalMode(str, Enum):
@@ -42,6 +43,7 @@ class MemoryRetrievalMode(str, Enum):
 class MemoryConsumer(str, Enum):
     PROFILE_REFINEMENT_SERVICE = "profile_refinement_service"
     ROLE_MEMORY_CONTEXT_SERVICE = "role_memory_context_service"
+    CAREER_DIRECTION_DISCOVERY_SERVICE = "career_direction_discovery_service"
 
 
 class DimensionCardinality(str, Enum):

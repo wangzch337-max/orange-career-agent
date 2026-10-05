@@ -38,37 +38,38 @@ def test_product_shell_true_synthetic_e2e_with_explicit_edit_and_uncertainty(tmp
         value.button(key="orange_clarification_start").click().run()
         q = w.clarification.current_question()
         assert q and h.clarifier.attempts == 1
-        value.checkbox(key=f"orange_clarification_answer_{q.question_id}").check().run()
         value.chat_input[0].set_value(h.scenario.answer).run()
         h.answer_text = h.scenario.answer
         assert not value.exception and len(w.clarification.state.answer_candidates) == 1
-        value.button(key="orange_profile_refinement_start").click().run()
         s = w.profile_refinement
         assert not value.exception and s.draft and h.refiner.attempts == 1
-        assert any(b.disabled for b in value.button if b.key and b.key.startswith("orange_profile_confirm_"))
+        assert not value.button(key="orange_profile_confirm").disabled
         goal = next(ch for ch in s.draft.changes if ch.category == "goals")
-        work = next(ch for ch in s.draft.changes if ch.category == "work_experience")
-        def key(change, suffix):
-            return f"orange_profile_{s.draft.draft_id}_{s.token().draft_fingerprint}_{change.change_id}_{suffix}"
-        value.button(key=key(work, "accept")).click().run()
         # Keep/reject is a real supported control; reconsidering it stays local.
-        value.button(key=key(goal, "keep")).click().run()
+        value.button(key="orange_profile_keep_" + goal.change_id).click().run()
         assert next(ch for ch in s.draft.changes if ch.category == "goals").user_resolution == Resolution.REJECT
-        value.text_input(key=key(goal, "label")).set_value(h.scenario.goal_label + "（由用户确认保留探索状态）").run()
-        value.button(key=key(goal, "edit")).click().run()
-        value.button(key=key(goal, "uncertain")).click().run()
+        value.button(key="orange_profile_edit").click().run()
+        original = h.refiner.program
+        edited_label = h.scenario.goal_label + "（由用户确认保留探索状态）"
+        def edited_program(payload):
+            output = original(payload)
+            for change in output["changes"]:
+                if change["category"] == "goals":
+                    change["proposed_value"]["label"] = edited_label
+                    change["uncertainty"] = "explicit_uncertainty"
+            return output
+        h.refiner.program = edited_program
+        value.chat_input[0].set_value("我想补充：" + edited_label + "，目前还不确定。").run()
         assert not value.exception and not h.current() and not h.memories()
-        selection = next(x for x in value.selectbox if x.key.startswith("orange_profile_memory_"))
-        selection.set_value(goal.change_id).run()
-        next(b for b in value.button if b.key and b.key.startswith("orange_profile_confirm_")).click().run()
+        value.button(key="orange_profile_confirm").click().run()
         assert not value.exception
         final = h.current()
         assert final and final.version == 1 and final.work_experience and not final.projects
-        assert any("已确认" in item.value for item in value.markdown)
+        assert any("由你确认" in item.value for item in value.text)
         h.universal_checks(final); h.privacy_checks(final)
         counts = [p.attempts for p in h.providers]
         value.run()
-        assert [p.attempts for p in h.providers] == counts == [1, 1, 1]
+        assert [p.attempts for p in h.providers] == counts == [1, 1, 2]
         assert not w.chat.messages and not w.store.list_messages(w.owner_scope_id, w.thread.thread_id)
         value.button(key="orange_new_chat").click().run()
         assert not value.exception and w.resume_intake.result is None and s.draft is None
@@ -81,6 +82,6 @@ def test_product_shell_true_synthetic_e2e_with_explicit_edit_and_uncertainty(tmp
         assert not refreshed.exception and restored.memory_service.get_current_confirmed_profile(restored.subject_id) == final
         assert restored.memory_service.profile_store.list_profile_history(restored.subject_id) == [final]
         assert restored.resume_intake.result is None and restored.profile_refinement.draft is None
-        assert len(restored.memory_service.memory_store.list_active(restored.subject_id)) == 1
+        assert not restored.memory_service.memory_store.list_active(restored.subject_id)
     finally:
         refreshed.session_state[WORKSPACE_KEY].close()

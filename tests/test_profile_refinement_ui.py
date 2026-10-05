@@ -122,25 +122,33 @@ def test_native_ui_diff_review_explicit_edit_partial_confirm_and_no_automatic_mo
         fake = prepared(w, "mechanical")
         value.run()
         assert fake.call_count == 0 and not w.profile_refinement.draft
-        value.button(key="orange_profile_refinement_start").click().run()
+        value.button(key="orange_clarification_start").click().run()
+        value.chat_input[0].set_value("我还不确定").run()
         assert not value.exception and fake.call_count == 1
         s = w.profile_refinement
         assert s.draft and value.chat_input
-        assert any(button.disabled for button in value.button if button.key and button.key.startswith("orange_profile_confirm_"))
+        assert not value.button(key="orange_profile_confirm").disabled
         assert not w.memory_service.profile_store.list_profile_history(w.subject_id)
         # Unrelated composer still uses General QA, not an implicit Profile edit.
         forwarded = []
         monkeypatch.setattr(w, "submit", lambda text, **kw: forwarded.append(text))
         value.chat_input[0].set_value("什么是轴承？").run()
         assert forwarded == ["什么是轴承？"] and fake.call_count == 1
-        edit = next(x for x in value.text_input if x.key and x.key.endswith("_label"))
-        edit.set_value("协助审核公差，未独立负责维修").run()
-        next(b for b in value.button if b.key and b.key.endswith("_edit")).click().run()
-        assert not value.exception and s.draft.changes[0].user_resolution == Resolution.EDIT
-        next(b for b in value.button if b.key and b.key.startswith("orange_profile_confirm_")).click().run()
+        value.button(key="orange_profile_edit").click().run()
+        def edited_plan(payload):
+            from tests.profile_refinement_doubles import proposal
+            current = next(source for source in payload["sources"] if source["origin"] == "explicit_user_input")
+            return {"outcome": "CHANGES", "changes": [proposal(current, category="work_experience",
+                value={"label": current["text"]})]}
+        fake.plan = edited_plan
+        value.chat_input[0].set_value("协助审核公差，未独立负责维修").run()
+        assert not value.exception and s.draft.changes[0].user_resolution == Resolution.PENDING
+        assert any(source.origin == "explicit_user_input" for source in s.context.sources)
+        assert not w.memory_service.get_current_confirmed_profile(w.subject_id)
+        value.button(key="orange_profile_confirm").click().run()
         assert not value.exception and s.confirmed_profile.work_experience[0].label == "协助审核公差，未独立负责维修"
-        assert fake.call_count == 1 and not w.memory_service.memory_store.list_active(w.subject_id)
-        rendered = "\n".join(m.value for m in value.markdown)
+        assert fake.call_count == 2 and not w.memory_service.memory_store.list_active(w.subject_id)
+        rendered = "\n".join(m.value for m in [*value.markdown, *value.text])
         assert "已确认" in rendered and "最适合" not in rendered and "推荐你" not in rendered
     finally:
         w.close()

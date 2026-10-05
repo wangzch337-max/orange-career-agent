@@ -16,13 +16,15 @@
 
 Orange 把这些问题连成一条可审阅的探索旅程。它是本地作品集 Demo，不是心理测评、就业保证或自动投递工具，也不是香港城市大学官方产品；通用简历流程支持学生、经验从业者、转行者及工作为主、零项目等背景，不根据专业锁定方向。
 
-## 当前状态：Orange Career v1.3C
+## 当前状态：Orange Career v1.3D.1 集成里程碑
 
-Universal Resume Intelligence 已完整实现并通过离线端到端验证：本地 PDF/DOCX 读取 → 独立简历 AI 同意 → ResumeEvidence → 个性化澄清 → 逐项画像审核 → 明确确认。项目、学历和目标不是必填，工作经历是一等证据。正常入口是有边界的聊天工作区；下方 Golden 引导流程仍保留为离线验证路径，不是通用方向发现功能。
+Universal Resume Intelligence 与[聊天式自适应职业画像](docs/CHAT_NATIVE_PROFILE_CONVERSATION.md)已集成：本地 PDF/DOCX 读取 → 独立简历 AI 同意 → 只读 ResumeEvidence 摘要 → 主聊天中一次一个问题 → 自动呈现「我的职业画像」→ 明确确认。回答、修改和补充使用同一个普通聊天输入框，最多四轮、信息足够就提前停止，不使用独立补充表单。项目、学历和目标不是必填，工作经历是一等证据。下方 Golden 引导流程仍保留为离线验证路径，不是通用方向发现功能。
 
-ResumeEvidence 不是 Profile：先验证来源、摘录与材料字段，再由代码生成 canonical facts；未经验证的模型描述不进入下游权威。澄清答案与画像草案仍是候选，逐项审核后明确确认才保存不可变 Profile 新版本。Memory 另行 opt-in，只保存允许的已确认信号，不自动保存简历或聊天全文。
+ResumeEvidence 不是 Profile：先验证来源、摘录与材料字段，再由代码生成 canonical facts；未经验证的模型描述不进入下游权威。澄清答案与画像草案仍是候选，审阅所展示的整份理解并明确确认后才保存不可变 Profile 新版本。用户仍可修改、保留原理解或暂不采纳某项，不确定性不会自动变成弱点。简历、画像问题、回答和审阅卡片只暂存于当前会话，不写入聊天数据库或 snapshot。Memory 另行 opt-in，只保存允许的已确认信号，完成画像对话不自动保存 Memory。
 
 完整离线验证已通过。有限真实 provider 验证已通过生产 Resume Intake、ResumeEvidence 和 canonical authority；C.3 曾在 HTTP 200 / stop 后严格解析失败，B.3 离线修复已通过，但修复后 C.3 尚未重新 live 验证，C.4 完整真实链尚未成功到达。**不声称 complete real-Qwen Resume E2E passed。** 该 Clarification → Profile Refinement 验证缺口不阻止后续产品开发；未来 release/demo 验证仍须独立授权，现有同意不能复用。详见 [当前验收与限制](docs/UNIVERSAL_CAREER_VALIDATION.md)和[运行边界](docs/ORANGE_AGENT_RUNTIME.md)。
+
+v1.3D.1 新增[通用职业方向发现基础](docs/CAREER_DIRECTION_DISCOVERY.md)（离线实现，语义与用户流程仍需人工审核）：显式“开始探索”后以只读确认画像、相关已确认 Memory 与本轮意向提出非排名方向；能力迁移始终是派生候选，缺证据不是确认缺口。只保留本轮选择，不写 Profile/Memory、不进入具体岗位，不连接真实 provider。普通问题仍走原问答路径，画像对话可以随后继续；本轮意向不会悄悄覆盖已确认历史。C 阶段确认权威保持冻结，D.2 未实现。
 
 <a id="product-experience"></a>
 ## 产品体验 Product Experience
@@ -98,7 +100,7 @@ flowchart TB
     O -.-> OBS["Safe Observability / external observer"]
 ```
 
-Memory 只开放 `PROFILE_REFINEMENT` 与 `ROLE_EXPLORATION`；**Job Intelligence 与 Match relation generation 不消费 retrieved Memory**。检索到的历史不改变岗位事实，也不直接生成匹配关系。Provider abstraction 支持离线 Fake 与显式 Qwen adapter，默认 Demo 不调用真实模型。
+上图保留 C 阶段的 `PROFILE_REFINEMENT` 与 `ROLE_EXPLORATION` Memory 路径；D.1 另有显式、只读的 `CAREER_DIRECTION_DISCOVERY` policy/consumer。**Job Intelligence 与 Match relation generation 不消费 retrieved Memory**。检索到的历史不改变岗位事实，也不直接生成匹配关系。Provider abstraction 支持离线 Fake 与显式 Qwen adapter，默认 Demo 不调用真实模型。
 
 ### Memory Architecture
 
@@ -145,10 +147,13 @@ Golden Suite 是生产系统外部 observer，覆盖 deterministic contracts、s
 
 | 本地验证 | 已核实结果 |
 |---|---|
-| v1.3C 最新完整离线回归 | 2519 passed / 0 failed |
+| v1.3C 已发布完整离线基线 | 2519 passed / 0 failed |
 | Golden Suite | 27 scenarios：20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW |
 | Agent Evaluation | 58 PASS / 0 FAIL |
 | Universal Cross-Background | 17 PASS / 1691 checks / 0 FAIL / 0 NEEDS_REVIEW |
+| D.1 Universal Discovery | 17 PASS / 1698 checks / 0 FAIL |
+
+v1.3D.1 集成冻结门在上述外部评价之外运行完整 pytest、测试收集、权威/隐私回归、公开文件与可达历史扫描；只有全部通过才创建一个合并提交并正常推送。完整实测数量以本次冻结报告为准，不把旧 v1.3C 数量当作当前集成结果。
 
 `EXPECTED_UNCERTAINTY` 是成功状态：证据不足时，系统正确拒绝给出更强结论。它不是部分失败，也不是为了隐藏失败设置的豁免。任何必要检查失败仍是 FAIL。
 
@@ -203,6 +208,7 @@ orange-career-agent/
 ├── config/prompts/  # 版本化 prompts（历史版本保留）
 ├── workflows/       # Orchestrator、LangGraph、人工确认与 checkpoints
 ├── career_runtime/  # 有边界规划、真实流式投影、generation/Stop 隔离
+├── career_discovery/ # 只读、非排名方向候选，不进入具体岗位
 ├── resume_intake/   # 受限本地 PDF/DOCX 读取，不做 OCR
 ├── resume_evidence/ # 最小化来源、材料 grounding、canonical 候选
 ├── clarification/   # 信息价值驱动的问题与临时答案
@@ -233,7 +239,7 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 
 ## Roadmap
 
-当前冻结范围为 v1.3C Universal Resume Intelligence 与累积 runtime hardening；最新验证状态见上方。v1.3D 未开始：下一步只讨论 Universal Career Direction Discovery Foundation 范围，需用户确认后另给实现授权。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
+当前集成冻结范围为 v1.3D.1 Career Direction Discovery、只读简历证据摘要与聊天式自适应职业画像；最新离线验证状态见上方。v1.3D.2 未开始：下一步只能审核范围，实现仍需单独授权。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
 
 **Phase 9A — Web Deployment Readiness** 与 **Phase 9B — Public Web Deployment** 均未开始，必须单独授权。认证、真实模型模式、云数据和部署是否需要，属于未来决策，不是当前承诺。
 
@@ -253,6 +259,8 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 | [Observability](observability/README.md) | 安全事件与诊断边界 |
 | [Agent Runtime](docs/ORANGE_AGENT_RUNTIME.md) | 当前聊天、generation/Stop 与简历组件边界 |
 | [Universal Career Validation](docs/UNIVERSAL_CAREER_VALIDATION.md) | v1.3C 最新冻结基线、真实模型验证缺口与限制 |
+| [Chat-native Career Profile](docs/CHAT_NATIVE_PROFILE_CONVERSATION.md) | 主聊天自适应提问、显式确认与临时数据边界 |
+| [Career Direction Discovery](docs/CAREER_DIRECTION_DISCOVERY.md) | D.1 只读方向候选、通用背景与权限约束 |
 | [Product UX Acceptance](docs/PRODUCT_UX_ACCEPTANCE.md) | Phase 8C 的本地交互／布局验收 |
 | [Public Release Checklist](docs/PUBLIC_RELEASE_CHECKLIST.md) | 每项 PASS／BLOCKED／用户决策 |
 | [Portfolio Acceptance](docs/PORTFOLIO_ACCEPTANCE.md) | 公开阅读与工程故事审阅 |

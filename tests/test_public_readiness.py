@@ -157,6 +157,8 @@ def historical_blobs() -> tuple[tuple[str, str], ...]:
 
 def assert_frozen_bytes(name: str, current: bytes, historical: bytes) -> None:
     """仅兼容获批准的 checkpoint／CSS／v1.1 UI 接线，其余字节完全冻结。"""
+    from tests.profile_conversation_contract import pre_integration_bytes
+    current = pre_integration_bytes(ROOT, name, current)
     if name in {"data/models.py", "memory/sqlite_store.py"}:
         from tests.profile_refinement_contract import assert_c4_shared_delta
         assert_c4_shared_delta(name, current, historical)

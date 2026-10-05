@@ -73,6 +73,18 @@ ROLE_EXPLORATION_POLICY: Final = MemoryContextPolicy(
     consumer=MemoryConsumer.ROLE_MEMORY_CONTEXT_SERVICE,
 )
 
+# D.1 explicit read-only consumer. Existing consumers and write paths unchanged.
+CAREER_DIRECTION_DISCOVERY_POLICY: Final = MemoryContextPolicy(
+    use_case=MemoryUseCase.CAREER_DIRECTION_DISCOVERY,
+    allowed_memory_types=[MemoryType.CAREER_PREFERENCE, MemoryType.GOAL, MemoryType.USER_FEEDBACK],
+    retrieval_mode=MemoryRetrievalMode.HYBRID,
+    top_k=5,
+    max_records=3,
+    max_characters=1800,
+    session_input_contributes=True,
+    consumer=MemoryConsumer.CAREER_DIRECTION_DISCOVERY_SERVICE,
+)
+
 
 from observability.instrumentation import observe
 from observability.models import DiagnosticComponent as DC
@@ -84,6 +96,7 @@ class MemoryPolicyRegistry:
     _policies = {
         MemoryUseCase.PROFILE_REFINEMENT: PROFILE_REFINEMENT_POLICY,
         MemoryUseCase.ROLE_EXPLORATION: ROLE_EXPLORATION_POLICY,
+        MemoryUseCase.CAREER_DIRECTION_DISCOVERY: CAREER_DIRECTION_DISCOVERY_POLICY,
     }
 
     def get(self, use_case: MemoryUseCase) -> MemoryContextPolicy:

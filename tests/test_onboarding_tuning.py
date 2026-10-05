@@ -189,11 +189,14 @@ def test_no_domain_or_golden_change(scope):
         from tests.profile_refinement_contract import assert_c4_shared_delta
         name = "memory/sqlite_store.py"
         assert_c4_shared_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{PRE_RESUME_BASELINE}:{name}"], cwd=ROOT))
-        assert changed_paths(ROOT, PRE_RESUME_BASELINE, scope) == {name}
+        from tests.career_discovery_contract import assert_d1_memory_delta
+        assert_d1_memory_delta(ROOT)
+        assert changed_paths(ROOT, PRE_RESUME_BASELINE, scope) == {name, "memory/models.py", "memory/integration.py"}
         assert_original_inventory(ROOT, PRE_RESUME_BASELINE, scope)
         return
     if scope == "config/prompts":
-        assert_resume_prompt_scope(ROOT, PRE_RESUME_BASELINE)
+        from tests.career_discovery_contract import assert_d1_prompt_scope
+        assert_d1_prompt_scope(ROOT, PRE_RESUME_BASELINE)
         return
     if scope == "workflows":
         # Only the two approved canonical-profile/checkpoint compatibility

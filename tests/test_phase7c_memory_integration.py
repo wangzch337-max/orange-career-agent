@@ -89,6 +89,7 @@ def test_memory_use_cases_and_policies_are_closed_deterministic_and_bounded() ->
     assert set(MemoryUseCase) == {
         MemoryUseCase.PROFILE_REFINEMENT,
         MemoryUseCase.ROLE_EXPLORATION,
+        MemoryUseCase.CAREER_DIRECTION_DISCOVERY,
     }
     registry = MemoryPolicyRegistry()
     refinement = registry.get(MemoryUseCase.PROFILE_REFINEMENT)

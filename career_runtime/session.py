@@ -308,7 +308,7 @@ class AgentSession:
             return
         collector, context = self.workspace.controller.diagnostic_collector, self.workspace.controller.diagnostic_context
         events = collector.timeline(context.run_id)
-        self.workspace.activate(pending.thread_id)
+        self.workspace.reload_completed_turn(pending.thread_id)
         self.workspace.controller.diagnostic_context = context
         for event in events:
             self.workspace.controller.diagnostic_collector.record(event)
@@ -391,6 +391,11 @@ class AgentSession:
             if self._closed or len(text) > 2000 or self.pending is not None or self.busy:
                 raise ValueError("One bounded turn at a time.")
             pending = PendingTurn(uuid4().hex, self.workspace.thread.thread_id, text, source, allow_proposal)
+            # New explicit context invalidates D.1's ephemeral direction review,
+            # without loading discovery Profile/Memory or changing chat routing.
+            discovery = getattr(self.workspace, "career_discovery", None)
+            if discovery is not None:
+                discovery.invalidate()
             self._new_generation(pending)
             self.pending = pending
             self.last_result = self.last_cancelled = None

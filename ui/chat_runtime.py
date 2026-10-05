@@ -21,6 +21,9 @@ from clarification.context import workspace_inputs
 from clarification.session import ClarificationSession
 from profile_refinement.context import workspace_inputs as refinement_inputs
 from profile_refinement.session import ProfileRefinementSession
+from career_discovery.context import workspace_inputs as discovery_inputs
+from career_discovery.session import CareerDiscoverySession
+from career_runtime.profile_conversation import ProfileConversation
 from ui.conversation import ConversationStage, GuidedConversation
 from ui.conversation_shell import ChatMessage, ChatSession
 from ui.conversation_store import (
@@ -126,6 +129,9 @@ class Workspace:
             lambda **kwargs: refinement_inputs(self, **kwargs), self.memory_service,
             on_confirmed=self._profile_refinement_confirmed)
         self.resume_analysis.on_invalidate = self._invalidate_resume_candidates
+        self.career_discovery = CareerDiscoverySession(self.owner_scope_id,
+            lambda **kwargs: discovery_inputs(self, **kwargs), self.memory_service)
+        self.profile_conversation = ProfileConversation(self)
         try:
             threads = self.store.list_threads(self.owner_scope_id)
             if threads:
@@ -146,6 +152,8 @@ class Workspace:
     def _invalidate_resume_candidates(self):
         self.clarification.invalidate()
         self.profile_refinement.invalidate()
+        if hasattr(self, "profile_conversation"):
+            self.profile_conversation.invalidate()
 
     def _profile_refinement_confirmed(self, binding):
         # Called outside the Profile lock. Never clear a later thread/answer.
@@ -212,13 +220,25 @@ class Workspace:
         self.activate(thread.thread_id)
         return thread
 
-    def activate(self, thread_id: str) -> ConversationThread:
+    def reload_completed_turn(self, thread_id: str) -> ConversationThread:
+        """Refresh this selected transcript; a valid same-thread interview survives QA."""
+        if thread_id != self.thread.thread_id:
+            raise ConversationStoreError("Completed turn no longer owns the selected thread.")
+        keep = self.profile_conversation._current(self.profile_conversation.token())
+        return self.activate(thread_id, _keep_profile_conversation=keep)
+
+    def activate(self, thread_id: str, *, _keep_profile_conversation=False) -> ConversationThread:
         """Load the owned transcript/snapshot/checkpoint without executing anything."""
         if self._closed:
             raise ConversationStoreError("Conversation workspace is unavailable.")
         if self._agent_session is not None:
             self._agent_session.require_idle()
-        self.profile_refinement.invalidate()
+        keep = (_keep_profile_conversation and self._thread is not None and self._thread.thread_id == thread_id and
+                self.profile_conversation._current(self.profile_conversation.token()))
+        if not keep:
+            self.profile_refinement.invalidate()
+            self.profile_conversation.invalidate()
+        self.career_discovery.invalidate()
         thread = self.store.get_thread(self.owner_scope_id, thread_id)
         messages = self.store.list_messages(self.owner_scope_id, thread_id)
         snapshot = self.store.load_snapshot(self.owner_scope_id, thread_id)
@@ -274,6 +294,7 @@ class Workspace:
             self._agent_session.require_idle()
         if self.thread.thread_id == thread_id:
             self.profile_refinement.invalidate()
+            self.career_discovery.invalidate()
         was_active = self.thread.thread_id == thread_id
         deleted = self.store.delete_thread(self.owner_scope_id, thread_id)
         if self.resume_intake.thread_id == thread_id:
@@ -310,6 +331,7 @@ class Workspace:
         validate_message_content(text)
         if source not in ("typed", "suggestion"):
             raise ConversationStoreError("Unsupported message source.")
+        self.career_discovery.invalidate()
         self.chat.submit(text, self.controller)
         user, assistant = self.chat.messages[-2:]
         flattened = flatten_payload(assistant.structured_payload)
@@ -336,6 +358,7 @@ class Workspace:
         """Release resources only; never delete transcript/Profile/Memory/checkpoints."""
         if self._closed:
             return
+        self.career_discovery.invalidate()
         self.resume_intake.clear()
         if self._agent_session is not None:
             self._agent_session.close()

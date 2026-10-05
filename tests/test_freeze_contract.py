@@ -7,6 +7,7 @@ import subprocess
 import pytest
 
 from tests import freeze_contract as contract
+from tests.profile_conversation_contract import INTEGRATION_HASHES, pre_integration_bytes
 from tests.profile_refinement_contract import SHARED_HASHES, assert_c4_shared_delta
 from tests.runtime_contract import V13C_FREEZE_PATHS, assert_resume_requirements
 
@@ -146,3 +147,22 @@ def test_existing_secret_and_private_path_scanners_still_reject_candidates():
     for name in (".env.local", "data/private/resume.docx", "data/local/runtime.sqlite3",
                  "artifacts/debug.log", "memory/private.sqlite3"):
         assert private_path(name)
+
+
+@pytest.mark.parametrize("name", sorted(INTEGRATION_HASHES))
+def test_integration_compatibility_pins_reject_extra_bytes_without_weakening_history(name):
+    from tests.career_discovery_contract import C_FREEZE
+    from tests.test_public_readiness import CHECKPOINT, assert_frozen_bytes
+    current = (ROOT / name).read_bytes()
+    original = subprocess.check_output(["git", "show", f"{C_FREEZE}:{name}"], cwd=ROOT)
+    assert hashlib.sha256(current).hexdigest() == INTEGRATION_HASHES[name]
+    assert pre_integration_bytes(ROOT, name, current) == original
+    # No alternate path, appended byte or mutation gains the compatibility pin.
+    assert pre_integration_bytes(ROOT, "./" + name, current) == current
+    changed = current + b"\n"
+    assert pre_integration_bytes(ROOT, name, changed) == changed
+    historical = subprocess.run(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT, capture_output=True)
+    if historical.returncode == 0:
+        assert_frozen_bytes(name, current, historical.stdout)
+        with pytest.raises(AssertionError):
+            assert_frozen_bytes(name, changed, historical.stdout)

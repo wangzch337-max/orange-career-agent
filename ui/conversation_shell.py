@@ -260,9 +260,11 @@ def _select_thread(workspace, thread_id: str) -> None:
     st.session_state["orange_demo_controller"] = workspace.controller
 
 
-def _submit(workspace, text: str, thread_id: str, *, suggested: bool = False, clarification_question=None) -> None:
+def _submit(workspace, text: str, thread_id: str, *, suggested: bool = False, clarification_question=None, profile_question=None) -> None:
     # A queued old chip cannot act on a newly selected conversation.
     if workspace.thread.thread_id != thread_id:
+        return
+    if workspace.profile_conversation.submit(text, question_token=profile_question):
         return
     if clarification_question is not None:
         # Explicit question-bound answer route; no chat planner, persistence,
@@ -384,8 +386,10 @@ def _render_chat_region(workspace):
         from career_runtime.session import failure_text
         st.warning(failure_text(session.last_failure))
     chat = workspace.chat
+    interview = workspace.profile_conversation
     st.session_state[CHAT_KEY] = chat
-    if not chat.messages:
+    has_resume = workspace.resume_intake.result is not None
+    if not chat.messages and not has_resume and not interview.messages:
         if not session.busy:
             st.markdown('<div class="orange-chat-empty">' + orange_mark() + '<h1>现在开始吧</h1></div>', unsafe_allow_html=True)
             if not workspace.agent_session.consent:
@@ -397,7 +401,18 @@ def _render_chat_region(workspace):
         # Native autoscroll follows appended messages without a new JS subsystem.
         with st.container(key="orange_transcript", height=600, autoscroll=True):
             stored = workspace.store.list_messages(workspace.owner_scope_id, workspace.thread.thread_id)
-            for index, message in enumerate(chat.messages):
+            from ui.profile_conversation import render_interview_messages, render_resume_transition
+            for index in range(len(chat.messages) + 1):
+                if has_resume and index == min(interview.resume_anchor, len(chat.messages)):
+                    from ui.resume_upload import render_file_card
+                    with st.chat_message("user"):
+                        render_file_card(workspace)
+                    with st.chat_message("assistant", avatar=sphere_markup()):
+                        render_resume_transition(workspace)
+                render_interview_messages(workspace, index)
+                if index == len(chat.messages):
+                    break
+                message = chat.messages[index]
                 with st.chat_message(message.role, avatar=sphere_markup() if message.role == "assistant" else None):
                     # User text is escaped, not interpreted as arbitrary Markdown/HTML.
                     if message.role == "user":
@@ -414,22 +429,23 @@ def _render_chat_region(workspace):
                     _suggestions(workspace, message.suggestions)
             render_pending(workspace)
             render_candidates(workspace)
+    from ui.career_discovery import render_career_discovery
+    from profile_refinement.models import Status as RefinementStatus
+    from career_runtime.profile_conversation import InterviewStage
+    if not has_resume or (interview.stage == InterviewStage.IDLE and
+                          workspace.profile_refinement.status == RefinementStatus.CONFIRMED):
+        render_career_discovery(workspace)
     with st.bottom:
         with st.container(key="orange_composer"):
-            from ui.resume_upload import render_file_card, render_resume_upload
-            render_file_card(workspace)
+            from ui.resume_upload import render_resume_upload
             render_resume_upload(workspace)
-            from ui.resume_evidence import render_resume_analysis
-            render_resume_analysis(workspace)
-            from ui.clarification import render_clarification
-            clarification_question = render_clarification(workspace)
-            from ui.profile_refinement import render_profile_refinement
-            render_profile_refinement(workspace)
-            text = st.chat_input("和 Orange 说点什么…", key="orange_chat_input", max_chars=2000, disabled=session.busy)
+            text = st.chat_input("和 Orange 说点什么…", key="orange_chat_input", max_chars=2000,
+                                 disabled=session.busy or interview.busy)
             if session.busy:
                 cancelled = session.cancellation_requested
                 st.button("停止生成", key="orange_stop_generation", on_click=session.request_cancel, disabled=cancelled,
                           help="保留已经显示的内容，停止本次回答；不会确认画像或记忆。")
     if text:
-        _submit(workspace, text, workspace.thread.thread_id, clarification_question=clarification_question)
+        _submit(workspace, text, workspace.thread.thread_id,
+                profile_question=workspace.clarification.current_question())
         st.rerun()

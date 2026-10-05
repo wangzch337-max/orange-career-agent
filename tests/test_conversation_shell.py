@@ -386,12 +386,18 @@ def test_v12_does_not_change_authority_or_dependencies(scope):
         from tests.profile_refinement_contract import assert_c4_shared_delta
         name = "data/models.py" if scope == "data" else "memory/sqlite_store.py"
         assert_c4_shared_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT))
-        assert changed_paths(ROOT, CHECKPOINT, scope) == {name}
+        expected = {name}
+        if scope == "memory":
+            from tests.career_discovery_contract import assert_d1_memory_delta
+            assert_d1_memory_delta(ROOT)  # Exact pre-existing D.1 policy; old consumers remain byte-frozen.
+            expected |= {"memory/models.py", "memory/integration.py"}
+        assert changed_paths(ROOT, CHECKPOINT, scope) == expected
         assert_original_inventory(ROOT, CHECKPOINT, scope)
         return
     if scope == "config/prompts":
         # Freeze old bytes and exactly the approved additions in any Git state.
-        assert_resume_prompt_scope(ROOT, CHECKPOINT)
+        from tests.career_discovery_contract import assert_d1_prompt_scope
+        assert_d1_prompt_scope(ROOT, CHECKPOINT)  # Original three-C-prompt validator + exact D.1 hash.
         return
     if scope == "requirements.txt":
         from tests.runtime_contract import assert_resume_requirements

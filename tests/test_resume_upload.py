@@ -13,7 +13,7 @@ from tests.test_chat_product import app, WORKSPACE_KEY
 from ui.resume_upload import STATUS_COPY, release_upload
 
 
-@pytest.mark.parametrize("name,data", [("public-synthetic.pdf", pdf_bytes()), ("public-synthetic.docx", docx_bytes())])
+@pytest.mark.parametrize("name,data", [("public-synthetic.pdf", pdf_bytes()), ("public-synthetic.docx", docx_bytes())], ids=["public-pdf", "public-docx"])
 def test_native_synthetic_upload_reading_ready_and_rerun_without_reparse(tmp_path, monkeypatch, name, data):
     value = app(tmp_path, str(uuid4()))
     workspace = value.session_state[WORKSPACE_KEY]
@@ -35,7 +35,9 @@ def test_native_synthetic_upload_reading_ready_and_rerun_without_reparse(tmp_pat
         assert any(element.value == name for element in value.text)
         assert any(STATUS_COPY[Status.READY] in element.value for element in value.markdown)
         assert value.file_uploader[0].value is None
-        assert workspace.chat.messages == [] and not value.chat_message
+        assert workspace.chat.messages == []
+        assert [message.name for message in value.chat_message] == ["user", "assistant"]
+        assert not workspace.store.list_messages(workspace.owner_scope_id, workspace.thread.thread_id)
         assert SYNTHETIC_TEXT not in "\n".join(element.value for element in value.markdown)
         assert {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()} == before
         result = state.result

@@ -220,6 +220,11 @@ def test_allowed_navigation_still_opens_every_original_surface(page):
 @pytest.mark.parametrize('directory',['agents','providers','memory','workflows','evaluation','observability','data','config/prompts'])
 def test_domain_sources_prompts_and_public_fixtures_unchanged(directory):
     for name in subprocess.check_output(['git','ls-tree','-r','--name-only',BASELINE,directory],cwd=ROOT,text=True).splitlines():
+        if name in {'memory/models.py', 'memory/integration.py'}:
+            from tests.career_discovery_contract import C_FREEZE, assert_d1_memory_delta
+            assert_d1_memory_delta(ROOT)
+            assert subprocess.check_output(['git','show',f'{C_FREEZE}:{name}'],cwd=ROOT) == subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT), name
+            continue
         if name in {'data/models.py', 'memory/sqlite_store.py'}:
             from tests.profile_refinement_contract import assert_c4_shared_delta
             assert_c4_shared_delta(name, (ROOT/name).read_bytes(), subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT))

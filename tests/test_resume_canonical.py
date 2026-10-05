@@ -296,11 +296,16 @@ def test_actual_profile_review_ui_shows_only_canonical_source(tmp_path, theme):
         return output
     h.extraction.program = poisoned
     try:
-        h.prepare()
+        h.upload(); h.analyze()
         value.radio(key="orange_appearance").set_value(theme).run()
+        value.button(key="orange_clarification_start").click().run()
+        assert w.clarification.current_question()
+        value.chat_input[0].set_value(h.scenario.answer).run()
         assert not value.exception
         text = "\n".join(e.value for e in value.text)
-        assert "新候选：Audit Associate" in text and POISON not in text
+        assert "我的职业画像" in [e.value for e in value.subheader]
+        assert "Audit Associate" in text and POISON not in text
+        assert w.profile_refinement.draft and any(c.proposed_value.label == "Audit Associate" for c in w.profile_refinement.draft.changes if c.proposed_value)
         assert all(POISON not in e.value for e in value.text_input)
         assert not h.current() and not h.memories()
         assert [p.attempts for p in h.providers] == [1, 1, 1]
