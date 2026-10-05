@@ -8,9 +8,8 @@ import json
 import re
 
 from career_runtime.models import ResponseCore, ResponseEnvelope
+from career_runtime.response_budget import HARD_VISIBLE_CHARACTERS, MAX_WIRE_CHARACTERS
 from ui.conversation_store import _content
-
-MAX_WIRE_CHARACTERS = 160000  # Includes worst-case escaped Unicode, not just prose.
 
 
 def _unique_object(pairs):
@@ -77,6 +76,8 @@ def finalize_wire(raw):
 
 def validate_core_text(text):
     _content(text)
+    if len(text) > HARD_VISIBLE_CHARACTERS:
+        raise ValueError("Visible response exceeds budget.")
     text.encode("utf-8", errors="strict")
 
 

@@ -2,6 +2,8 @@
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Iterator, Sequence, Type
 
 from pydantic import BaseModel
@@ -12,7 +14,9 @@ from providers.models import GenerationOptions, LLMMessage, LLMUsage, Structured
 from providers.qwen import QwenProvider
 from career_runtime.diagnostics import ProviderAttempt
 from career_runtime.models import Plan, ResponseEnvelope, StreamMetrics, length_bucket
+from career_runtime.cancellation import CancellationRequested
 from career_runtime.finalization import MAX_WIRE_CHARACTERS, finalize_wire
+from career_runtime.response_budget import HARD_VISIBLE_CHARACTERS, MAX_STREAM_CHUNKS, MAX_JSON_HEADER_CHARACTERS
 from observability.events import diagnostic_span
 from observability.models import DiagnosticComponent as DC
 
@@ -35,7 +39,27 @@ class ResponseStreamError(LLMStructuredOutputError):
         self.reason = reason
 
 
+_GENERATION_SCOPE = ContextVar("orange_provider_generation", default=None)
+
+
 class StreamingLLMProvider(LLMProvider):
+    @property
+    def _turn_control(self):
+        binding = _GENERATION_SCOPE.get()
+        return binding[1] if binding is not None and binding[0] is self else None
+
+    @contextmanager
+    def cancellation_scope(self, control):
+        token = _GENERATION_SCOPE.set((self, control))
+        self._bind_generation(control)
+        try:
+            yield
+        finally:
+            _GENERATION_SCOPE.reset(token)
+
+    def _bind_generation(self, control):
+        pass
+
     @abstractmethod
     def stream_structured(self, messages: Sequence[LLMMessage], response_model: Type[BaseModel],
                           options: GenerationOptions, *, prompt_name: str, prompt_version: str
@@ -55,6 +79,33 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
         self.attempts: list[ProviderAttempt] = []
         self.last_stream_metrics = StreamMetrics()
 
+    def _bind_generation(self, control):
+        control.provider_metrics[0] = StreamMetrics()
+        self._latest_attempts = control.provider_attempts
+        self._latest_metrics = control.provider_metrics
+
+    @property
+    def attempts(self):
+        control = self._turn_control
+        return control.provider_attempts if control else self._latest_attempts
+
+    @attempts.setter
+    def attempts(self, value):
+        self._latest_attempts = value
+
+    @property
+    def last_stream_metrics(self):
+        control = self._turn_control
+        return (control.provider_metrics if control else self._latest_metrics)[0]
+
+    @last_stream_metrics.setter
+    def last_stream_metrics(self, value):
+        control = self._turn_control
+        if control:
+            control.provider_metrics[0] = value
+        else:
+            self._latest_metrics = [value]
+
     def generate_structured(self, messages, response_model, options, *, prompt_name, prompt_version):
         if response_model is not Plan:
             return super().generate_structured(messages, response_model, options,
@@ -62,16 +113,25 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
         if options.thinking_enabled:
             raise LLMConfigurationError("Orange 规划必须关闭 thinking。")
         client = self._client or self._create_client(options)
+        control = getattr(self, "_turn_control", None)
+        owned_client = self._client is None
+        detach = control.attach_close(getattr(client, "close", None)) if control and owned_client else lambda: None
         started = self._clock()
         for retry in range(options.max_retries+1):
             attempt_started, usage, succeeded = self._clock(), LLMUsage(), False
+            called = retrying = False
             with diagnostic_span(DC.PROVIDER, "provider_call") as statistics:
                 try:
+                    if control:
+                        control.checkpoint()
+                    called = True
                     completion = client.chat.completions.parse(model=options.model,
                         messages=[message.model_dump(mode="json") for message in messages], response_format=Plan,
                         temperature=options.temperature, max_tokens=options.max_output_tokens,
                         extra_body={"enable_thinking": False})
                     usage = self._normalize_usage(getattr(completion, "usage", None))
+                    if control:
+                        control.checkpoint()
                     choices = getattr(completion, "choices", None)
                     if not choices:
                         raise LLMStructuredOutputError("规划响应为空。", stage="Plan", error_type="empty_response")
@@ -86,19 +146,30 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
                         usage=usage, latency_ms=max(0, round((self._clock()-started)*1000)),
                         prompt_name=prompt_name, prompt_version=prompt_version, thinking_enabled=False, retry_count=retry)
                 except Exception as exc:
+                    if control:
+                        control.checkpoint()
                     import json
                     if isinstance(exc, json.JSONDecodeError):
                         mapped = LLMStructuredOutputError("规划 JSON 无效。", stage="Plan", error_type="json_invalid")
                     else:
                         mapped = self._map_exception(exc, validation_stage="Plan")
                     if mapped.retryable and retry < options.max_retries:
+                        retrying = True
                         self._sleep(min(0.25 * (2**retry), 1.0))
                         continue
                     raise mapped from None
                 finally:
-                    self.attempts.append(ProviderAttempt(prompt_name=prompt_name, status="succeeded" if succeeded else "failed",
-                        latency_ms=max(0, round((self._clock()-attempt_started)*1000)), provider_retry_count=retry,
-                        **usage.model_dump()))
+                    if called:
+                        self.attempts.append(ProviderAttempt(prompt_name=prompt_name, status="cancelled" if control and control.requested else "succeeded" if succeeded else "failed",
+                            latency_ms=max(0, round((self._clock()-attempt_started)*1000)), provider_retry_count=retry,
+                            **usage.model_dump()))
+                    if not retrying or (control and control.requested):
+                        detach()
+                        if owned_client and callable(getattr(client, "close", None)):
+                            try:
+                                client.close()
+                            except Exception:
+                                pass  # Cleanup failure is never raw provider output.
 
     def stream_structured(self, messages, response_model, options, *, prompt_name, prompt_version):
         if options.thinking_enabled:
@@ -106,12 +177,18 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
         client = self._client or self._create_client(options)
         started = self._clock()
         stream = None
+        control = getattr(self, "_turn_control", None)
+        owned_client = self._client is None
+        detach_client = control.attach_close(getattr(client, "close", None)) if control and owned_client else lambda: None
+        detach_stream = lambda: None
         called, succeeded, usage = False, False, LLMUsage()
         metrics = StreamMetrics()
         projection = VisibleJSONStream()
         self.last_stream_metrics = metrics
         with diagnostic_span(DC.PROVIDER, "provider_call") as statistics:
             try:
+                if control:
+                    control.checkpoint()
                 called = True
                 stream = client.chat.completions.create(
                     model=options.model,
@@ -123,9 +200,14 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
                     extra_body={"enable_thinking": False},
                     stream=True, stream_options={"include_usage": True},
                 )
+                if control:
+                    detach_stream = control.attach_close(getattr(stream, "close", None))
+                    control.checkpoint()
                 parts, size, usage, finished = [], 0, LLMUsage(), False
                 for chunk in stream:
-                    if metrics.stream_chunk_count >= 160000:
+                    if control:
+                        control.checkpoint()
+                    if metrics.stream_chunk_count >= MAX_STREAM_CHUNKS:
                         raise ResponseStreamError("invalid_core")
                     metrics = metrics.model_copy(update={"stream_chunk_count": metrics.stream_chunk_count+1})
                     if getattr(chunk, "usage", None) is not None:
@@ -149,6 +231,7 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
                                 metrics = metrics.model_copy(update={"visible_length_bucket": length_bucket(len(projection.visible))})
                                 raise ResponseStreamError("invalid_core") from None
                             metrics = metrics.model_copy(update={"visible_length_bucket": length_bucket(len(projection.visible))})
+                            self.last_stream_metrics = metrics
                             yield StreamDelta(content)
                         reason = getattr(choice, "finish_reason", None)
                         if reason is not None:
@@ -157,6 +240,8 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
                                 "output_limit_reached": reason == "length"})
                             finished = True
                 metrics = metrics.model_copy(update={"transport_completed": True})
+                if control:
+                    control.checkpoint()
                 if not finished:
                     metrics = metrics.model_copy(update={"provider_finish_category": "missing"})
                     raise ResponseStreamError("transport_incomplete")
@@ -192,6 +277,9 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
                 self.last_stream_metrics = metrics
                 yield StreamComplete(response, metrics)
             except Exception as exc:
+                if control and control.requested:
+                    metrics = metrics.model_copy(update={"provider_finish_category": "cancelled", "cancellation_requested": True})
+                    raise CancellationRequested() from None
                 if metrics.provider_finish_category == "pending":
                     metrics = metrics.model_copy(update={"provider_finish_category": "interrupted"})
                 raise self._map_exception(exc, validation_stage=response_model.__name__) from None
@@ -203,9 +291,16 @@ class StreamingQwenProvider(QwenProvider, StreamingLLMProvider):
                         except Exception:
                             metrics = metrics.model_copy(update={"close_failed": True})
                 finally:
+                    detach_stream()
+                    detach_client()
+                    if owned_client and callable(getattr(client, "close", None)):
+                        try:
+                            client.close()
+                        except Exception:
+                            metrics = metrics.model_copy(update={"close_failed": True})
                     self.last_stream_metrics = metrics
                     if called:
-                        self.attempts.append(ProviderAttempt(prompt_name=prompt_name, status="succeeded" if succeeded else "failed",
+                        self.attempts.append(ProviderAttempt(prompt_name=prompt_name, status="cancelled" if control and control.requested else "succeeded" if succeeded else "failed",
                             latency_ms=max(0, round((self._clock()-started)*1000)), provider_retry_count=0,
                             **usage.model_dump()))
 
@@ -238,7 +333,7 @@ class VisibleJSONStream:
         if not self.started:
             # Wait only while the header is incomplete, never expose another key.
             header = re.sub(r'\s+', '', self.buffer)
-            if len(self.buffer) > 80 or not '{"visible_response":"'.startswith(header):
+            if len(self.buffer) > MAX_JSON_HEADER_CHARACTERS or not '{"visible_response":"'.startswith(header):
                 raise ValueError("Visible response must be first.")
             return ""
         if self.text_complete:
@@ -276,6 +371,6 @@ class VisibleJSONStream:
             fresh.append(char)
         text = "".join(fresh)
         self.visible += text
-        if len(self.visible) > 10000:
+        if len(self.visible) > HARD_VISIBLE_CHARACTERS:
             raise ValueError("Visible response exceeds budget.")
         return text

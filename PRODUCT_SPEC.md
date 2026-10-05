@@ -1,11 +1,13 @@
 # Orange 产品规格 Product Specification
 
-**文档状态：Portfolio v1 当前产品契约；Phase 8D 只整理公开入口，不改变产品行为。**
-**产品副标题：AI Career Discovery Agent for University Students**
+**文档状态：Orange Career v1.3C；下方 Golden Flow 保留初始引导产品契约。**
+**产品副标题：AI Career Discovery Agent**
+
+当前通用简历理解支持学生、经验从业者与转行者，不以学生身份、专业、项目或目标齐全为前提。ResumeEvidence 经来源/材料验证及 canonical 投影仍是候选；澄清不是补全问卷，答案不自动入长期 Memory；画像增量需逐项审核并明确确认。curated Memory 是另行 opt-in 的已确认信号。完整离线链已通过，有限 C.1/C.2/B.2 live 已通过，修复后 Clarification/Profile Refinement 完整真实链仍有不阻塞开发的验证缺口；没有生产认证、OCR、完整 DLP 或云端取消保证。当前范围与验证以 [README](README.md)及[冻结记录](docs/UNIVERSAL_CAREER_VALIDATION.md)为准，v1.3D 尚未实现。
 
 ## 1. 产品愿景 Product Vision
 
-Orange 帮助大学生以更有证据、更透明、更可行动的方式理解自己和职业。产品不是“热门岗位推荐器”，而是职业探索的思考伙伴：先建立可被用户修正的自我理解，再解释岗位真实内容，最后提供带来源、限制和下一步行动的判断。
+Orange 帮助不同职业背景的用户以更有证据、更透明、更可行动的方式理解自己和职业。产品不是“热门岗位推荐器”，而是职业探索的思考伙伴：先建立可被用户修正的自我理解，再解释岗位真实内容，最后提供带来源、限制和下一步行动的判断。
 
 核心理念：**Understand yourself first, understand jobs second, then make a career decision.**
 
@@ -15,8 +17,8 @@ Orange 帮助大学生以更有证据、更透明、更可行动的方式理解�
 
 ## 3. 目标用户 Target Users
 
-- 长期用户：不同大学、学科和年级的学生。
-- 当前 Demo：公开虚构的 AI 相关学生 persona，不读取真实用户资料；不是 CityU 官方产品。
+- 用户：学生、经验专业人士与转行者；工作经历是一等证据，项目/学历/目标不是必填。
+- 保留的 Golden Demo：公开虚构的 AI 相关学生 persona；通用跨背景验收另用17个合成场景，均不读取真实用户资料；不是 CityU 官方产品。
 - 架构约束：不得假设所有用户来自 CityU；大学、地区、课程来源均应是可替换元数据或 provider。
 
 ## 4. 核心用户需求
@@ -116,9 +118,9 @@ Job Intelligence 输出覆盖角色、地区／行业元数据、实际工作、
 
 角色模型有中国大陆、香港、澳门和台湾地理元数据；这不是实时市场覆盖承诺。当前只用虚构 fixtures，不采集职位 API；签证／工作资格等未提供信息保持未知。课程数据通过 provider abstraction 输入，不依赖 Canvas 在线服务。
 
-## 13. Demo 范围
+## 13. 保留的 Golden Demo 范围
 
-Public Synthetic Demo 使用 `FakeLLMProvider`、`FakeEmbeddingProvider`、公开合成数据、内存 checkpoint 和临时 Memory DB；不读 `.env.local`、私有 Golden Case 或真实确认画像。Guided conversation 与动态画像 → Profile Review → 三个方向 → role clarification／Match／Action Plan／Exploration Map → 显式 Demo Memory；不是自由聊天、正式职业评估或生产级多用户 UI。当前状态与本地运行见 [README](README.md)。
+Public Synthetic Demo 使用 `FakeLLMProvider`、`FakeEmbeddingProvider`、公开合成数据、内存 checkpoint 和临时 Memory DB；不读 `.env.local`、私有 Golden Case 或真实确认画像。Guided conversation 与动态画像 → Profile Review → 三个方向 → role clarification／Match／Action Plan／Exploration Map → 显式 Demo Memory；不是自由聊天、正式职业评估或生产级多用户 UI。正常聊天入口的本地持久化、独立同意与通用简历流程见 [README](README.md)，不与临时 Demo 混同。
 
 ## 14. V1 成功标准
 

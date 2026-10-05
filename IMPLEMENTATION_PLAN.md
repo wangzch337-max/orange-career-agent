@@ -2,7 +2,13 @@
 
 本计划以**能力里程碑**而不是机械的“一天一个 Phase”推进。15 天是聚焦范围下的估算；学习检查或质量门未通过时应延长，不以赶日程为理由跨阶段。每个 Phase 都必须遵守 `LEARNING_PLAN.md` 的 Learning Mode。
 
-## 总览
+## 当前里程碑：Orange Career v1.3C
+
+v1.3B generation/Stop hardening 与 v1.3C 通用 Resume Intake、canonical ResumeEvidence、个性化 Clarification、逐项 Profile Refinement、跨背景/E2E/隐私验收为当前冻结范围。最新完整离线基线为2519 passed / 0 failed，Golden 27 / 20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW，Agent 58 PASS，Universal 17 PASS / 1691 checks。有限 C.1/C.2/B.2 live 通过，B.3 修复后的 C.3/C.4 完整真实链仍是已记录、非阻塞的验证缺口；不要求更多 live 才能推进开发。详见 [冻结记录](docs/UNIVERSAL_CAREER_VALIDATION.md)。
+
+v1.3D 未开始，只允许后续讨论 Universal Career Direction Discovery Foundation 范围；用户确认后再生成实现授权。下方 Phase 0–13 总览及 checkpoint/发布限制均为当时历史，不代表当前 Git 状态或新的调用/部署授权。
+
+## 历史总览
 
 | 建议日程 | Phase | 能力里程碑 | 主要产物 |
 |---|---|---|---|
@@ -22,7 +28,7 @@
 | Day 10 | 8A | Evaluation Framework | contract / semantic Golden / journey、安全报告 |
 | Day 10.5 | 8B | Safe Observability & Diagnostics | COMPLETE；checkpoint `5a6a1d1`，无 push |
 | Day 10.6 | 8C | Product & Demo Polish | COMPLETE；checkpoint `003c5bc`，无 push |
-| 当前 | 8D | Public Portfolio Readiness | COMPLETE — USER RELEASE DECISIONS PENDING；未提交 |
+| 当时 | 8D | Public Portfolio Readiness | 当时 COMPLETE — USER RELEASE DECISIONS PENDING；未提交 |
 | 后续（未开始） | 8A.1 | optional live evaluation | 单独授权，不是当前离线质量证明 |
 | 后续（未开始） | 9A | Web Deployment Readiness | 需要单独定义与授权 |
 | 后续（未开始） | 9B | Public Web Deployment | 需要单独定义与授权 |

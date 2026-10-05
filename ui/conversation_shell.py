@@ -260,9 +260,14 @@ def _select_thread(workspace, thread_id: str) -> None:
     st.session_state["orange_demo_controller"] = workspace.controller
 
 
-def _submit(workspace, text: str, thread_id: str, *, suggested: bool = False) -> None:
+def _submit(workspace, text: str, thread_id: str, *, suggested: bool = False, clarification_question=None) -> None:
     # A queued old chip cannot act on a newly selected conversation.
     if workspace.thread.thread_id != thread_id:
+        return
+    if clarification_question is not None:
+        # Explicit question-bound answer route; no chat planner, persistence,
+        # automatic next question or canonical authority mutation.
+        workspace.clarification.answer(clarification_question, text)
         return
     if suggested:
         choices = workspace.chat.messages[-1].suggestions if workspace.chat.messages else INITIAL_SUGGESTIONS
@@ -323,16 +328,16 @@ def _thread_menu(workspace, thread) -> None:
                     st.button("取消", key="orange_cancel_delete", on_click=_cancel_delete)
                     with st.container(key="orange_delete_confirm_action", width="content"):
                         st.button("删除", key="orange_confirm_delete", on_click=_confirm_delete,
-                                  args=(workspace, thread.thread_id))
+                                  args=(workspace, thread.thread_id), disabled=workspace.agent_session.busy)
         else:
             with st.expander("重命名"):
                 rename_key = f"orange_rename_{thread.thread_id}"
-                st.text_input("新名称", value=thread.title, key=rename_key, max_chars=80)
+                st.text_input("新名称", value=thread.title, key=rename_key, max_chars=80, disabled=workspace.agent_session.busy)
                 st.button("保存名称", key=f"orange_save_name_{thread.thread_id}", on_click=_rename_thread,
-                          args=(workspace, thread.thread_id, rename_key))
+                          args=(workspace, thread.thread_id, rename_key), disabled=workspace.agent_session.busy)
             with st.container(key=f"orange_delete_request_action_{thread.thread_id}"):
                 st.button("删除对话", key=f"orange_delete_request_{thread.thread_id}",
-                          on_click=_request_delete, args=(workspace, thread.thread_id))
+                          on_click=_request_delete, args=(workspace, thread.thread_id), disabled=workspace.agent_session.busy)
 
 
 def _suggestions(workspace, suggestions: tuple[str, ...]) -> None:
@@ -345,15 +350,16 @@ def _suggestions(workspace, suggestions: tuple[str, ...]) -> None:
 
 def render_conversation_shell(controller: DemoController, workspace=None) -> None:
     workspace = workspace or st.session_state["orange_chat_workspace_v1"]
+    workspace.agent_session.start_pending()
     with st.sidebar:
         st.markdown('<div class="orange-chat-brand"><strong>Orange Career</strong><span class="orange-demo-tag">Demo</span></div>', unsafe_allow_html=True)
-        st.button("＋ 新对话", key="orange_new_chat", width="stretch", on_click=new_chat, args=(controller,))
+        st.button("＋ 新对话", key="orange_new_chat", width="stretch", on_click=new_chat, args=(controller,), disabled=workspace.agent_session.busy)
         with st.container(key="orange_thread_history"):
             for thread in workspace.threads:
                 with st.container(horizontal=True, wrap=False, vertical_alignment="center"):
                     st.button(thread.title, key=f"orange_thread_{thread.thread_id}",
                               type="primary" if thread.thread_id == workspace.thread.thread_id else "secondary",
-                              width="stretch", on_click=_select_thread, args=(workspace, thread.thread_id))
+                              width="stretch", on_click=_select_thread, args=(workspace, thread.thread_id), disabled=workspace.agent_session.busy)
                     _thread_menu(workspace, thread)
     with st.container(key="orange_thread_header"):
         with st.container(horizontal=True, wrap=False, vertical_alignment="center"):
@@ -364,16 +370,27 @@ def render_conversation_shell(controller: DemoController, workspace=None) -> Non
                     st.radio("外观", THEME_MODES, key="orange_appearance")
     if notice := st.session_state.pop("orange_chat_notice", None):
         st.warning(notice)
-    chat = workspace.chat
     from ui.agent_activity import render_activity, render_candidates, render_consent, render_pending
     render_consent(workspace)
+    st.fragment(run_every=.15 if workspace.agent_session.busy else None)(_render_chat_region)(workspace)
+
+
+def _render_chat_region(workspace):
+    from ui.agent_activity import render_activity, render_candidates, render_pending
+    session = workspace.agent_session
+    if session.finish_background():
+        st.rerun(scope="app")
+    if session.last_failure is not None and not session.failure_persisted:
+        from career_runtime.session import failure_text
+        st.warning(failure_text(session.last_failure))
+    chat = workspace.chat
     st.session_state[CHAT_KEY] = chat
     if not chat.messages:
-        if workspace.agent_session.pending is None:
+        if not session.busy:
             st.markdown('<div class="orange-chat-empty">' + orange_mark() + '<h1>现在开始吧</h1></div>', unsafe_allow_html=True)
             if not workspace.agent_session.consent:
                 _suggestions(workspace, INITIAL_SUGGESTIONS)
-        if workspace.agent_session.pending:
+        if session.busy:
             with st.container(key="orange_transcript", height=600, autoscroll=True):
                 render_pending(workspace)
     else:
@@ -389,15 +406,30 @@ def render_conversation_shell(controller: DemoController, workspace=None) -> Non
                         st.write(message.content)
                         if index < len(stored):
                             render_activity(stored[index].metadata.get("agent_activity", []), key=stored[index].message_id)
+                            if stored[index].metadata.get("agent_turn_status") == "CANCELLED" and message.content != "已停止生成":
+                                st.caption("已停止生成")
                     if message.structured_payload:
                         _render_payload(message.structured_payload)
-                if message.role == "assistant" and index == len(chat.messages) - 1:
+                if not session.busy and message.role == "assistant" and index == len(chat.messages) - 1:
                     _suggestions(workspace, message.suggestions)
             render_pending(workspace)
             render_candidates(workspace)
     with st.bottom:
         with st.container(key="orange_composer"):
-            text = st.chat_input("和 Orange 说点什么…", key="orange_chat_input", max_chars=2000)
+            from ui.resume_upload import render_file_card, render_resume_upload
+            render_file_card(workspace)
+            render_resume_upload(workspace)
+            from ui.resume_evidence import render_resume_analysis
+            render_resume_analysis(workspace)
+            from ui.clarification import render_clarification
+            clarification_question = render_clarification(workspace)
+            from ui.profile_refinement import render_profile_refinement
+            render_profile_refinement(workspace)
+            text = st.chat_input("和 Orange 说点什么…", key="orange_chat_input", max_chars=2000, disabled=session.busy)
+            if session.busy:
+                cancelled = session.cancellation_requested
+                st.button("停止生成", key="orange_stop_generation", on_click=session.request_cancel, disabled=cancelled,
+                          help="保留已经显示的内容，停止本次回答；不会确认画像或记忆。")
     if text:
-        _submit(workspace, text, workspace.thread.thread_id)
+        _submit(workspace, text, workspace.thread.thread_id, clarification_question=clarification_question)
         st.rerun()

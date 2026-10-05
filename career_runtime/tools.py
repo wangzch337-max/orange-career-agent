@@ -1,6 +1,7 @@
 """Code-owned tools over existing read/refinement services, with no arbitrary IO."""
 
 from dataclasses import dataclass
+from contextlib import nullcontext
 
 from agents.job_intelligence_evidence import JobEvidenceBuilder
 from data.models import EvidenceSourceType
@@ -33,7 +34,7 @@ SPECS = (
 
 
 class ToolRegistry:
-    def __init__(self, workspace, user_text: str, *, proposal_permission: bool):
+    def __init__(self, workspace, user_text: str, *, proposal_permission: bool, cancellation=None):
         self.workspace = workspace
         self.user_text = user_text
         self.proposal_permission = proposal_permission
@@ -42,6 +43,11 @@ class ToolRegistry:
         self.profile_drafts = []
         self.memory_changes = {}
         self.context_profile_stamp = None
+        self.cancellation = cancellation
+        if cancellation is not None:
+            with cancellation.lock:
+                cancellation.checkpoint()
+                cancellation.registry = self
         self.roles = {job.job_id: job for job in MockJobDataProvider().load()
                       if job.job_id in {"job_001", "job_007", "job_013"}}
 
@@ -84,6 +90,7 @@ class ToolRegistry:
         return refs
 
     def execute(self, request: ToolRequest, relevance: Relevance) -> ToolResult:
+        self._checkpoint()
         request = ToolRequest.model_validate(request.model_dump())
         spec = self.specs[request.name]
         if not self.permitted(request, relevance):
@@ -100,6 +107,15 @@ class ToolRegistry:
     def permitted(self, request, relevance):
         return relevance not in {Relevance.GENERAL_QA, Relevance.LEARNING_OR_TECHNICAL} and (
             self.specs[request.name].permission == "read" or self.proposal_permission)
+
+    def _checkpoint(self):
+        if self.cancellation is not None:
+            self.cancellation.checkpoint()
+
+    def discard_pending(self):
+        self.proposals.clear()
+        self.profile_drafts.clear()
+        self.memory_changes.clear()
 
     def _execute(self, request):
         name, args = request.name, request.arguments
@@ -185,17 +201,28 @@ class ToolRegistry:
                 value=canonical_value, display_label=args.user_quote, source="explicit_user_input", session_order=1)
             draft = self.workspace.controller.profile_refinement_service.refine(
                 subject_id=self.workspace.subject_id, current_input=signal)
-            self.profile_drafts.append((proposal, current.profile_id, current.version, draft))
+            with self.cancellation.lock if self.cancellation else nullcontext():
+                self._checkpoint()
+                self.profile_drafts.append((proposal, current.profile_id, current.version, draft))
         else:
             signal = StructuredSessionSignal(signal_id="session_runtime_preference", dimension=canonical_dimension,
                 value=canonical_value, display_label=args.user_quote, source="explicit_user_input", session_order=1)
-            self.memory_changes[proposal.model_dump_json()] = self.workspace.controller.memory_change_detector.detect(
-                self.workspace.subject_id, signal)
-        self.proposals.append(proposal)
+            change = self.workspace.controller.memory_change_detector.detect(self.workspace.subject_id, signal)
+            with self.cancellation.lock if self.cancellation else nullcontext():
+                self._checkpoint()
+                self.memory_changes[proposal.model_dump_json()] = change
+        with self.cancellation.lock if self.cancellation else nullcontext():
+            self._checkpoint()
+            self.proposals.append(proposal)
         return [ContextItem(label=args.user_quote, category="pending_candidate", status="unknown", refs=[])]
 
     def confirm_proposal(self, proposal: Proposal, *, confirmed_by_user: bool, memory_choice: MemoryChangeChoice | None = None):
         """UI-only explicit command; no LLM/tool authority can call this method."""
+        with self.cancellation.lock if self.cancellation else nullcontext():
+            self._checkpoint()
+            return self._confirm_proposal(proposal, confirmed_by_user=confirmed_by_user, memory_choice=memory_choice)
+
+    def _confirm_proposal(self, proposal, *, confirmed_by_user, memory_choice):
         if not confirmed_by_user or proposal not in self.proposals:
             raise PermissionError("Explicit candidate review is required.")
         if proposal.kind == "profile":

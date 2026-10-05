@@ -18,6 +18,7 @@ from typing import Callable, Iterator, Mapping
 from uuid import UUID, uuid4
 
 from ui.conversation import ConversationStage, GuidedConversation, QUESTIONS
+from career_runtime.response_budget import PERSISTENCE_MESSAGE_CHARACTERS
 
 
 DEFAULT_CONVERSATION_PATH = (
@@ -117,7 +118,7 @@ def _title(value: str, *, limit: int = TITLE_LIMIT) -> str:
 
 
 def _content(value: str) -> str:
-    if not isinstance(value, str) or not value.strip() or len(value) > 20000:
+    if not isinstance(value, str) or not value.strip() or len(value) > PERSISTENCE_MESSAGE_CHARACTERS:
         raise ConversationStoreError("Message content is empty or too long.")
     _no_credentials(value)
     return value
@@ -223,6 +224,14 @@ def _metadata(value: Mapping[str, object] | None) -> dict[str, object]:
         result[key] = list(items)
     if result.get("agent_turn_status") == "COMPLETED" and "agent_failure" in result:
         raise ConversationStoreError("Completed turn cannot contain failure status.")
+    cancelled = result.get("agent_turn_status") == "CANCELLED"
+    stream = result.get("agent_stream", {})
+    if cancelled and (result.get("suggestions") or result.get("evidence_refs") or "agent_profile_stamp" in result or "agent_failure" in result):
+        raise ConversationStoreError("Cancelled turns cannot confer authority.")
+    if (stream.get("partial_response") or stream.get("cancellation_requested")) and not cancelled:
+        raise ConversationStoreError("Partial cancellation requires CANCELLED status.")
+    if stream.get("partial_response") and not stream.get("cancellation_requested"):
+        raise ConversationStoreError("Partial response requires explicit cancellation.")
     return result
 
 
@@ -515,6 +524,21 @@ class ConversationStore:
         if len(rows) not in (0, 2):
             raise ConversationStoreError("Incomplete stored turn.")
         return tuple(self._message(row) for row in rows)
+
+    def annotate_cancelled_turn(self, owner_scope_id, thread_id, turn_id, partial_text, metadata):
+        """Enrich safe metrics only; never replace text or change a terminal winner."""
+        owner, meta = _scope(owner_scope_id), _metadata(metadata)
+        _identifier(turn_id)
+        if meta.get("agent_turn_status") != "CANCELLED" or meta.get("suggestions") or meta.get("evidence_refs") or "agent_profile_stamp" in meta or "agent_failure" in meta:
+            raise ConversationStoreError("Cancelled turns cannot confer authority.")
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            self._owned(db, owner, thread_id)
+            pair = self._turn(db, owner, thread_id, turn_id)
+            if not pair or pair[-1].content != partial_text or pair[-1].metadata.get("agent_turn_status") != "CANCELLED":
+                raise ConversationStoreError("Cancelled turn identity is invalid.")
+            db.execute("UPDATE conversation_messages SET metadata_json=? WHERE owner_scope_id=? AND thread_id=? AND message_id=?",
+                (json.dumps(meta, ensure_ascii=False), owner, thread_id, pair[-1].message_id))
 
     def get_turn(self, owner_scope_id, thread_id, turn_id):
         _identifier(turn_id)

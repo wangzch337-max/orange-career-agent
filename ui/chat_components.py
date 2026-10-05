@@ -84,8 +84,8 @@ def shell_stylesheet(theme: str = "跟随系统") -> str:
     [data-testid="stBottom"] > div {background:var(--oc-bg);}
     [data-testid="stAppDeployButton"], [data-testid="stMainMenu"] {display:none;}
     [data-testid="stHeader"] {background:var(--oc-bg);}
-    .stApp {--oc-rail-width:248px; --oc-chat-max-width:864px;}
-    [data-testid="stMainBlockContainer"] {max-width:var(--oc-chat-max-width); padding:calc(3.75rem + .5rem) 2rem 1rem;}
+    .stApp {--oc-rail-width:248px; --oc-chat-max-width:1040px; --oc-chat-gutter:1rem;}
+    [data-testid="stMainBlockContainer"] {max-width:var(--oc-chat-max-width); padding:calc(3.75rem + .5rem) var(--oc-chat-gutter) 1rem;}
     [data-testid="stSidebar"] {background:var(--oc-sidebar-bg); color:var(--oc-text-primary); color-scheme:var(--oc-color-scheme); border-right:1px solid var(--oc-border);}
     [data-testid="stSidebar"][aria-expanded="true"] {width:var(--oc-rail-width)!important; min-width:var(--oc-rail-width)!important;}
     [data-testid="stSidebar"][aria-expanded="false"] {width:0!important; min-width:0!important; border-right:0;}
@@ -152,7 +152,7 @@ def shell_stylesheet(theme: str = "跟随系统") -> str:
     .st-key-orange_transcript [data-testid="stExpander"] details {background:transparent; color:var(--oc-text-primary); border-color:var(--oc-border);}
     .st-key-orange_transcript [data-testid="stExpander"] summary {color:var(--oc-text-primary);}
     .st-key-orange_transcript [data-testid="stChatMessageAvatarCustom"] {background:transparent; border-radius:50%; overflow:hidden;}
-    [data-testid="stBottomBlockContainer"] {max-width:var(--oc-chat-max-width); padding:.5rem 2rem 1.4rem;}
+    [data-testid="stBottomBlockContainer"] {max-width:var(--oc-chat-max-width); padding:.5rem var(--oc-chat-gutter) 1.4rem;}
     .st-key-orange_composer {border:1px solid var(--oc-composer-border); border-radius:22px; padding:.65rem .8rem .2rem; background:var(--oc-composer-bg); box-shadow:0 2px 10px var(--oc-shadow);}
     .st-key-orange_composer:hover {border-color:var(--oc-border);}
     .st-key-orange_composer:focus-within {border-color:var(--oc-focus); box-shadow:0 0 0 2px var(--oc-focus);}
@@ -171,6 +171,13 @@ def shell_stylesheet(theme: str = "跟随系统") -> str:
     .st-key-orange_composer [data-testid="stChatInputSubmitButton"]:focus-visible {outline:2px solid var(--oc-focus); outline-offset:3px;}
     .st-key-orange_composer textarea {min-height:60px; line-height:1.65; padding:.6rem .5rem; caret-color:var(--oc-accent);}
     .st-key-orange_composer textarea::placeholder {color:var(--oc-muted); opacity:1;}
+    .st-key-orange_composer [data-testid="stChatInputTextArea"]:not(:disabled) {color:var(--oc-text-primary); -webkit-text-fill-color:var(--oc-text-primary); caret-color:var(--oc-accent);}
+    .st-key-orange_composer [data-testid="stChatInputTextArea"]::placeholder {color:var(--oc-muted); -webkit-text-fill-color:var(--oc-muted); opacity:1;}
+    .st-key-orange_composer [data-testid="stChatInputTextArea"]::selection {background:var(--oc-accent-soft); color:var(--oc-text-primary); -webkit-text-fill-color:var(--oc-text-primary);}
+    .st-key-orange_stop_generation {display:flex; justify-content:flex-end; padding:0 .25rem .5rem;}
+    .st-key-orange_stop_generation button {background:var(--oc-accent); color:var(--oc-accent-text); border-color:var(--oc-accent); border-radius:999px; min-height:36px;}
+    .st-key-orange_stop_generation button:hover {background:var(--oc-accent-hover);}
+    .st-key-orange_stop_generation button:focus-visible {outline:2px solid var(--oc-focus); outline-offset:3px;}
     .st-key-orange_composer textarea:focus-visible {outline:0;}
     .st-key-orange_composer textarea:disabled {color:var(--oc-muted); -webkit-text-fill-color:var(--oc-muted); opacity:1;}
     @media (max-width:700px) {

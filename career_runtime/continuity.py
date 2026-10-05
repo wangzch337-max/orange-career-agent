@@ -67,7 +67,7 @@ def validate_runtime_history(text, previous):
             continue
         if previous.status in {TurnStatus.COMPLETED, TurnStatus.UNKNOWN}:
             raise ValueError("Unsupported runtime history claim.")
-        if previous.status != TurnStatus.FAILED_TRANSPORT and re.search(r"(?:连接|网络|传输).{0,12}(?:中断|断开)|(?i:connection.{0,15}(?:interrupt|disconnect))", sentence):
+        if previous.status != TurnStatus.FAILED_TRANSPORT and re.search(r"(?:连接|网络|传输).{0,12}(?:中断|断开|失败|出错)|(?i:(?:connection|network|transport).{0,15}(?:interrupt|disconnect|fail|error))", sentence):
             raise ValueError("Unsupported runtime history claim.")
         if previous.status != TurnStatus.FAILED_TRANSPORT and re.search(r"截断|(?i:truncat)", sentence):
             raise ValueError("Unsupported runtime history claim.")

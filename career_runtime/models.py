@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_core import PydanticCustomError
+from career_runtime.response_budget import HARD_VISIBLE_CHARACTERS, MAX_STREAM_CHUNKS
 
 
 class Contract(BaseModel):
@@ -161,7 +162,7 @@ class Proposal(Contract):
 
 class ResponseCore(Contract):
     # This FIRST JSON property is the only incremental user-visible stream.
-    visible_response: str = Field(min_length=1, max_length=10000)
+    visible_response: str = Field(min_length=1, max_length=HARD_VISIBLE_CHARACTERS)
     citations: list[str] = Field(max_length=24)
     candidate_proposals: list[Proposal] = Field(max_length=2)
 
@@ -187,9 +188,9 @@ class ResponseEnvelope(ResponseCore):
 
 class StreamMetrics(Contract):
     transport_completed: bool = False
-    provider_finish_category: Literal["pending", "normal_stop", "output_limit", "filtered", "unexpected", "missing", "interrupted", "refused"] = "pending"
+    provider_finish_category: Literal["pending", "normal_stop", "output_limit", "filtered", "unexpected", "missing", "interrupted", "refused", "cancelled"] = "pending"
     output_limit_reached: bool = False
-    stream_chunk_count: int = Field(default=0, ge=0, le=160000)
+    stream_chunk_count: int = Field(default=0, ge=0, le=MAX_STREAM_CHUNKS)
     visible_length_bucket: Literal["empty", "short", "medium", "long", "very_long", "over_limit"] = "empty"
     metadata_tail_present: bool = False
     envelope_complete: bool = False
@@ -199,6 +200,9 @@ class StreamMetrics(Contract):
     persistence_committed: bool = False
     close_failed: bool = False
     duplicate_finalization_count: int = Field(default=0, ge=0, le=1)
+    cancellation_requested: bool = False
+    partial_response: bool = False
+    local_close_attempted: bool = False
 
 
 class TurnStatus(str, Enum):
@@ -222,7 +226,7 @@ class ProfileContextStamp(Contract):
 
 def length_bucket(size):
     return next(label for bound, label in ((0, "empty"), (600, "short"), (2500, "medium"),
-        (6000, "long"), (10000, "very_long"), (float("inf"), "over_limit")) if size <= bound)
+        (6000, "long"), (HARD_VISIBLE_CHARACTERS, "very_long"), (float("inf"), "over_limit")) if size <= bound)
 
 
 class Activity(Contract):

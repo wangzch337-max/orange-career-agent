@@ -1,8 +1,8 @@
 # 🍊 Orange
 
-> AI Career Discovery Agent for University Students · 面向大学生的 AI 职业探索 Agent
+> AI Career Discovery Agent · 面向多样职业背景的 AI 职业探索 Agent
 
-通过引导式对话，把经历整理成可确认的职业画像，理解岗位的实际工作，再用证据比较方向、制定下一步行动。
+通过有边界的对话与简历理解，把经历整理成可确认的职业画像，理解岗位的实际工作，再用证据比较方向、制定下一步行动。
 
 **先理解自己，再理解工作，最后做职业决策。** Orange 不替你选「最佳岗位」，不做总体适配分数或岗位排名；缺少证据，也不等于你不具备能力。
 
@@ -14,10 +14,20 @@
 
 面对相似的岗位名称和技能清单，学生仍可能不知道：哪段经历能说明自己的能力？岗位每天实际做什么？哪些是已有交集，哪些只是兴趣，哪些还需要材料验证？
 
-Orange 把这些问题连成一条可审阅的探索旅程。它是本地作品集 Demo，不是心理测评、就业保证或自动投递工具，也不是香港城市大学官方产品；产品和架构面向不同大学与专业。
+Orange 把这些问题连成一条可审阅的探索旅程。它是本地作品集 Demo，不是心理测评、就业保证或自动投递工具，也不是香港城市大学官方产品；通用简历流程支持学生、经验从业者、转行者及工作为主、零项目等背景，不根据专业锁定方向。
+
+## 当前状态：Orange Career v1.3C
+
+Universal Resume Intelligence 已完整实现并通过离线端到端验证：本地 PDF/DOCX 读取 → 独立简历 AI 同意 → ResumeEvidence → 个性化澄清 → 逐项画像审核 → 明确确认。项目、学历和目标不是必填，工作经历是一等证据。正常入口是有边界的聊天工作区；下方 Golden 引导流程仍保留为离线验证路径，不是通用方向发现功能。
+
+ResumeEvidence 不是 Profile：先验证来源、摘录与材料字段，再由代码生成 canonical facts；未经验证的模型描述不进入下游权威。澄清答案与画像草案仍是候选，逐项审核后明确确认才保存不可变 Profile 新版本。Memory 另行 opt-in，只保存允许的已确认信号，不自动保存简历或聊天全文。
+
+完整离线验证已通过。有限真实 provider 验证已通过生产 Resume Intake、ResumeEvidence 和 canonical authority；C.3 曾在 HTTP 200 / stop 后严格解析失败，B.3 离线修复已通过，但修复后 C.3 尚未重新 live 验证，C.4 完整真实链尚未成功到达。**不声称 complete real-Qwen Resume E2E passed。** 该 Clarification → Profile Refinement 验证缺口不阻止后续产品开发；未来 release/demo 验证仍须独立授权，现有同意不能复用。详见 [当前验收与限制](docs/UNIVERSAL_CAREER_VALIDATION.md)和[运行边界](docs/ORANGE_AGENT_RUNTIME.md)。
 
 <a id="product-experience"></a>
 ## 产品体验 Product Experience
+
+以下描述保留的 Public Synthetic Golden 引导体验；正常聊天入口另支持上方通用简历流程。
 
 1. **从一个职业问题开始。** 通过固定选项、多选及可选短文本聊经历、投入的活动、工作偏好和目标；不是开放式自由聊天。
 2. **看到理解逐步形成。** 左侧对话，右侧动态画像；「已有证据／你刚刚表达／待确认／尚不确定」分开显示。
@@ -64,7 +74,7 @@ flowchart LR
 
 四个固定核心概念角色：**Orchestrator Agent** 管状态与确认门；三个语义 Agent 分别负责 Self-Discovery、Job Intelligence、Match & Insight。LLM 提出候选；确定性 Python 负责校验、组装、权威状态和行动渲染。Report Builder 不是第五个 Agent。
 
-### Agent Architecture
+### Agent Architecture（保留的 Golden 引导路径）
 
 ```mermaid
 flowchart TB
@@ -135,9 +145,10 @@ Golden Suite 是生产系统外部 observer，覆盖 deterministic contracts、s
 
 | 本地验证 | 已核实结果 |
 |---|---|
-| Phase 8C 回归基线 | 783 passed / 0 failed |
-| Phase 8D 本地最终回归 | 818 passed / 0 failed（保留 783；新增 35 项公开 readiness contracts） |
+| v1.3C 最新完整离线回归 | 2519 passed / 0 failed |
 | Golden Suite | 27 scenarios：20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW |
+| Agent Evaluation | 58 PASS / 0 FAIL |
+| Universal Cross-Background | 17 PASS / 1691 checks / 0 FAIL / 0 NEEDS_REVIEW |
 
 `EXPECTED_UNCERTAINTY` 是成功状态：证据不足时，系统正确拒绝给出更强结论。它不是部分失败，也不是为了隐藏失败设置的豁免。任何必要检查失败仍是 FAIL。
 
@@ -152,16 +163,16 @@ Golden Suite 是生产系统外部 observer，覆盖 deterministic contracts、s
 <a id="demo"></a>
 ## Demo：公开、虚构、离线
 
-默认 **Public Synthetic Demo** 使用公开合成 persona、20 条虚构岗位中的三个展示方向、`FakeLLMProvider`、`FakeEmbeddingProvider`、内存 LangGraph checkpoint 与 session 临时 SQLite stores。
+保留的 **Public Synthetic Demo** 使用公开合成 persona、20 条虚构岗位中的三个展示方向、`FakeLLMProvider`、`FakeEmbeddingProvider`、内存 LangGraph checkpoint 与 session 临时 SQLite stores。
 
 不会加载 `.env.local`、私有 Golden Case、真实确认画像或私有持久 DB，不需要 API key，也不需要下载 embedding model。保存 feedback 仅影响本次 Demo 的临时 Memory；关停／Reset 后不承诺保留。请勿输入真实私人资料。
 
-截图尚未拍摄；[六个截图目标](docs/SCREENSHOT_PLAN.md)与[产品 UX 验收](docs/PRODUCT_UX_ACCEPTANCE.md)可用于人工复核。Demo 是 guided workflow，不是无限自由聊天或生产级多用户服务。
+正常聊天入口使用 Git-ignored 本地 Conversation/Profile/Memory/checkpoint stores；启动或打开历史不触发模型请求。在线聊天需显式同意，简历分析另需绑定当前文档的独立同意。不要把该持久化入口与上述临时 Golden Demo 混为一谈。截图尚未拍摄；[截图计划](docs/SCREENSHOT_PLAN.md)与[产品 UX 验收](docs/PRODUCT_UX_ACCEPTANCE.md)保留历史人工复核范围；不是生产级多用户服务。
 
 <a id="run-locally"></a>
 ## Run Locally
 
-在已取得的仓库副本中运行（尚无 remote，不提供虚构 clone URL）：
+在已取得的仓库副本中运行（已有 origin；不需要修改 remote）：
 
 ```bash
 cd /path/to/orange-career-agent
@@ -172,7 +183,7 @@ python3.11 -m venv .venv
 
 打开终端显示的 localhost 地址。Python **3.11.9** 在本地已验证；当前验证平台为 macOS Apple Silicon。这不是全部操作系统兼容性承诺。已有有效 `.venv` 时可直接运行最后一行；不要覆盖含其他用途的环境。
 
-安装依赖通常需要网络；**默认 Demo 和 automated tests 的运行不需要外部网络**，不加载真实模型。`requirements.txt` 同时包含 runtime 与 test dependencies，尚未拆成发布锁文件。
+安装依赖通常需要网络；**离线引导 Demo 和 automated tests 不需要外部网络**，不加载真实模型。正常入口未同意时走本地引导，获显式同意的在线功能另有 provider 配置与数据分享边界。`requirements.txt` 同时包含 runtime 与 test dependencies，尚未拆成发布锁文件。
 
 ```bash
 .venv/bin/python -m pytest -q
@@ -191,6 +202,12 @@ orange-career-agent/
 ├── providers/       # LLM abstraction、Fake、显式 Qwen transport
 ├── config/prompts/  # 版本化 prompts（历史版本保留）
 ├── workflows/       # Orchestrator、LangGraph、人工确认与 checkpoints
+├── career_runtime/  # 有边界规划、真实流式投影、generation/Stop 隔离
+├── resume_intake/   # 受限本地 PDF/DOCX 读取，不做 OCR
+├── resume_evidence/ # 最小化来源、材料 grounding、canonical 候选
+├── clarification/   # 信息价值驱动的问题与临时答案
+├── profile_refinement/ # 增量草案、逐项审核、确认与版本 CAS
+├── career_background_evaluation/ # 外部跨背景离线 observer
 ├── memory/          # Canonical stores、local retrieval、显式 consumers
 ├── evaluation/      # 外部 Golden observer、合成场景、safe reports
 ├── observability/   # 最小化事件、session collector、安全 diagnostics
@@ -212,11 +229,11 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 
 ## Current Scope & Limitations
 
-已实现本地 guided discovery → 确认 → 岗位理解 → evidence-based Match → actions，以及显式 Memory、Golden Evaluation 和安全诊断。尚未实现认证、生产级多用户隔离服务、云部署、实时招聘、Canvas 在线集成、无约束对话或就业效果验证。Fake 输出不证明真实 LLM 的任意语义可靠性。
+已实现保留的 guided discovery → 确认 → 岗位理解 → evidence-based Match → actions，以及有边界聊天、通用简历理解、显式 Memory 和离线 Evaluation。尚未实现认证、生产级多用户隔离服务、云部署、实时招聘、Canvas 在线集成、无约束对话或就业效果验证。无 OCR；复杂文档阅读顺序有限；PII minimization 不是完整 DLP；grounding 不是履历真实性认证；本地 Stop 不保证云端物理取消。Fake 输出不证明真实 LLM 的任意语义可靠性。
 
 ## Roadmap
 
-Portfolio v1：核心能力、本地 Demo、Evaluation、诊断、UI polish 与 Phase 8D 公开入口整理已完成；发布仍等待用户决策，8D 修改尚未提交。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留工程演进，而非占据首页。
+当前冻结范围为 v1.3C Universal Resume Intelligence 与累积 runtime hardening；最新验证状态见上方。v1.3D 未开始：下一步只讨论 Universal Career Direction Discovery Foundation 范围，需用户确认后另给实现授权。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
 
 **Phase 9A — Web Deployment Readiness** 与 **Phase 9B — Public Web Deployment** 均未开始，必须单独授权。认证、真实模型模式、云数据和部署是否需要，属于未来决策，不是当前承诺。
 
@@ -234,6 +251,8 @@ Portfolio v1：核心能力、本地 Demo、Evaluation、诊断、UI polish 与 
 | [Memory](memory/README.md) | Canonical / semantic / hybrid、显式 consumers |
 | [Evaluation](evaluation/README.md) | Golden layers、状态、CLI 与限制 |
 | [Observability](observability/README.md) | 安全事件与诊断边界 |
+| [Agent Runtime](docs/ORANGE_AGENT_RUNTIME.md) | 当前聊天、generation/Stop 与简历组件边界 |
+| [Universal Career Validation](docs/UNIVERSAL_CAREER_VALIDATION.md) | v1.3C 最新冻结基线、真实模型验证缺口与限制 |
 | [Product UX Acceptance](docs/PRODUCT_UX_ACCEPTANCE.md) | Phase 8C 的本地交互／布局验收 |
 | [Public Release Checklist](docs/PUBLIC_RELEASE_CHECKLIST.md) | 每项 PASS／BLOCKED／用户决策 |
 | [Portfolio Acceptance](docs/PORTFOLIO_ACCEPTANCE.md) | 公开阅读与工程故事审阅 |

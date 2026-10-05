@@ -18,7 +18,7 @@ class RecentTurn(Contract):
     role: Literal["user", "assistant"]
     text: str
     message_id: str = ""
-    provenance: Literal["user_message", "completed_assistant", "legacy_assistant"] = "user_message"
+    provenance: Literal["user_message", "completed_assistant", "legacy_assistant", "cancelled_assistant"] = "user_message"
     excerpted: bool = False
     profile_version: int | None = None
 
@@ -27,14 +27,15 @@ _SECTION = re.compile(r"(?m)^(?:#{1,6}\s+[^\n]+|(?:\d{1,2}[.、)]|[一二三四�
 _EXCERPT = "\n【上下文摘录：部分原文省略，原回答完成状态不变】\n"
 
 
-def excerpt(text, budget):
+def excerpt(text, budget, *, prefer_tail=False):
     """Deterministic head + bounded section samples + tail; never a summary call."""
     if len(text) <= budget:
         return text, False
     if budget < 180:
         return text[:budget], True
     available = budget - len(_EXCERPT) * 2
-    head, tail = available // 5, available // 5
+    head = available // 5
+    tail = available // 2 if prefer_tail else available // 5
     middle_budget = available - head - tail
     sections = list(_SECTION.finditer(text))[:16]
     if sections:
@@ -62,6 +63,8 @@ def semantic_message(message):
         return False
     if message.role == "assistant":
         status = message_status(message)
+        if status == TurnStatus.CANCELLED:
+            return bool(meta.get("agent_stream", {}).get("partial_response")) and "agent_failure" not in meta
         return status in {TurnStatus.COMPLETED, TurnStatus.UNKNOWN} and not (
             "agent_failure" in meta or any(item.get("stage") == "failed" for item in meta.get("agent_activity", [])))
     return message.role == "user"
@@ -91,19 +94,20 @@ def recent_turns(messages, *, prioritized_ids=()):
         if len(selected) >= MAX_RECENT_MESSAGES or remaining < 260:
             break
         message = window[index]
-        provenance = "user_message" if message.role == "user" else "completed_assistant" if message_status(message) == TurnStatus.COMPLETED else "legacy_assistant"
+        provenance = "user_message" if message.role == "user" else "completed_assistant" if message_status(message) == TurnStatus.COMPLETED else "cancelled_assistant" if message_status(message) == TurnStatus.CANCELLED else "legacy_assistant"
         item = RecentTurn(role=message.role, text="", message_id=message.message_id, provenance=provenance,
             profile_version=message.metadata.get("agent_profile_stamp", {}).get("version"))
         overhead = len(item.model_dump_json()) + 1
         allocation = min(remaining-overhead, 2800 if index == assistant else 650 if index == previous_user else remaining-overhead)
         if allocation < 120:
             continue
-        text, clipped = excerpt(message.content, allocation)
+        prefer_tail = provenance == "cancelled_assistant"
+        text, clipped = excerpt(message.content, allocation, prefer_tail=prefer_tail)
         item = item.model_copy(update={"text": text, "excerpted": clipped})
         # JSON escaping overhead is bounded too, not just visible prose.
         while len(item.model_dump_json())+1 > remaining and len(text) >= 120:
             allocation -= max(1, len(item.model_dump_json())+1-remaining)
-            text, clipped = excerpt(message.content, max(0, allocation))
+            text, clipped = excerpt(message.content, max(0, allocation), prefer_tail=prefer_tail)
             item = item.model_copy(update={"text": text, "excerpted": clipped})
         if len(item.model_dump_json())+1 <= remaining:
             selected[index] = item

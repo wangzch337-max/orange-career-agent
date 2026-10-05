@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 from pydantic_core import PydanticCustomError
@@ -353,6 +353,41 @@ class ClarificationQuestion(DomainModel):
     related_evidence_ids: List[str] = Field(default_factory=list)
 
 
+# Optional universal sections share the same canonical Profile and evidence store.
+PROFILE_OPTIONAL_SECTIONS = (
+    "education", "work_experience", "projects", "tools", "domain_knowledge",
+    "achievements", "certifications", "professional_qualifications", "research",
+    "leadership", "collaboration", "languages", "role_interests", "industry_interests",
+    "location_preferences", "work_style_preferences", "constraints", "transition_intent",
+    "uncertainties", "other_evidence",
+)
+
+
+class ProfileSectionEntry(EvidenceLinkedModel):
+    """Normalized optional evidence, including first-class professional history."""
+
+    entry_id: str = Field(min_length=1, max_length=120)
+    label: str = Field(min_length=1, max_length=160)
+    details: List[Annotated[str, Field(min_length=1, max_length=240)]] = Field(default_factory=list, max_length=4)
+    organization: Optional[str] = Field(default=None, max_length=160)
+    time_range: Optional[str] = Field(default=None, max_length=80)
+
+
+class ProfileSourceReference(DomainModel):
+    """Opaque references only; never source quotes, answers, paths or prompts."""
+
+    origin: Literal["explicit_user_input", "explicit_user_edit", "clarification_answer",
+                    "resume_evidence", "confirmed_profile", "confirmed_memory", "model_inference"]
+    reference: str = Field(min_length=1, max_length=200)
+
+
+class ProfileFieldProvenance(DomainModel):
+    source_refs: List[ProfileSourceReference] = Field(min_length=1, max_length=16)
+    uncertainty: Literal["none", "unknown", "explicit_uncertainty"] = "none"
+    last_confirmed_at: datetime
+    confirmed_by_user: Literal[True] = True
+
+
 class UserProfile(DomainModel):
     """可修订、可确认且保留证据引用的用户画像。"""
 
@@ -368,6 +403,27 @@ class UserProfile(DomainModel):
     development_areas: List[EvidenceBackedStatement] = Field(default_factory=list)
     career_preferences: List[CareerPreference] = Field(default_factory=list)
     evidence: List[EvidenceItem] = Field(default_factory=list)
+    education: List[ProfileSectionEntry] = Field(default_factory=list)
+    work_experience: List[ProfileSectionEntry] = Field(default_factory=list)
+    projects: List[ProfileSectionEntry] = Field(default_factory=list)
+    tools: List[ProfileSectionEntry] = Field(default_factory=list)
+    domain_knowledge: List[ProfileSectionEntry] = Field(default_factory=list)
+    achievements: List[ProfileSectionEntry] = Field(default_factory=list)
+    certifications: List[ProfileSectionEntry] = Field(default_factory=list)
+    professional_qualifications: List[ProfileSectionEntry] = Field(default_factory=list)
+    research: List[ProfileSectionEntry] = Field(default_factory=list)
+    leadership: List[ProfileSectionEntry] = Field(default_factory=list)
+    collaboration: List[ProfileSectionEntry] = Field(default_factory=list)
+    languages: List[ProfileSectionEntry] = Field(default_factory=list)
+    role_interests: List[ProfileSectionEntry] = Field(default_factory=list)
+    industry_interests: List[ProfileSectionEntry] = Field(default_factory=list)
+    location_preferences: List[ProfileSectionEntry] = Field(default_factory=list)
+    work_style_preferences: List[ProfileSectionEntry] = Field(default_factory=list)
+    constraints: List[ProfileSectionEntry] = Field(default_factory=list)
+    transition_intent: List[ProfileSectionEntry] = Field(default_factory=list)
+    uncertainties: List[ProfileSectionEntry] = Field(default_factory=list)
+    other_evidence: List[ProfileSectionEntry] = Field(default_factory=list)
+    field_provenance: Dict[str, ProfileFieldProvenance] = Field(default_factory=dict)
     confirmed: bool = False
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
@@ -385,12 +441,25 @@ class UserProfile(DomainModel):
             *self.strengths,
             *self.development_areas,
             *self.career_preferences,
+            *(item for section in PROFILE_OPTIONAL_SECTIONS for item in getattr(self, section)),
         ]
         for item in linked_items:
             referenced_ids.update(item.evidence_ids)
         missing = referenced_ids - available_ids
         if missing:
             raise ValueError(f"画像引用了不存在的 evidence IDs: {sorted(missing)}")
+        field_keys = set()
+        id_fields = {"skills": "skill_id", "interests": "interest_id", "values": "value_id",
+                     "goals": "goal_id", "strengths": "statement_id", "development_areas": "statement_id",
+                     "career_preferences": "preference_id"}
+        for category in (*id_fields, *PROFILE_OPTIONAL_SECTIONS):
+            entries = getattr(self, category)
+            ids = [getattr(entry, id_fields.get(category, "entry_id")) for entry in entries]
+            if category in PROFILE_OPTIONAL_SECTIONS and len(ids) != len(set(ids)):
+                raise ValueError("DUPLICATE_PROFILE_ENTRY")
+            field_keys.update(f"{category}.{identifier}" for identifier in ids)
+        if set(self.field_provenance) - field_keys:
+            raise ValueError("INVALID_PROFILE_PROVENANCE_REFERENCE")
         if self.confirmed != (self.status == ProfileStatus.CONFIRMED):
             raise ValueError("confirmed 与 status 必须保持一致")
         if self.confirmed and self.confirmed_at is None:
@@ -430,6 +499,7 @@ class UserProfile(DomainModel):
             "strengths",
             "development_areas",
             "career_preferences",
+            *PROFILE_OPTIONAL_SECTIONS,
         ):
             data[field_name] = [
                 {**item, "confirmed_by_user": True} for item in data[field_name]

@@ -153,7 +153,9 @@ def test_no_new_dependency_remote_asset_or_animation_framework():
     for term in ('GSAP','Lottie','anime.js','Framer Motion','Three.js','cdn.','fetch(','XMLHttpRequest','WebSocket('):
         assert term not in text
     assert {path.name for path in ASSETS.iterdir() if path.name != '.DS_Store'} == {'orange_app_icon.jpg','orange_leaf.svg','orange_thinking.mp4','orange_mascot_master_reference.png'}
-    assert not subprocess.check_output(['git','diff','HEAD','--','requirements.txt'],cwd=ROOT)
+    from tests.runtime_contract import assert_resume_requirements
+    from tests.freeze_contract import PRE_RESUME_BASELINE
+    assert_resume_requirements((ROOT / 'requirements.txt').read_bytes(), subprocess.check_output(['git','show',f'{PRE_RESUME_BASELINE}:requirements.txt'],cwd=ROOT))
 
 
 def test_app_bar_reuses_static_circular_asset_not_animated_or_white_box():

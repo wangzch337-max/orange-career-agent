@@ -10,3 +10,6 @@ pysqlite3==0.6.0
 # Local CPU embeddings; normal tests inject FakeEmbeddingProvider and never load a model.
 fastembed==0.8.0
 streamlit>=1.64,<1.65
+# Bounded local PDF/DOCX intake only; no OCR or external document service.
+pypdf>=6.19,<7
+python-docx>=1.2,<2

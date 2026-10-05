@@ -361,7 +361,7 @@ def test_loader_motion_single_jump_exact_text_quiet_local_and_reduced():
 
 def test_shell_bounded_widths_and_native_scroll_without_new_js():
     css = shell_stylesheet()
-    for value in ("248px", "864px", "max-width:700px", "96px", "80px", "margin-left:auto", "max-width:68%"):
+    for value in ("248px", "1040px", "max-width:700px", "96px", "80px", "margin-left:auto", "max-width:68%"):
         assert value in css
     source = (ROOT / "ui/conversation_shell.py").read_text()
     assert "st.bottom" in source and "st.chat_input(" in source and "st.chat_message(" in source
@@ -381,17 +381,35 @@ def test_legacy_page_functions_are_byte_preserved(name):
 
 @pytest.mark.parametrize("scope", ["agents", "providers", "memory", "workflows", "evaluation", "observability", "data", "config/prompts", "requirements.txt", "ui/visual_system.py", "ui/app_bar.py"])
 def test_v12_does_not_change_authority_or_dependencies(scope):
+    from tests.freeze_contract import assert_original_inventory, assert_resume_prompt_scope, changed_paths
+    if scope in {"data", "memory"}:
+        from tests.profile_refinement_contract import assert_c4_shared_delta
+        name = "data/models.py" if scope == "data" else "memory/sqlite_store.py"
+        assert_c4_shared_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT))
+        assert changed_paths(ROOT, CHECKPOINT, scope) == {name}
+        assert_original_inventory(ROOT, CHECKPOINT, scope)
+        return
+    if scope == "config/prompts":
+        # Freeze old bytes and exactly the approved additions in any Git state.
+        assert_resume_prompt_scope(ROOT, CHECKPOINT)
+        return
+    if scope == "requirements.txt":
+        from tests.runtime_contract import assert_resume_requirements
+        assert_resume_requirements((ROOT / scope).read_bytes(), subprocess.check_output(["git", "show", f"{CHECKPOINT}:{scope}"], cwd=ROOT))
+        return
     if scope == "observability":
         from tests.v12_contract import assert_v12_delta
         name = "observability/models.py"
         assert_v12_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT))
-        assert subprocess.check_output(["git", "diff", "--name-only", CHECKPOINT, "--", scope], cwd=ROOT, text=True).splitlines() == [name]
+        assert changed_paths(ROOT, CHECKPOINT, scope) == {name}
+        assert_original_inventory(ROOT, CHECKPOINT, scope)
         return
     if scope == "workflows":
         from tests.v12_contract import assert_v12_delta
         name = "workflows/langgraph_workflow.py"
         assert_v12_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{CHECKPOINT}:{name}"], cwd=ROOT))
-        assert subprocess.check_output(["git", "diff", "--name-only", CHECKPOINT, "--", scope], cwd=ROOT, text=True).splitlines() == [name]
+        assert changed_paths(ROOT, CHECKPOINT, scope) == {name}
+        assert_original_inventory(ROOT, CHECKPOINT, scope)
         return
-    assert not subprocess.check_output(["git", "diff", CHECKPOINT, "--", scope], cwd=ROOT)
-    assert not subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard", "--", scope], cwd=ROOT)
+    assert not changed_paths(ROOT, CHECKPOINT, scope)
+    assert_original_inventory(ROOT, CHECKPOINT, scope)

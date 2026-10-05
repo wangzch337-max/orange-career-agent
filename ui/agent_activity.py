@@ -5,7 +5,6 @@ from html import escape
 import streamlit as st
 from memory.errors import MemoryLayerError
 
-from career_runtime.engine import AnswerDelta, TurnComplete
 from career_runtime.models import ACTIVITY_LABELS, Activity
 
 
@@ -23,7 +22,7 @@ def render_activity(items, *, key):
 
 
 def render_consent(workspace):
-    if workspace.agent_session.pending is not None:
+    if workspace.agent_session.busy:
         st.session_state["orange_agent_allow_proposal"] = False
     st.markdown("""<style>
     .st-key-orange_agent_controls {color:var(--oc-text-primary); overflow-wrap:anywhere;}
@@ -56,49 +55,36 @@ def _consent_controls(workspace):
                       kwargs={"granted": True})
             st.caption("未同意时保留本地引导演示，不会调用在线模型。")
         if session.consent:
-            st.checkbox("允许本轮生成待复核候选（不自动确认）", key="orange_agent_allow_proposal", value=False)
+            st.checkbox("允许本轮生成待复核候选（不自动确认）", key="orange_agent_allow_proposal", value=False, disabled=session.busy)
     if not session.consent:
         st.caption("当前为本地引导演示 · 非在线 AI 对话")
 
 
 def render_pending(workspace):
     session = workspace.agent_session
-    pending = session.pending
-    if pending is None:
+    progress = session.progress()
+    if not session.busy or progress is None:
         return
-    # Consume before execution: Streamlit reruns never automatically retry.
-    session.pending = None
+    pending, text, activities, cancelled = progress
+    if pending.thread_id != workspace.thread.thread_id:
+        return
     with st.chat_message("user"):
         st.markdown(escape(pending.text).replace("\n", "<br>"), unsafe_allow_html=True)
     with st.chat_message("assistant"):
-        activity_slot, text_slot = st.empty(), st.empty()
-        text, activities = "", []
-        iterator = session.stream_turn(pending)
-        try:
-            for event in iterator:
-                if isinstance(event, Activity):
-                    activities.append(event.model_dump())
-                    activity_slot.caption(ACTIVITY_LABELS[event.stage] + ("…" if event.status == "started" else ""))
-                elif isinstance(event, AnswerDelta):
-                    text += event.text
-                    text_slot.write(text)
-                elif isinstance(event, TurnComplete):
-                    activity_slot.empty()
-        finally:
-            iterator.close()
-        if session.last_error:
-            from career_runtime.session import failure_text
-            text_slot.write(failure_text(session.last_failure))
+        if text:
+            st.write(text)
+        if cancelled:
+            st.caption("已停止生成")
+        elif activities:
+            latest = activities[-1]
+            st.caption(ACTIVITY_LABELS[latest["stage"]] + ("…" if latest["status"] == "started" else ""))
         render_activity(activities, key=pending.turn_id)
-    if session.last_error and not session.failure_persisted:
-        return  # Storage failure must remain visible, not rerun into an empty thread.
-    st.rerun()
 
 
 def render_candidates(workspace):
     session = workspace.agent_session
     result = session.last_result
-    if result is None or not result.registry.proposals:
+    if session.busy or result is None or not result.registry.proposals:
         return
     with st.container(key="orange_agent_candidate_controls"), st.expander("待你复核的候选", expanded=False):
         for index, proposal in enumerate(tuple(result.registry.proposals)):

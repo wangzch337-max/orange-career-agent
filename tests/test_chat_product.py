@@ -129,7 +129,7 @@ def test_normal_ui_menu_is_chinese_without_dead_upload_or_trace(tmp_path):
         appearance = value.radio(key="orange_appearance")
         assert appearance.label == "外观"
         assert appearance.options == ["跟随系统", "浅色模式", "深色模式"]
-        assert {element.proto.popover.label for element in value.get("popover")} == {"···"}
+        assert {element.proto.popover.label for element in value.get("popover")} == {"···", "＋"}
         visible_text = "\n".join(element.value for element in value.markdown) + "\n" + "\n".join(element.value for element in value.caption)
         for removed in ("关于 Orange Career", "陪你用证据了解自己、比较职业方向。",
                         "本地 Demo · 不是职业排名，也不替你做最终决定。"):
@@ -143,7 +143,11 @@ def test_normal_ui_menu_is_chinese_without_dead_upload_or_trace(tmp_path):
         popover = menu.body[0]
         assert len(popover.body) == 1
         assert ast.get_source_segment(source, popover.body[0]) == 'st.radio("外观", THEME_MODES, key="orange_appearance")'
-        assert not value.get("file_uploader")
+        assert len(value.file_uploader) == 1
+        upload = value.file_uploader[0]
+        assert upload.label == "上传简历"
+        assert list(upload.proto.type) == [".pdf", ".docx"]
+        assert upload.proto.max_upload_size_mb == 10 and not upload.proto.multiple_files
         assert not [element for element in value.expander if "执行轨迹" in element.label]
         assert len(suggestions(value)) == 4
     finally:

@@ -25,9 +25,11 @@ def public_contract():
     }
 
 
-def generate_plan(provider, payload, registry, options, *, round_index, record, usage, counts):
+def generate_plan(provider, payload, registry, options, *, round_index, record, usage, counts, cancellation=None):
     """Repair input contains public structure + already-permitted context, NOT bad output."""
     for repair in range(2):
+        if cancellation is not None:
+            cancellation.checkpoint()
         counts["repair_invocation_count" if repair else "planner_invocation_count"] += 1
         prompt_name = "orange_planner_repair" if repair else "orange_planner"
         prompt = (PROMPTS / ("planner_repair_v1.md" if repair else "planner_v1.md")).read_text()
@@ -41,6 +43,8 @@ def generate_plan(provider, payload, registry, options, *, round_index, record, 
             usage.append(response.safe_metadata())
             plan = Plan.model_validate(response.data.model_dump())
         except (ValidationError, LLMStructuredOutputError) as exc:
+            if cancellation is not None:
+                cancellation.checkpoint()
             failure = structural_failure(exc, plan_attempt=round_index+1, repair_attempt=repair)
             record(failure.diagnostic)
             if repair or not failure.repairable:
@@ -48,11 +52,15 @@ def generate_plan(provider, payload, registry, options, *, round_index, record, 
             previous = failure
             continue
         except LLMError:
+            if cancellation is not None:
+                cancellation.checkpoint()
             failure = PlanFailure(RuntimeDiagnostic(stage="planner_provider_transport", status="failed",
                 error_category="provider_failure", schema_model="Plan", plan_attempt=round_index+1,
                 repair_attempt=repair, repair_result="failure" if repair else "not_attempted"), repairable=False)
             record(failure.diagnostic)
             raise failure from None
+        if cancellation is not None:
+            cancellation.checkpoint()
         record(RuntimeDiagnostic(stage="planner_semantic_validation", status="succeeded", error_category="none",
             schema_model="Plan", plan_attempt=round_index+1, repair_attempt=repair,
             repair_result="success" if repair else "not_attempted", tool_request_count=len(plan.tools)))

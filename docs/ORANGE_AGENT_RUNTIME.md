@@ -1,6 +1,14 @@
-# Orange Career v1.3B · 有边界的对话执行
+# Orange Career v1.3B–v1.3C · 有边界的对话与简历执行
 
 Qwen 是模型 provider；Orange 的 Orchestrator 负责工具、上下文、权限、版本、执行边界与持久化。没有第五个概念 Agent。
+
+## v1.3C 当前冻结状态
+
+通用 Resume Intake → ResumeEvidence → Clarification → Profile Refinement 已完整实现并通过离线端到端验证，最新完整 pytest 为 2519 passed / 0 failed。工作经历是一等证据，项目/学历/目标可空；支持多样背景，不推断学生身份或按专业锁定方向。ResumeEvidence 与澄清答案均为候选，只有逐项审核及明确确认才能写入唯一 canonical Profile；Memory 仍单独 opt-in。
+
+有限 live 已通过生产 intake、ResumeEvidence 与 B.2 canonical authority。C.3 在 B.3 修复前曾于 HTTP 200 / stop 后解析失败；修复后完整 Clarification → Profile Refinement live 链尚未重新通过，C.4 未成功到达。此验证缺口不阻止 v1.3D 开发，不表示已通过完整真实 Qwen E2E；未来验证须另获授权。本次冻结不发 live 请求。详见 [当前验证记录](UNIVERSAL_CAREER_VALIDATION.md)。
+
+下方分切片描述及其“本阶段/停止条件”保留历史验收范围，先前逐切片推进限制不替代上述最新产品决定。生产权限、独立同意、人工确认和隐私限制仍有效；没有生产认证、OCR、完整 DLP 或云端取消保证。
 
 ## 执行边界
 
@@ -104,6 +112,66 @@ recent_turns 保留 user_message/completed_assistant/legacy_assistant 来源和�
 
 离线覆盖完成后展开/指代、真实失败恢复、失败→成功→继续、用户反馈、长回答结构、预算/编码、取消、收据/保存失败、旧库/刷新/重启/线程切换、来源复用与版本变化、四轮普通/技术问答、六轮跨背景对话，以及审计转商业分析链。背景含技术学生、审计专业人士、机械工程、营销电商、设计 UX；均为明确公开合成输入，不是默认人物设定。三主题 AppTest 验证连续三轮 rerun 不额外调用 provider。
 
+### v1.3B.4.1 响应预算与取消后续写
+
+此次获授权 live 记录的确定事实：前轮已保存 4324 字符的 CANCELLED 正文，随后规划正确给出 CANCELLED / continue_previous；第二轮正文超过 10000 后被 runtime 拒绝为 invalid_core，超限正文未保存。这不是证实的网络失败。缺口在于响应端只有硬上限/8192-token 资源上限，没有低于硬边界的目标，也没有取消后“只补缺失部分”的独立模式。不能保证增加提示就消除所有在线超限；本阶段只完成离线验证，必须重新授权才可验证模型遵循程度。
+
+本地历史证据：`4426ab9` 首次加入 runtime 的 `ResponseCore.visible_response max_length=10000` 和增量投影长度拒绝；同一 checkpoint 的 v1.3B.2 说明保留这个严格核心边界。它是历史 runtime/provider-envelope 防御界限，不是 UI 裁剪或 SQLite 容量。历史没有解释为何恰选 10000 的独立容量推导，因此不能捏造该精确数值的来源理由。`d4c2e53` 更早加入通用 transcript `_content` 的 20000：`Workspace.submit` 存储引导式回答加 flatten_payload 展示，且旧消息加载不经过新 ResponseCore。两者有不同消费者；继续保留差异，避免把历史展示数据或聊天加载变成新生成权限。
+
+`career_runtime/response_budget.py` 为唯一响应预算源：
+
+| 层 / 单位 | 当前边界 |
+|---|---|
+| decoded 正文 Unicode code points（Python len） | 硬 10000；普通软目标 8000 / 余量 2000；取消后续写软目标 4000 / 余量 6000 |
+| provider 完整 JSON 输出 tokens | 普通 8192；取消后续写 6144；规划及结构修复 1800；响应超时 90s，规划 45s |
+| 通用存储消息字符 | 20000；20001 拒绝，历史加载兼容，不改变 SQL schema |
+| transient wire JSON 字符 / SDK chunk 数 | 分别 160000 / 160000；首字段未完成 header 等待最多 80 字符 |
+| 请求近期历史 | 查询最新 12 条；发送至多 6 条 / 4500 compact JSON 序列化字符；最新 assistant 摘录最多 2800，前 user 最多 650 |
+| 选定工具项 | 合计最多 10000 序列化字符（JSON list wrappers / tool status / prompt / current message 另计，不是整个请求总长） |
+| 输出附属字段 | citations 24；proposals 2（原文 500）；suggestions 4×120；严格 schema，核心优先、唯一可选尾部不变 |
+| UI | 输入 2000 字符；输出没有另一个字符截断，st.write 原样呈现；600px transcript viewport 是滚动高度，不是消息限制 |
+
+上述输出 hard/soft/token/wire/storage 常量由 schema、投影、finalization、provider options、store 共用并有边界测试。历史窗口、工具 context 的独立用途预算保留，不把它们误作正文额度。没有独立行长度限制或完整请求 token 总量计算器；各字段、对象数量、历史和选定上下文分别有界。Response JSON 属性顺序仍是 visible_response → citations → candidate_proposals → suggestions。
+
+普通 8000 目标给原有 10000 硬边界留 20% 余量；取消后 4000 目标用于补完缺失解释，不是第二份完整教程，留 60% 余量。它们是初始 generation policy，不是经过 live 调优的最佳值，不要求填满。普通模式保留 8192 tokens，避免退回短回答；只有现有语义 Plan 判定 continue_previous、权威前轮 CANCELLED 且当前 owned assistant 有可用部分正文时，采用 6144（普通资源上限的 75%）和 4000 目标。新话题/独立展开不因取消状态而被强制缩短。无输入关键词路由、额外 Agent、摘要请求或第二份答案。
+
+tokens / decoded 字符 / UTF-8 bytes / graphemes / escaped JSON 都不同，尤其中文、英文、Markdown、代码、emoji 与组合字符；没有通用转换或 tokens 上限足以保证字符安全的承诺。目标通过代码拥有的 response_budget payload 和 system policy 给模型。软目标不是硬校验：9500 甚至恰 10000 字符的有效正常答案仍完成；模型忽略目标时仍可能失败，不自动修复、重试、压缩、切割或假成功。
+
+取消部分仍使用现有确定性摘录：20% 左右的开头，章节样本，以及约 50% 的尾部（普通历史尾部仍约 20%）；整个近期 JSON 仍 4500，不发全 transcript。部分正文不成为 Profile/Memory 或可复用 evidence authority。响应明确接续缺失部分、保持编号、只短承接，不猜未显示原文。输出完整性校验拒绝再次包含完整的较长（至少 600 字符）取消正文；仅作 exact whole-copy 检查，600 是允许简短承接的保守阈值，不是语义判定。它不保证发现所有分散、局部或改写重复，后续仍需人工 review；owned 原文只在本地比较，不另加进请求。拒绝使用既有 FAILED_VALIDATION / invalid_core，没有修复模型请求。
+
+核心超过硬界、真实 length 终止、不完整核心、流到最终文本不一致都不保存为 COMPLETED。不会为了软目标机械裁剪句子/代码/Markdown；成功仍要求真实 deltas == 最终正文 == persisted body，完整核心引用/候选验证、可选建议独立降级不变。并未新增任意 Markdown 的语义解析器；结构化核心封闭与 transport-stop 不是对模型全部自然语言/代码质量的证明。
+
+本阶段新增离线公开合成覆盖：短/中/长/恰界/超一字、中文/英文/Markdown/代码/emoji/组合字符/JSON 转义、块大小、真实本地停止后续写、CANCELLED 事实、无完整复读、普通模式不被缩短、超界严格失败、exact streamed/persisted/reload、无重复调用/消息、历史 10000–20000 消息兼容、集中边界、有限 tokens、非截断伪成功。v1.3B.2/.3/.4 原测试不弱化；Golden 与 Agent Evaluation 使用既有离线 observer，不改变生产 Agent 或 authority。
+
+### v1.3B.4.2 取消释放与清理隔离（离线验证）
+
+`Workspace` 仍拥有 canonical chat/messages、线程、持久化和 Profile/Memory。每轮 `TurnExecution` 是 GenerationExecution 的代码实现，只管理固定身份、取消权限、worker 与清理生命周期。v1.3B.4.2a 的 `ExecutionView.chat` 只读绑定保留；它借用创建时的 chat，不跟随导航，也不是语义写权限。
+
+| 当前边界 | 确定性行为 |
+|---|---|
+| 创建 | queue 创建新的 generation / owner / thread / turn 身份和独立 TurnControl；绑定原线程/controller/chat |
+| 权限 | checkpoint 检查当前 generation、owner/thread、session/workspace 是否关闭及取消信号 |
+| Stop | 共享锁内冻结最后实际显示的 projection、撤销候选权限；本地 IO close 在有界 daemon 线程中进行 |
+| 必要提交 | CANCELLED 消息对与已显示部分先安全提交；没有必要提交就不宣称取消释放成功 |
+| UI 释放点 | 提交成功后设置 cancel_committed / released，清空 pending，并刷新 canonical 展示；busy 不再依赖旧 worker 存活 |
+| 下一轮 | 新身份成为唯一当前语义执行；不复用旧取消 token；旧 close 或 finally 不得覆盖新轮状态 |
+| 物理清理 | worker 可仍在 SDK close 中阻塞；cleanup_pending 由结构计数表达，不伪称远端请求已经终止 |
+| 导航/删除 | 已取消且释放后允许切换线程/New Chat/正常删除；旧执行保持原 owner/thread，不加载已删除或非当前线程 |
+| 回收 | 每 session 最多 3 个受跟踪执行；done 且所有清理线程退出才回收，不淘汰活跃轮；未启动取消没有物理 worker，立即标记 done |
+| 关闭 | session/workspace 关闭撤销语义权限，不 join 阻塞清理；已有 daemon 清理仍受原执行跟踪，无另起清理池 |
+
+provider wrapper 可跨轮复用，但默认 `_client=None` 路径为每次规划/响应请求分别创建并拥有 SDK client；取消只关闭本轮 owned client 与 stream。注入的共享 SDK client 不属于该轮，不能由单轮清理关闭；每次响应 stream 仍独立拥有。每执行最多 2 个去重清理线程，连同最多 3 个执行 worker，单 session 受跟踪本地线程最多 9 个；不是全进程或远端资源上限。
+
+验证使用公开合成输入、fake SDK client/stream、Event 与有界等待，不使用网络或长 sleep。真实 adapter 的 close 唤醒 fake IO 后仍被 Event 锁住，执行 worker 与清理线程保持存活，CANCELLED/部分正文已提交、busy 已释放；随后新轮仍可 streaming、完成、持久化。三种主题 AppTest 验证输入框、新对话和历史交互已恢复，旧活动/Stop UI 不继续生成状态。故障注入进一步绕过 engine，验证 session 提交边界拒绝晚到块、活动、EOF、完成、建议、候选、引用和覆盖；候选计算中途取消后返回也不能发布。
+
+本轮测试证明并修复四处小缺陷：后台收尾不能再次查询删除/非当前/关闭的线程；未启动取消需标记物理执行不存在；TurnFailed 错误发布与权限检查需在同一锁内；setup 异常的 owner 检查和错误发布也需原子化并排除已取消执行。没有改上限、增加任意淘汰、修改 persistence schema 或重做兼容视图。
+
+生命周期只保留闭集 `cancel_requested`、`cancel_committed`、`ui_released`、`cleanup_started`、`cleanup_finished`，清理状态只暴露 tracked/limit/pending_cleanup 计数。没有正文、Profile、Memory、provider payload、凭据或隐藏推理，也没有新增 telemetry 依赖。cleanup_finished 是受跟踪本地清理完成，不是远端取消保证。
+
+限制：Event 验证了释放不依赖清理完成，并在 fake 本地路径测试 Stop 返回小于 1 秒；不能据此声称真实浏览器/SDK/云端延迟已通过。daemon 不强制杀死线程、不承诺终止远端生成；达到 3 个仍未清理执行时明确拒绝新轮，等待容量回收。回收为现有交互/状态查询触发，不新增后台巡检；关闭会话不无限等待清理。
+
+后续 live 必须另获明确授权：最多 1 个公开合成用户提交、1 planner、1 response；约 2000–3000 个实际显示字符时 Stop 一次，分别测量接受、可见冻结、CANCELLED 提交、composer/UI 就绪和清理完成延迟。交互就绪目标约 <=1 秒且不得等待清理；不发送第二轮，不重试。本阶段 live requests 为 0，离线新轮隔离证明不消耗 live 授权。
+
 ## 同意与候选
 
 首次在线使用前显示中文告知；同意版本和布尔值保存在 owner-scoped 本地设置库，不进入 localStorage。可在同一告知区域撤回；顶右 `···` 菜单仍只有外观。未同意时明确显示本地引导演示，不伪装在线 AI。
@@ -120,7 +188,61 @@ recent_turns 保留 user_message/completed_assistant/legacy_assistant 来源和�
 
 完整 pytest 默认 socket 禁用。独立 `python -m agent_evaluation.run` 保留前两轮稳定化后的 42 个场景，再增加 16 个公开合成连续性场景（共 58），不改变 27 场景 Golden。它检验边界，不是自然语言质量 judge；实际质量仍需人工 live review。B/C/D fixtures 代表合成结构形状，不是历史真实输出或已证实的历史根因。
 
-本地 opaque owner 隔离不是身份认证，不能直接用于安全的公开多用户部署。未确认候选是 session-only；当前工具不生成新的 Match。没有简历上传、PDF/DOCX、实时 web/jobs/news、Daily/Weekly digest 或 Phase 9。
+本地 opaque owner 隔离不是身份认证，不能直接用于安全的公开多用户部署。未确认候选是 session-only；当前工具不生成新的 Match。完整 Resume→Profile 流程已实现并离线通过，但完整真实 provider 链保留上方验证缺口；没有实时 web/jobs/news、Daily/Weekly digest 或 Phase 9。
+
+### v1.3C.1 本地简历读取基础
+
+composer `＋ → 上传简历` 支持 PDF/DOCX，最多 10 MiB；PDF 最多 30 页，拒绝加密文件，少量/无可靠文字返回 scan/image-only，不做 OCR。DOCX 校验真实 OPC 容器、路径、XML 和解压边界，拒绝宏/嵌入对象；按正文顺序读取段落、表格，并为可读页眉页脚单独保留位置。解析有字符/块数/流/归档边界，复杂排版不保证视觉顺序，尚无隔离进程的硬 CPU 超时。
+
+全部读取经 BytesIO，无原始临时文件。原始 bytes 在读取后释放；完整文字只保留在当前 Workspace 的临时状态中，不写 conversation、workflow、Profile 或 Memory。切换线程/New Chat/删除/关闭清空状态，重启不恢复。opaque client scope 只是本地隔离，不是认证。文件卡只显示安全文件名、类型、大小和状态；诊断仅有类型、大小、状态、数量、时间，不含文字或文件名。
+
+`UploadedResume → ParsedResumeDocument → ParsedResumeBlock` 保留随机 source ID、块 ID、PDF 页码或 DOCX 位置；这些是来源，不是已确认事实。以后 ResumeEvidence 可引用块，工作经历与其他通用证据是可选类别，项目不是必填；本阶段不推断职业偏好或实现语义分类。ParsedResumeDocument / ResumeEvidence / Profile 分离，解析没有 authority 写接口。普通聊天 consent 不授权简历分享；后续需要独立明确的 Resume AI consent，本阶段不发送任何简历内容给 Qwen，也不启用分析入口。仅运行安全/解析/隔离/持久化与触及 UI 的 focused tests；完整 pytest、Golden、Agent Evaluation 留到完整 v1.3C 流程后。
+
+本切片 Learning Mode：Codex 负责受限解析、临时生命周期与针对性回归；开发者可选亲手上传一份公开合成文档，再点新对话检查卡片消失。必须理解来源块不等于确认事实、普通聊天同意不等于简历分享同意。验收问题：为什么读取成功不能直接写入 Profile？停止条件：人工复核本切片前，不启动 v1.3C.2 或任何简历 AI 调用。
+
+### v1.3C.2 通用候选简历证据
+
+独立 Resume AI consent 为 session-only，绑定 owner、当前线程、source ID、解析内容 SHA-256 和同意版本；普通聊天同意不能替代。明确同意后还需点击分析。更换文件、切换/New Chat、移除/删除/关闭或撤回会清空同意与候选；每次同意只允许一次分析，失败不自动重试或修复，rerun 不重放请求。过期 UI 同意与晚到结果均不能授权新文档。
+
+当前分析为同步有界请求；撤回阻止后续请求及过期候选发布，但不能撤回已经发送给 provider 的数据，不宣称远端物理取消。
+
+`ProviderResumeContextBuilder` 仅从已解析块按顺序选择有界文字，移除可靠识别的邮箱、电话、带标签家庭地址/身份证明与本地路径/链接，专业主页可仅保留存在标记；公司、职位、学校、日期、职责、成果、业务指标仍保留。检测不是全面 PII 保证。最多 12000 文本字符、16000 序列化字符、32 块，每块1600字符；省略/截取明确标记 partial，并保留原始块 ID。原始文件、文件名、文件对象、路径和完整原文不进入 provider。ctx 在请求栈内，不保存 prompt/completion。
+
+复用 `LLMProvider` / `QwenProvider`，`resume_evidence@v1` 位于既有 config/prompts；qwen3.8-flash、thinking=False、retries=0。默认 Qwen factory 仅在独立同意并明确分析之后才加载配置/建立 provider；本切片所有验证用 Fake 或无网络 SDK stub，线上请求为0。候选在当前 Workspace 内存中，未经确认，不写 conversation、workflow、Profile 或 canonical Memory，也不接入职业建议或画像修订。后续 C.3 仅显式消费这个候选，不提升其权威。
+
+`ResumeEvidenceBundle` 覆盖20类通用证据，工作经历有职位、组织、时间、职责、成就、领域、工具和业务指标；项目、学历及目标不是必填。每项须有本次实际发送的来源 ID 和原文摘录；未知/跨简历/省略块引用、伪造摘录和缺少依据的字段均拒绝，不替换 ID。B.2 当前接纳路径先独立验证 provenance、excerpt、全部材料字段与限定词，再由代码生成 canonical facts/label；typed 路径不以 provider 的 normalized_claim 为权威，模型措辞丢弃。generic 路径只允许已验证来源完整事实的有限选择，不信任自由改写。它不是语义 judge 或真实性认证。reported resume claim 不等于 confirmed fact，明确职业意向也只是来源声明。confidence 用 explicit/supported/uncertain，含糊项保留枚举 uncertainty，不生成数字确定性、排名或缺口。
+
+最多40条证据、每条6个来源、工作细项每列表6条、12个不确定项，准确重复确定性去重。诊断只包含 opaque source ID、数量、context 长度、partial、状态、时间及枚举类别计数；SDK 请求期间的传输 debug 日志也按执行上下文屏蔽。不存在雇主/姓名、联系方式、简历文字、prompt、completion、完整证据 payload 或 CoT 日志。
+
+本切片 Learning Mode：Codex 负责同意/精简/验证与 focused tests；开发者可选检查一条 Fake 成就为何仍标 resume_provided。必须理解 consent identity、可见来源与确认真实性的区别。验收问题：一个真实块 ID 为什么还不足以证明返回字段？停止条件：人工复核 C.2 前不启动 C.3 或真实简历 Qwen 验证；完整 pytest、Golden 和 Agent Evaluation 仍留到完整 v1.3C 流程后。
+
+### v1.3C.3 信息价值驱动的个性化澄清
+
+这是普通组件，不增加 Agent。`ClarificationContextBuilder → supported ClarificationNeed → clarification@v1 → ClarificationDecision → ClarificationAnswerCandidate` 只停在临时候选。不是简历补全清单；工作经历是一等证据，项目/学历/目标可缺省，不根据专业锁定职业。
+
+显式点击并同意后才选择问题，rerender 不调用 provider。当前用户意向、current confirmed Profile、resume_provided、已确认历史 Memory、近期 conversation 各有独立 authority；只标记可能变化，不自动选择冲突的真实来源。Memory 复用既有 PROFILE_REFINEMENT 的只读检索政策（allowlist/top-k=8/最多6条/3600字符），不调用 refinement 服务，也不增加第三种用例；只取当前 canonical Profile，不读历史草案。最多36个来源、每来源600字符、序列化请求18000字符，近期对话复用六条/4500字符规则，个人联系方式继续按 C.2 规则保守移除，不宣称完全去标识化。
+
+需要由确定性代码生成，按冲突→方向→职责/归属→重要能力→细节的粗粒度优先级筛选；模型只在最高优先级有界集合内语义选择，允许零问题。问题和可选建议由来源/需要动态构建，模型只能选择安全模板，不自由发明事实或推荐；每轮最多一个、建议0–4条，模型不返回 CoT 或自由推理文字。真正含糊且会影响后续理解的技能才问深度，不因简历出现某技能就提问；缺少项目不是需要。
+
+一个问题保持 open，自然语言/建议回答和跳过都检查 owner/thread/state/resume evidence digest/Profile version。普通 composer 默认仍为普通聊天，只有用户勾选问题绑定的回答入口才进入 C.3，避免吞掉 General QA。答案/明确不确定都是有效 candidate；同一语义 topic/source scope 去重，已回答、跳过或不确定不重复追问；新的明确冲突才可建立新需要。每 session 最多8个显式澄清问题/8个答案，不自动循环或在回答后调用 C.4。
+
+同意撤回、更换/移除简历、切换/New Chat、删除/关闭会清空澄清状态；Profile version 或证据版本变化拒绝旧问题。晚到结果不能重新发布到已清空/删除会话。本地 opaque client 隔离不是认证。候选不写 transcript、checkpoint、Profile 或 canonical Memory，不创建 Profile version/refinement draft，不推断最终方向或推荐/排序/搜索岗位。错误安全分类，不自动重试/修复；复用 provider abstraction，qwen3.8-flash/thinking=False/retries=0，本切片只用 Fake，线上请求为0。
+
+诊断仅事件、枚举 reason、数量、state version、zero/one flag 和延迟；B.3 另保留 session-only 的闭集结构错误路径/type/数量/fingerprint，未知 key/union 标签不输出，不保存 Pydantic 错误值。不记录回答、resume claim、完整 Profile/Memory、prompt/completion 或 CoT。显式意向识别与同维度冲突检测是保守文本规则，不是全面语义理解；跨来源自由改写可能漏检或形成待确认差异，模板文案暂不精修。完整离线门已在 C.5/B.3 通过，切片历史结果不代表完整 live 验证。
+
+本切片 Learning Mode：Codex 负责信息价值/来源边界/去重/临时状态与聚焦验证；开发者可选用一份公开合成审计简历检查“不确定”回答后不重复追问。必须理解当前意向、已确认画像和简历声明的不同权威，candidate 不是 durable confirmation。验收问题：为什么明确改变意向只生成候选，而不能覆写旧 Profile？停止条件：人工复核 C.3 前不开始 C.4，不运行延期门禁或真实 Qwen 澄清。
+
+### v1.3C.4 逐项增量画像确认
+
+沿用唯一 `UserProfile` / `SQLiteStructuredProfileStore`，在原有技能、目标、偏好之外增加可选通用章节；工作经历是一等章节，教育/项目/目标可为空。Profile 是结构化权威，ResumeEvidence 和澄清回答仍是临时候选。`profile_refinement@v1` 只提出最多20项增量；上下文最多60个摘要来源/24000字符，无全文、原始文件或完整会话。简历技能提及不能升级熟练度，专业不能自动变为职业目标，unknown 不会变成能力缺口。
+
+聊天内逐项确认、编辑、保留旧值/拒绝或确认不确定；全部条目需有明确选择，但不必全部接受。用户编辑带 `explicit_user_edit` 来源，后续确认/不确定选择不恢复模型原值。未变化字段原样保留；无实质变化不产生新版本/重复记忆。草案只在当前 Workspace 内存中，Streamlit rerun 可保留，进程重启不恢复；绑定 owner/thread、基版本/内容摘要、简历来源/证据摘要、澄清版本/摘要、当前输入摘要和草案指纹。旧按钮、换简历/证据/答案/基版本、新建/切换/删除会话、撤销同意及延迟结果不能使旧草案生效。
+
+Profile/Memory 共享 SQLite，但既有公开写接口自行提交。确认采用同一 `BEGIN IMMEDIATE` 内基版本 CAS、Profile 历史插入和当前指针更新，事务内再检查候选绑定；旧版本保留且不原地改写。可选 Memory 为独立 post-commit 操作，不是假称跨存储原子事务：用户最多选择一条已接受的 goal / career_preference / transition_intent（复用 goal/career_preference 类型），默认不写。同类型同值去重，只有明确同维度差异才用既有 supersede。失败保留已确认 Profile、报告安全状态，不自动重试；无持久 outbox，重启后的补偿需后续明确设计。向量仍是可重建派生索引。
+
+只有归一化值和来源引用进入 Profile，不存简历引文、回答全文、文件内容/路径、provider prompt/completion。诊断只含事件/枚举/计数/版本/随机草案 ID/延迟。当前客户端隔离不是生产认证。C.4 使用 Fake 合成数据，线上请求0；完整 pytest、Golden、Agent Evaluation 与真实流程留至 C.5，Career Discovery 留至 v1.3D。
+
+本切片 Learning Mode：Codex 负责来源与确认边界、版本 CAS、事务失败与生命周期测试；开发者可选亲手审核公开合成草案，一项编辑、一项保留旧值，再观察新版本。必须理解候选不等于权威、CAS 与历史指针、Profile 提交和可选 Memory 后置副作用。验收问题：为什么 Memory 写入失败不能把已确认 Profile 回滚？停止条件：人工复核 C.4 后才单独批准 C.5；此处不提交、不部署、不调用真实 Qwen。
 
 ## Learning Mode
 

@@ -54,7 +54,7 @@ class RuntimeDiagnostic(Contract):
 
 class ProviderAttempt(Contract):
     prompt_name: Literal["orange_planner", "orange_planner_repair", "orange_response"]
-    status: Literal["succeeded", "failed"]
+    status: Literal["succeeded", "failed", "cancelled"]
     latency_ms: int = Field(ge=0)
     provider_retry_count: int = Field(ge=0, le=1)
     input_tokens: int | None = Field(default=None, ge=0)

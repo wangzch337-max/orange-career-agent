@@ -199,13 +199,32 @@ def approved_ui_test_source(name, source):
         )
     if name == "tests/test_ui_security.py":
         source = source.replace('        "chat_input(",\n        "chat_message(",\n', '', 1)
+    if name == "tests/test_ui_rendering.py":
+        source = source.replace(
+            '        assert (ROOT / name).read_bytes() == subprocess.check_output(["git", "show", f"{BASELINE}:{name}"], cwd=ROOT)\n',
+            '        from tests.v12_contract import assert_v12_delta\n'
+            '        assert_v12_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{BASELINE}:{name}"], cwd=ROOT))\n',
+            1,
+        )
     if name == "tests/test_onboarding.py":
         source = source.replace("        if name == 'workflows/langgraph_workflow.py':\n", "        if name in {'workflows/langgraph_workflow.py', 'observability/models.py'}:\n", 1)
+        before = "        if name in {'workflows/langgraph_workflow.py', 'observability/models.py'}:\n"
+        after = """        if name in {'data/models.py', 'memory/sqlite_store.py'}:
+            from tests.profile_refinement_contract import assert_c4_shared_delta
+            assert_c4_shared_delta(name, (ROOT/name).read_bytes(), subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT))
+            continue
+""" + before
+        assert source.count(before) == 1, name
+        source = source.replace(before, after, 1)
     return source
 
 
 def assert_v12_delta(name, current, expected):
     """Reject every byte outside the listed presentation compatibility edits."""
+    if name == "requirements.txt":
+        from tests.runtime_contract import assert_resume_requirements
+        assert_resume_requirements(current, expected)
+        return
     if name == "observability/models.py":
         # v1.3B.1 adds ONE closed, runtime-only detail; existing metadata stays frozen.
         current = current.replace(b', field_validator, model_validator\n', b', field_validator\n', 1)
@@ -261,6 +280,6 @@ def assert_v12_delta(name, current, expected):
         current = source.replace(before, 'from memory.models import new_subject_id\n', 1).encode()
     elif name.startswith("tests/"):
         if name == "tests/test_ui_rendering.py":
-            current = current.replace(b'    from tests.runtime_contract import V13B_PATHS\n', b'', 1).replace(b'    } | V13B_PATHS\n', b'    }\n', 1)
+            current = current.replace(b'    from tests.runtime_contract import V13B_PATHS, V13C1_PATHS, V13C2_PATHS, V13C3_PATHS, V13C4_PATHS, V13C5A_PATHS, V13C_FREEZE_PATHS\n', b'', 1).replace(b'    } | V13B_PATHS | V13C1_PATHS | V13C2_PATHS | V13C3_PATHS | V13C4_PATHS | V13C5A_PATHS | V13C_FREEZE_PATHS\n', b'    }\n', 1)
         expected = approved_ui_test_source(name, expected.decode()).encode()
     assert current == expected, name

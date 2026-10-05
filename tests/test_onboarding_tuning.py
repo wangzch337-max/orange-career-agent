@@ -11,6 +11,10 @@ from xml.etree import ElementTree
 import pytest
 
 from ui.onboarding.component import MESSAGES
+from tests.freeze_contract import (
+    PRE_RESUME_BASELINE, assert_original_inventory, assert_resume_prompt_scope,
+    changed_paths,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -181,24 +185,37 @@ def test_app_bar_is_byte_identical_to_pre_tuning_static_representation():
 @pytest.mark.parametrize("scope", ["agents", "agents/match_insight_models.py", "memory", "workflows", "evaluation", "config/prompts", "tools", "providers"])
 def test_no_domain_or_golden_change(scope):
     assert (ROOT / scope).exists()
+    if scope == "memory":
+        from tests.profile_refinement_contract import assert_c4_shared_delta
+        name = "memory/sqlite_store.py"
+        assert_c4_shared_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{PRE_RESUME_BASELINE}:{name}"], cwd=ROOT))
+        assert changed_paths(ROOT, PRE_RESUME_BASELINE, scope) == {name}
+        assert_original_inventory(ROOT, PRE_RESUME_BASELINE, scope)
+        return
+    if scope == "config/prompts":
+        assert_resume_prompt_scope(ROOT, PRE_RESUME_BASELINE)
+        return
     if scope == "workflows":
         # Only the two approved canonical-profile/checkpoint compatibility
         # methods may differ; the graph topology and every other byte remain frozen.
         from tests.v12_contract import assert_v12_delta
-        paths = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", "HEAD", scope], cwd=ROOT, text=True).splitlines()
+        paths = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", PRE_RESUME_BASELINE, scope], cwd=ROOT, text=True).splitlines()
         for name in paths:
-            original = subprocess.check_output(["git", "show", f"HEAD:{name}"], cwd=ROOT)
+            original = subprocess.check_output(["git", "show", f"{PRE_RESUME_BASELINE}:{name}"], cwd=ROOT)
             assert_v12_delta(name, (ROOT / name).read_bytes(), original)
     else:
-        assert not subprocess.check_output(["git", "diff", "HEAD", "--", scope], cwd=ROOT)
-    assert not subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard", "--", scope], cwd=ROOT)
+        assert not changed_paths(ROOT, PRE_RESUME_BASELINE, scope)
+    assert_original_inventory(ROOT, PRE_RESUME_BASELINE, scope)
 
 
 def test_no_dependencies_or_external_resources_added():
-    assert not subprocess.check_output(["git", "diff", "HEAD", "--", "requirements.txt", ".streamlit/config.toml"], cwd=ROOT)
+    from tests.runtime_contract import assert_resume_requirements
+    assert_resume_requirements((ROOT / "requirements.txt").read_bytes(), subprocess.check_output(["git", "show", f"{PRE_RESUME_BASELINE}:requirements.txt"], cwd=ROOT))
+    assert not changed_paths(ROOT, PRE_RESUME_BASELINE, ".streamlit/config.toml")
+    assert_original_inventory(ROOT, PRE_RESUME_BASELINE, ".streamlit/config.toml")
     from tests.v12_contract import assert_onboarding_bridge_delta
     for name in ("ui/onboarding/component.py", "ui/onboarding/frontend/onboarding.js"):
-        original = subprocess.check_output(["git", "show", f"HEAD:{name}"], cwd=ROOT)
+        original = subprocess.check_output(["git", "show", f"{PRE_RESUME_BASELINE}:{name}"], cwd=ROOT)
         assert_onboarding_bridge_delta(name, (ROOT / name).read_bytes(), original)
     sources = text("index.html") + text("onboarding.css") + text("onboarding.js")
     for term in ("https://", "http://", "fetch(", "XMLHttpRequest", "WebSocket(", "Math.random", "canvas", "WebGL"):
@@ -211,7 +228,7 @@ def test_no_dependencies_or_external_resources_added():
 ))
 def test_profile_compatibility_guards_reject_extra_and_method_differences(name, changed_byte):
     from tests.v12_contract import assert_v12_delta
-    original = subprocess.check_output(["git", "show", f"HEAD:{name}"], cwd=ROOT)
+    original = subprocess.check_output(["git", "show", f"{PRE_RESUME_BASELINE}:{name}"], cwd=ROOT)
     current = (ROOT / name).read_bytes()
     assert_v12_delta(name, current, original)
     assert changed_byte in current
@@ -226,7 +243,7 @@ def test_profile_compatibility_guards_reject_extra_and_method_differences(name, 
 ))
 def test_browser_bridge_guard_rejects_unapproved_scope_or_motion_changes(name, changed_byte):
     from tests.v12_contract import assert_onboarding_bridge_delta
-    original = subprocess.check_output(["git", "show", f"HEAD:{name}"], cwd=ROOT)
+    original = subprocess.check_output(["git", "show", f"{PRE_RESUME_BASELINE}:{name}"], cwd=ROOT)
     current = (ROOT / name).read_bytes()
     assert_onboarding_bridge_delta(name, current, original)
     assert changed_byte in current

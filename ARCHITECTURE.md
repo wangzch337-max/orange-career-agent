@@ -1,8 +1,14 @@
 # Orange 系统架构 System Architecture
 
-**状态：Portfolio v1；Phase 8C COMPLETE（checkpoint `003c5bc`），Phase 8D 只整理公开说明。8A.1 live 与 Phase 9A / 9B 未开始。**
+**当前状态：Orange Career v1.3C 冻结范围；完整离线 Resume Intelligence 通过，完整真实 provider 链保留验证缺口。Phase 9A / 9B 与 v1.3D 未开始。**
 
-本说明的总体图与产品边界是当前状态；带 Phase 标签的后续段落保留实现演进。Memory 只开放 profile refinement 与 role recall；Job Intelligence 和 Match relation generation 不消费 retrieved Memory。当前入口与三张速读图见 [README](README.md)。
+本说明下方总体图与带 Phase 标签的段落保留 Golden 引导路径及实现演进，不覆盖现有聊天入口的全部能力。Memory 只开放 profile refinement 与 role recall；Job Intelligence 和 Match relation generation 不消费 retrieved Memory。当前入口见 [README](README.md)，聊天/generation 边界见 [Runtime](docs/ORANGE_AGENT_RUNTIME.md)。
+
+## v1.3C 当前增量边界
+
+本地 PDF/DOCX → 独立简历同意 → 有界 provider context → provenance/material validation → deterministic canonical ResumeEvidence → 临时 Clarification answer → Profile delta → 逐项审核/明确确认 → 同一 SQLite Profile store 的不可变历史与 current pointer。普通组件不增加第五个 Agent；工作经历是一等证据，项目/学历/目标可空。ResumeEvidence/答案/草案不自动取得 Profile 权威，provider normalized_claim 不成为 typed 事实的来源。Profile 确认使用事务内 CAS/guard；curated Memory 仅为用户 opt-in 的独立 post-commit 写入，不是跨存储原子承诺。
+
+聊天 transcript、workflow checkpoint、canonical Profile/Memory 与可重建 vector index 继续分离；候选及原简历只在会话内，确认后的字段/opaque refs 才持久化。generation Stop 先冻结实际可见投影、撤销晚到写权限，再提交 CANCELLED 并释放 UI；本地 cleanup 独立、有界，不保证云端物理取消。本地 owner scope 不是生产认证；无 OCR，PII minimization 不是完整 DLP，grounding 不是履历真实性认证。[验证记录](docs/UNIVERSAL_CAREER_VALIDATION.md)明确离线 PASS、有限 C.1/C.2/B.2 live PASS 和未重验的 C.3/C.4 链；该缺口不阻塞后续范围讨论，不授权新调用。
 
 ## 1. 架构目标
 
@@ -218,7 +224,7 @@ duration: measured locally
 
 ## 10. Interface
 
-当前中文 Streamlit 是 conversation-first 的 Public Synthetic Demo：fixed guided stages、动态画像、review / confirm / revision、三个等权方向、role clarification、八类 Match、Action Plan、Exploration Map、显式 Memory 与安全 trace。不是 unrestricted chat 或生产级多用户服务。Phase 8C 只打磨表现层；UI 不路由 domain、不定义 authority、不显示总体分／排名。每个 session 使用临时 stores 与 Fake providers，不加载真实 profile、私有配置或模型。
+当前中文 Streamlit 入口为本地持久聊天 shell，包含独立同意门与通用简历审核路径；启动/打开历史不执行模型。保留的 Public Synthetic Golden Demo 使用 fixed guided stages、动态画像、三个等权方向、Match/actions 与临时 stores/Fake providers，不加载私有输入。两者都不是 unrestricted chat 或生产级多用户服务；UI 不定义 authority，不显示总体分／排名。
 
 ## 11. 安全与数据边界
 

@@ -15,6 +15,12 @@ from uuid import UUID
 from memory.embeddings import FakeEmbeddingProvider
 from memory.models import ProfileReference
 from memory.service import build_semantic_memory_service
+from resume_intake.session import ResumeSessionState
+from resume_evidence.session import ResumeAnalysisSession
+from clarification.context import workspace_inputs
+from clarification.session import ClarificationSession
+from profile_refinement.context import workspace_inputs as refinement_inputs
+from profile_refinement.session import ProfileRefinementSession
 from ui.conversation import ConversationStage, GuidedConversation
 from ui.conversation_shell import ChatMessage, ChatSession
 from ui.conversation_store import (
@@ -110,6 +116,16 @@ class Workspace:
         self._closed = False
         self.last_checkpoint_cleanup = "not_requested"
         self._agent_session = None
+        self.resume_intake = ResumeSessionState(self.owner_scope_id)
+        self.resume_analysis = ResumeAnalysisSession(self.owner_scope_id, self.resume_intake)
+        self.resume_intake.on_clear = self.resume_analysis.invalidate
+        self.clarification = ClarificationSession(self.owner_scope_id,
+            lambda **kwargs: workspace_inputs(self, **kwargs))
+        self.resume_analysis.on_invalidate = self.clarification.invalidate
+        self.profile_refinement = ProfileRefinementSession(self.owner_scope_id,
+            lambda **kwargs: refinement_inputs(self, **kwargs), self.memory_service,
+            on_confirmed=self._profile_refinement_confirmed)
+        self.resume_analysis.on_invalidate = self._invalidate_resume_candidates
         try:
             threads = self.store.list_threads(self.owner_scope_id)
             if threads:
@@ -126,6 +142,17 @@ class Workspace:
         if self._agent_session is None:
             self._agent_session = AgentSession(self)
         return self._agent_session
+
+    def _invalidate_resume_candidates(self):
+        self.clarification.invalidate()
+        self.profile_refinement.invalidate()
+
+    def _profile_refinement_confirmed(self, binding):
+        # Called outside the Profile lock. Never clear a later thread/answer.
+        with self.clarification._lock:
+            if (not self._closed and self._thread is not None and self._thread.thread_id == binding.conversation_id and
+                    self.clarification.state.version == binding.clarification_state_version):
+                self.clarification.invalidate()
 
     @property
     def controller(self) -> DemoController:
@@ -175,6 +202,8 @@ class Workspace:
         """Create a fresh context, pinning only a canonical confirmed profile ref."""
         if self._closed:
             raise ConversationStoreError("Conversation workspace is unavailable.")
+        if self._agent_session is not None:
+            self._agent_session.require_idle()
         current = self.memory_service.get_current_confirmed_profile(self.subject_id)
         refs = {} if current is None else {
             "profile_id_ref": current.profile_id, "profile_version_ref": current.version,
@@ -187,6 +216,9 @@ class Workspace:
         """Load the owned transcript/snapshot/checkpoint without executing anything."""
         if self._closed:
             raise ConversationStoreError("Conversation workspace is unavailable.")
+        if self._agent_session is not None:
+            self._agent_session.require_idle()
+        self.profile_refinement.invalidate()
         thread = self.store.get_thread(self.owner_scope_id, thread_id)
         messages = self.store.list_messages(self.owner_scope_id, thread_id)
         snapshot = self.store.load_snapshot(self.owner_scope_id, thread_id)
@@ -218,6 +250,7 @@ class Workspace:
             self._agent_session.failure_persisted = False
             self._agent_session.pending = None
         self._controller, self._chat, self._thread = controller, chat, thread
+        self.resume_intake.bind(self.owner_scope_id, thread_id)
         return thread
 
     def rename(self, thread_id: str, title: str) -> ConversationThread:
@@ -237,8 +270,14 @@ class Workspace:
         """
         if self._closed:
             raise ConversationStoreError("Conversation workspace is unavailable.")
+        if self._agent_session is not None:
+            self._agent_session.require_idle()
+        if self.thread.thread_id == thread_id:
+            self.profile_refinement.invalidate()
         was_active = self.thread.thread_id == thread_id
         deleted = self.store.delete_thread(self.owner_scope_id, thread_id)
+        if self.resume_intake.thread_id == thread_id:
+            self.resume_intake.clear()
         remaining = self.threads
         workflow_id = deleted.workflow_thread_id
         self.last_checkpoint_cleanup = "not_created"
@@ -261,6 +300,8 @@ class Workspace:
 
     def submit(self, text: str, *, source: str = "typed") -> None:
         """One typed/suggestion path; persist visible reply and state as one turn."""
+        if self._agent_session is not None:
+            self._agent_session.require_idle()
         if not isinstance(text, str):
             raise ConversationStoreError("Message content is invalid.")
         text = text.strip()
@@ -295,6 +336,9 @@ class Workspace:
         """Release resources only; never delete transcript/Profile/Memory/checkpoints."""
         if self._closed:
             return
+        self.resume_intake.clear()
+        if self._agent_session is not None:
+            self._agent_session.close()
         if self._controller is not None:
             self._controller.close()
         self._stack.close()

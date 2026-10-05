@@ -157,6 +157,10 @@ def historical_blobs() -> tuple[tuple[str, str], ...]:
 
 def assert_frozen_bytes(name: str, current: bytes, historical: bytes) -> None:
     """仅兼容获批准的 checkpoint／CSS／v1.1 UI 接线，其余字节完全冻结。"""
+    if name in {"data/models.py", "memory/sqlite_store.py"}:
+        from tests.profile_refinement_contract import assert_c4_shared_delta
+        assert_c4_shared_delta(name, current, historical)
+        return
     expected = historical
     if name == "tests/test_ui_polish.py":
         old_sha = b"5a6a1d14cb95e1a79ab11a1b16e4835d2bce5873"

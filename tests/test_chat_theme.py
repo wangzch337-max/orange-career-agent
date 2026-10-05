@@ -137,7 +137,7 @@ def test_native_bottom_inner_wrapper_cannot_expose_streamlit_default_white_edges
 
 def test_native_header_has_room_without_hiding_mobile_sidebar_access():
     css = shell_stylesheet()
-    assert "padding:calc(3.75rem + .5rem) 2rem 1rem" in css
+    assert "padding:calc(3.75rem + .5rem) var(--oc-chat-gutter) 1rem" in css
     assert "padding:calc(3.75rem + .5rem) 1rem .5rem" in css
     assert '[data-testid="stExpandSidebarButton"] {color:var(--oc-text-primary)' in css
     assert '[data-testid="stExpandSidebarButton"] span, [data-testid="stSidebarCollapseButton"] span {color:var(--oc-text-primary);}' in css
@@ -171,7 +171,7 @@ def test_styles_use_only_stable_selectors_and_no_frontend_or_remote_subsystem():
 @pytest.mark.parametrize("mode", THEME_MODES)
 def test_rail_width_tracks_native_expanded_state_and_collapsed_flex_footprint_is_zero(mode):
     css = shell_stylesheet(mode)
-    assert '--oc-rail-width:248px; --oc-chat-max-width:864px;' in css
+    assert '--oc-rail-width:248px; --oc-chat-max-width:1040px;' in css
     assert '[data-testid="stSidebar"][aria-expanded="true"] {width:var(--oc-rail-width)!important; min-width:var(--oc-rail-width)!important;}' in css
     assert '[data-testid="stSidebar"][aria-expanded="false"] {width:0!important; min-width:0!important; border-right:0;}' in css
     assert 'margin-left:248px' not in css and 'calc(100% - 248px)' not in css

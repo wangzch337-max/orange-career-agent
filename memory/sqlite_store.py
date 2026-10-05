@@ -11,7 +11,7 @@ from typing import Iterator, Mapping, Sequence
 
 from pydantic import ValidationError
 
-from data.models import EvidenceSourceType, ProfileStatus, UserProfile, utc_now
+from data.models import EvidenceSourceType, PROFILE_OPTIONAL_SECTIONS, ProfileStatus, UserProfile, utc_now
 from memory.base import MemoryStore, StructuredProfileStore
 from memory.errors import (
     CorruptStoredProfileError,
@@ -37,6 +37,7 @@ DEFAULT_MEMORY_DATABASE_PATH = (
     PROJECT_ROOT / "data" / "private" / "memory" / "orange_memory.sqlite3"
 )
 MEMORY_SCHEMA_VERSION = 1
+_UNCONDITIONAL_PROFILE_SAVE = object()
 
 
 def _validate_subject_id(subject_id: str) -> str:
@@ -65,6 +66,10 @@ def _profile_semantic_payload(profile: UserProfile) -> dict[str, object]:
     # replayed; they do not alter the confirmed profile's semantic content.
     payload.pop("confirmed_at", None)
     payload.pop("updated_at", None)
+    # Empty optional C.4 sections must not change legacy immutable-version hashes.
+    for field in (*PROFILE_OPTIONAL_SECTIONS, "field_provenance"):
+        if not payload[field]:
+            payload.pop(field)
     return payload
 
 
@@ -219,13 +224,21 @@ class SQLiteStructuredProfileStore(StructuredProfileStore):
         self.database = database
 
     def save_confirmed_profile(
-        self, subject_id: str, profile: UserProfile
+        self, subject_id: str, profile: UserProfile, *,
+        expected_current: ProfileReference | None | object = _UNCONDITIONAL_PROFILE_SAVE,
+        confirmation_guard=None,
     ) -> ProfileSaveResult:
         subject = _validate_subject_id(subject_id)
         if not profile.confirmed or profile.status != ProfileStatus.CONFIRMED:
             raise ProfileVersionConflictError(
                 "Only a confirmed UserProfile may enter the authoritative store."
             )
+        if expected_current is not _UNCONDITIONAL_PROFILE_SAVE:
+            valid_base = (profile.version == 1 if expected_current is None else
+                isinstance(expected_current, ProfileReference) and expected_current.subject_id == subject and
+                expected_current.profile_id == profile.profile_id and expected_current.version == profile.version - 1)
+            if not valid_base:
+                raise ProfileVersionConflictError("PROFILE_VERSION_CONFLICT")
         payload_json = _canonical_json(profile.model_dump(mode="json"))
         semantic_hash = _hash_json(_profile_semantic_payload(profile))
         reference = ProfileReference(
@@ -248,6 +261,22 @@ class SQLiteStructuredProfileStore(StructuredProfileStore):
                     "SELECT profile_id, version FROM current_profiles WHERE subject_id = ?",
                     (subject,),
                 ).fetchone()
+                # Compare-and-swap inside the very same write transaction as
+                # history insertion + canonical pointer. Older callers retain
+                # their existing contract; C.4 must explicitly provide a base.
+                if expected_current is not _UNCONDITIONAL_PROFILE_SAVE:
+                    replay = (existing is not None and existing["semantic_hash"] == semantic_hash and
+                              current is not None and current["profile_id"] == profile.profile_id and
+                              current["version"] == profile.version)
+                    if expected_current is None:
+                        matches = current is None and profile.version == 1
+                    else:
+                        matches = (isinstance(expected_current, ProfileReference) and
+                                   expected_current.subject_id == subject and current is not None and
+                                   current["profile_id"] == expected_current.profile_id == profile.profile_id and
+                                   current["version"] == expected_current.version == profile.version - 1)
+                    if not matches and not replay:
+                        raise ProfileVersionConflictError("PROFILE_VERSION_CONFLICT")
                 if existing is not None:
                     if existing["semantic_hash"] != semantic_hash:
                         raise ProfileVersionConflictError(
@@ -274,6 +303,8 @@ class SQLiteStructuredProfileStore(StructuredProfileStore):
                         raise ProfileVersionConflictError(
                             "Profile version regression is not allowed."
                         )
+                if confirmation_guard is not None:
+                    confirmation_guard()
                 connection.execute(
                     """
                     INSERT INTO profile_versions(
@@ -306,6 +337,8 @@ class SQLiteStructuredProfileStore(StructuredProfileStore):
                         utc_now().isoformat(),
                     ),
                 )
+                if confirmation_guard is not None:
+                    confirmation_guard()
                 connection.commit()
         except sqlite3.DatabaseError as exc:
             raise MemoryStoreError("Confirmed profile persistence failed.") from exc
