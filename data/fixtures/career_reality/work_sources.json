@@ -1,0 +1,93 @@
+{
+  "schema_version": "orange.career_reality.sources.v1",
+  "records": [
+    {
+      "source_id": "reality_business_analysis", "version": 1,
+      "source_type": "public_synthetic_demo", "provenance": "independently_authored_fictional_work_material",
+      "identities": [{"family":"Business Analysis","title":"Business Analysis"},{"family":"业务分析","title":"业务分析"}],
+      "display_name": "业务分析 · 公开虚构工作情境",
+      "purpose": "在这个虚构团队里，业务分析把模糊的业务问题拆成可核对的问题、数据和决策依据，让团队知道下一步应验证什么。",
+      "situations": [
+        {"situation_id":"service_delay","situation":"一家虚构服务团队发现工单处理变慢，但不同成员对原因有不同看法。","problem":"需要区分需求变化、交接等待和数据记录差异，而不是直接把问题归为某个人效率低。","why_it_matters":"如果原因没有弄清，增加人手或改系统也可能没有解决真正的堵点。","typical_tasks":["和业务同事确认问题边界及处理时间的定义。","核对工单数据，按阶段拆分等待时间。","把发现与仍待验证的假设整理给团队讨论。"],"inputs":["匿名工单记录、流程说明和业务同事的反馈。"],"outputs":["带口径说明的流程观察、问题清单和待验证假设。"],"collaborators":["一线业务、运营、数据和系统维护同事。"],"work_style":["反复核对定义，在数据分析和业务沟通之间切换。"],"capabilities_involved":["问题拆解、数据核对、流程理解和清晰表达。"],"uncertainties":["这个示例不说明分析人员的职级或最终决策权限。"]},
+        {"situation_id":"metric_disagreement","situation":"虚构团队的两个报表给出不同的客户留存数字。","problem":"需要找出时间窗口、客户定义和数据处理口径的差异。","why_it_matters":"团队只有在理解口径后，才能讨论业务变化，而不是围绕两个数字争论。","typical_tasks":["追溯指标定义与数据来源。","用少量案例核对计算过程。","记录适用边界与尚未解释的差异。"],"inputs":["脱敏样本、指标定义及报表计算说明。"],"outputs":["指标口径对照与差异说明。"],"collaborators":["业务负责人、数据同事和报表使用者。"],"work_style":["细致检查细节，先统一问题再讨论结论。"],"capabilities_involved":["指标理解、逻辑核对、沟通与文档整理。"],"uncertainties":["示例不规定使用哪一种分析软件。"]}
+      ],
+      "internal_variations":["这些示例里，一种工作更靠近业务流程，另一种更靠近指标与数据口径；不是具体岗位推荐。"],
+      "uncertainties":["不提供真实公司的用人要求、薪资、工作时长或招聘机会。"]
+    },
+    {
+      "source_id":"reality_process_improvement", "version":1,
+      "source_type":"public_synthetic_demo","provenance":"independently_authored_fictional_work_material",
+      "identities":[{"family":"Process Improvement","title":"Process Improvement"},{"family":"Operations Improvement","title":"Operations Improvement"},{"family":"Process Coordination","title":"Process Coordination"},{"family":"流程改善","title":"流程改善"}],
+      "display_name":"流程改善 · 公开虚构工作情境",
+      "purpose":"在这个虚构组织里，流程改善关注工作如何被交接和完成，尝试让重复等待、返工和信息遗漏变得可观察。",
+      "situations":[
+        {"situation_id":"handoff","situation":"一支虚构交付团队每次接到客户变更，都要在几个部门之间重新确认。","problem":"交接标准不一致，导致相同信息反复询问。","why_it_matters":"先看清交接问题，才能判断是需要规则、工具还是沟通方式的调整。","typical_tasks":["记录一条变更从收到到完成的流程。","和各参与方核对交接信息。","在小范围试用统一清单并观察返工情况。"],"inputs":["流程记录、脱敏变更样本和交接反馈。"],"outputs":["流程图、小范围试验记录与尚未解决的问题。"],"collaborators":["业务、交付、质量和工具维护同事。"],"work_style":["贴近实际工作观察，小步试验而非一次宣布彻底改造。"],"capabilities_involved":["流程观察、协调、文档整理和结果核对。"],"uncertainties":["示例没有证明任何试验一定能提高效率。"]},
+        {"situation_id":"quality_check","situation":"虚构团队发现同一份交付物在不同审核人那里经常被打回。","problem":"质量标准与检查顺序没有形成共同理解。","why_it_matters":"把差异说清楚，有助于减少没有明确理由的返工。","typical_tasks":["整理返工原因与例子。","核对检查标准。","观察统一标准后的变化与例外。"],"inputs":["匿名返工记录与既有检查要求。"],"outputs":["检查口径说明和待验证的改善观察。"],"collaborators":["执行、审核与质量同事。"],"work_style":["关注细节，也需要听取不同环节的意见。"],"capabilities_involved":["分类、流程理解、质量意识和协作。"],"uncertainties":["示例不涉及特定行业的法定资格。"]}
+      ],
+      "internal_variations":["可以更靠近日常协调，也可以更靠近质量与流程观察；实际范围取决于组织情境。"],
+      "uncertainties":["不说明真实企业的组织权限、资格要求、薪资或岗位名单。"]
+    },
+    {
+      "source_id":"reality_knowledge_operations","version":1,
+      "source_type":"public_synthetic_demo","provenance":"independently_authored_fictional_work_material",
+      "identities":[{"family":"Knowledge Operations","title":"Knowledge Operations"},{"family":"知识运营","title":"知识运营"}],
+      "display_name":"知识运营 · 公开虚构工作情境",
+      "purpose":"在这个虚构服务组织里，知识运营让分散的工作经验成为可查找、可核对、能更新的资料，而不是让每个人重复寻找答案。",
+      "situations":[
+        {"situation_id":"outdated_guidance","situation":"虚构客服团队发现同一问题有三份不同的处理说明。","problem":"需要核实适用范围、责任人及哪些内容已经过期。","why_it_matters":"错误或找不到的资料会影响服务的一致性。","typical_tasks":["收集重复问题并核对现有说明。","和内容责任人确认有效版本。","整理检索入口与更新记录。"],"inputs":["脱敏问题样本、已有知识条目和维护反馈。"],"outputs":["有范围说明的知识条目、更新记录和待核实清单。"],"collaborators":["服务人员、业务专家及系统维护同事。"],"work_style":["整理细节并持续核对，不把一次整理当永久正确。"],"capabilities_involved":["信息组织、来源核对、文字表达与协作。"],"uncertainties":["示例不规定必须使用 AI 或某个知识库产品。"]},
+        {"situation_id":"findability","situation":"虚构团队有完整操作说明，但新成员仍经常找不到需要的条目。","problem":"资料名称和实际提问方式不一致。","why_it_matters":"可找到、可理解和内容正确是不同的问题。","typical_tasks":["观察查找过程。","核对分类与命名。","试验更清晰的入口并收集反馈。"],"inputs":["公开演示检索样例、条目分类和使用反馈。"],"outputs":["分类调整说明与检索问题记录。"],"collaborators":["资料使用者和内容维护者。"],"work_style":["从使用情境出发反复调整。"],"capabilities_involved":["用户问题理解、分类与反馈整理。"],"uncertainties":["示例不证明检索准确率或任何商业成果。"]}
+      ],
+      "internal_variations":["一种情境偏内容治理，另一种偏资料使用体验；不是岗位族发现。"],
+      "uncertainties":["真实组织的数据权限、资料保密规则和职业门槛未在本资料中说明。"]
+    },
+    {
+      "source_id":"reality_ai_product_application","version":1,
+      "source_type":"public_synthetic_demo","provenance":"independently_authored_fictional_work_material",
+      "identities":[{"family":"AI Product and Applications","title":"AI Product and Applications"},{"family":"AI 产品与应用落地","title":"AI 产品与应用落地"},{"family":"AI 产品与应用落地方向","title":"AI 产品与应用落地方向"},{"family":"Product","title":"Product"}],
+      "display_name":"AI 产品与应用落地 · 公开虚构工作情境",
+      "purpose":"在这个虚构团队里，这类工作把业务问题、用户使用方式和 AI 系统能力连接起来，帮助团队判断一个应用怎样才真正有用。",
+      "situations":[
+        {"situation_id":"handover_to_human","situation":"虚构 AI 客服上线后，用户仍频繁转人工。","problem":"问题可能涉及知识覆盖、系统能力、交互或业务流程，不能只看模型回答是否流畅。","why_it_matters":"团队需要先弄清哪些问题值得验证，再决定改动方向。","typical_tasks":["核对脱敏失败案例与用户操作路径。","和工程、运营讨论不同假设。","明确一个小范围验证及观察方法。"],"inputs":["公开合成对话案例、演示流程和用户问题定义。"],"outputs":["问题拆解、验证说明与未解决问题列表。"],"collaborators":["业务、产品、工程、算法与运营参与者；分工在不同团队可能不同。"],"work_style":["在需求、系统行为和协作讨论之间切换。"],"capabilities_involved":["问题定义、系统理解、案例分析与清晰沟通；这里不推断用户已经具备这些能力。"],"uncertainties":["没有规定谁拥有商业路线图、KPI 或最终决策权。"]},
+        {"situation_id":"workflow_prototype","situation":"虚构团队想让 AI 帮忙整理服务请求，但不清楚哪些环节应保留人工审核。","problem":"需要区分可自动处理的步骤与必须人工判断的边界。","why_it_matters":"一个能演示的原型不等于已经适合真实运营。","typical_tasks":["梳理输入、输出和人工审核点。","使用合成样本观察原型行为。","记录失败情境与仍需验证的边界。"],"inputs":["公开合成请求、流程草图和演示约束。"],"outputs":["原型流程说明、演示观察及边界清单。"],"collaborators":["业务使用者、产品与软件工程参与者。"],"work_style":["小步试验并明确未知，不只追求演示效果。"],"capabilities_involved":["流程拆解、API 与系统概念、测试意识和沟通。"],"uncertainties":["资料不规定必须独立训练模型或拥有正式产品管理经历。"]}
+      ],
+      "internal_variations":["示例中可更靠近需求与使用体验，也可更靠近应用实现与交付；不构成岗位列表或个人职业建议。"],
+      "uncertainties":["不提供真实企业要求、技术深度标准、薪资、市场趋势或招聘信息。"]
+    },
+    {
+      "source_id":"reality_service_operations","version":1,
+      "source_type":"public_synthetic_demo","provenance":"independently_authored_fictional_work_material",
+      "identities":[{"family":"Service Operations","title":"Service Operations"},{"family":"Customer Experience","title":"Customer Experience"},{"family":"服务运营","title":"服务运营"}],
+      "display_name":"服务运营 · 公开虚构工作情境",
+      "purpose":"在这个虚构团队里，服务运营关注服务如何稳定完成，以及使用者遇到的问题怎样被看见和处理。",
+      "situations":[
+        {"situation_id":"repeated_contacts","situation":"虚构服务团队发现用户为同一个问题多次联系不同窗口。","problem":"需要了解信息交接、处理规则和反馈入口。","why_it_matters":"重复联系可能说明流程没有帮助用户完成事情。","typical_tasks":["整理匿名重复联系案例。","核对各环节的处理规则。","和团队讨论改善尝试及例外。"],"inputs":["合成服务记录、流程说明和反馈。"],"outputs":["服务问题清单、交接观察和改善尝试说明。"],"collaborators":["一线服务、运营、系统与质量参与者。"],"work_style":["兼顾日常运行和问题追踪，具体节奏仍需看组织。"],"capabilities_involved":["服务理解、协调、问题整理与过程观察。"],"uncertainties":["资料不说明真实排班、压力水平或客户规模。"]}
+      ],
+      "internal_variations":["在这个示例中可以侧重现场交接，也可以侧重服务反馈分析。"],
+      "uncertainties":["没有其他已批准情境时，不补造第二个例子；真实岗位要求仍未知。"]
+    },
+    {
+      "source_id":"reality_ux_research","version":1,
+      "source_type":"public_synthetic_demo","provenance":"independently_authored_fictional_work_material",
+      "identities":[{"family":"UX Research","title":"UX Research"},{"family":"Service Design","title":"Service Design"},{"family":"用户体验研究","title":"用户体验研究"}],
+      "display_name":"用户体验与服务设计 · 公开虚构工作情境",
+      "purpose":"在这个虚构团队里，这类工作帮助团队看清用户如何理解和使用服务，避免只凭内部想象设计流程。",
+      "situations":[
+        {"situation_id":"confusing_form","situation":"虚构服务表单填写到一半时经常被放弃。","problem":"团队不知道问题来自词语、步骤、信息要求还是实际使用场景。","why_it_matters":"看清使用过程，才能讨论怎样调整设计。","typical_tasks":["明确想了解的问题。","观察公开演示用户的操作过程。","区分观察、解释和仍未验证的假设。"],"inputs":["虚构操作脚本、演示原型与观察记录。"],"outputs":["有适用范围的体验问题与设计讨论依据。"],"collaborators":["设计、产品、业务与实现参与者。"],"work_style":["耐心观察并克制解释，不把少量案例推广成所有用户。"],"capabilities_involved":["观察、访谈问题设计、分析与表达。"],"uncertainties":["示例不证明大规模用户研究经验，也不规定研究资格。"]}
+      ],
+      "internal_variations":["示例可偏向理解使用者，也可偏向跨环节服务体验；不是特定职称筛选。"],
+      "uncertainties":["不提供真实研究样本、用户群结论、职业门槛或招聘要求。"]
+    },
+    {
+      "source_id":"reality_healthcare_operations","version":1,
+      "source_type":"public_synthetic_demo","provenance":"independently_authored_fictional_work_material",
+      "identities":[{"family":"Healthcare Operations","title":"Healthcare Operations"},{"family":"Patient Experience","title":"Patient Experience"},{"family":"医疗服务运营","title":"医疗服务运营"}],
+      "display_name":"医疗服务运营 · 公开虚构非临床情境",
+      "purpose":"在这个虚构的非临床服务情境里，运营关注预约、信息交接和服务流程，不承担诊断或治疗。",
+      "situations":[
+        {"situation_id":"appointment_handoff","situation":"虚构服务中心的预约信息在不同窗口之间重复确认。","problem":"需要了解通知、到场与交接环节的信息是否一致。","why_it_matters":"流程问题可能增加使用者的不便，但不能据此判断任何临床结果。","typical_tasks":["梳理公开合成预约流程。","与服务窗口核对交接说明。","记录流程例外及待进一步了解的问题。"],"inputs":["无身份信息的虚构预约样本和流程说明。"],"outputs":["非临床流程观察、交接清单和未知事项。"],"collaborators":["预约、行政与服务流程参与者。"],"work_style":["注意信息边界与清晰交接，不处理真实健康资料。"],"capabilities_involved":["流程理解、协调、细节核对与沟通。"],"uncertainties":["专业资格、临床职责和当地监管要求不在本资料覆盖范围。"]}
+      ],
+      "internal_variations":["本资料仅展示非临床预约与服务流程，不解释临床职业或执照路径。"],
+      "uncertainties":["本情境不是医疗建议、真实机构调查或专业资格认证。"]
+    }
+  ]
+}

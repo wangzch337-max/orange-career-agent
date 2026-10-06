@@ -1,0 +1,176 @@
+{
+  "schema_version": "orange.role_landscape.sources.v1",
+  "records": [
+    {
+      "source_id": "landscape_business_analysis", "version": 1,
+      "status": "approved_public_demo", "source_type": "public_synthetic_curated",
+      "provenance": "independently_authored_fictional_role_landscape",
+      "direction_identity": {"family": "Business Analysis", "title": "Business Analysis"},
+      "display_name": "业务分析：公开虚构角色分工 v1",
+      "scope": "作者为业务分析方向设计的三种代表性分工，只描述本演示内部关系，不代表公司职位分类。",
+      "memberships": [
+        {"role_id": "role_ba_problem", "evidence": "本合成资料将业务问题梳理归入 Business Analysis：它承担业务问题和指标口径的澄清。"},
+        {"role_id": "role_ba_requirements", "evidence": "本合成资料将需求转译归入 Business Analysis：它把业务诉求转成可讨论和验收的需求。"},
+        {"role_id": "role_ba_system", "evidence": "本合成资料将系统流程分析归入 Business Analysis：它分析业务规则在系统流程中的落点。"}
+      ],
+      "roles": [
+        {
+          "role_id": "role_ba_problem", "display_name": "业务问题梳理型",
+          "scope": "虚构服务团队中，围绕问题定义与数据口径开展分析的分工。",
+          "primary_problem": "业务讨论没有统一的问题定义，数字也可能采用不同口径。",
+          "work_emphasis": "把模糊诉求拆成可检验的问题与指标。",
+          "distinction": "侧重先弄清问题，而非定义系统功能或实施系统规则。",
+          "representative_tasks": ["收集虚构团队对工单积压的不同解释。", "整理指标定义与待核实假设。"],
+          "collaboration": ["与业务负责人核对问题边界。", "与数据同事核对指标口径。"],
+          "outputs": ["问题定义和指标口径说明。"],
+          "technical_system_emphasis": "这个示例更靠近业务问题与数据解释；系统实现不是这类分工的中心。",
+          "variation_notes": ["不同团队可能把问题梳理和需求分析交给同一人。"],
+          "uncertainties": ["本演示没有说明真实公司如何命名或招聘这类分工。"],
+          "reference_aliases": ["偏问题那个"]
+        },
+        {
+          "role_id": "role_ba_requirements", "display_name": "需求转译型",
+          "scope": "虚构服务工具改进中，连接业务诉求与可验收需求的分工。",
+          "primary_problem": "业务希望改进体验，但诉求尚不能被设计或开发团队执行。",
+          "work_emphasis": "说明需求边界、业务规则和验收条件。",
+          "distinction": "侧重把问题变成可执行需求，而非追查指标口径或实现系统连接。",
+          "representative_tasks": ["梳理工单分流的用户场景。", "写出边界情况与验收样例。"],
+          "collaboration": ["与业务人员确认场景。", "与设计、开发和测试讨论验收条件。"],
+          "outputs": ["场景说明和可验收需求清单。"],
+          "technical_system_emphasis": "需要理解业务规则与系统限制以准确转译需求；资料未规定编程深度。",
+          "variation_notes": ["这里的需求转译不等同于商业产品路线图或 KPI 所有权。"],
+          "uncertainties": ["真实团队的权限、技术门槛和职位名称仍未知。"],
+          "reference_aliases": ["偏需求那个"]
+        },
+        {
+          "role_id": "role_ba_system", "display_name": "系统流程分析型",
+          "scope": "虚构服务系统中，分析业务流程与系统规则对应关系的分工。",
+          "primary_problem": "业务流程在系统状态、数据字段或接口之间出现断点。",
+          "work_emphasis": "追踪业务规则如何落到系统流程、字段和异常处理。",
+          "distinction": "更靠近系统落地边界，仍是分析分工，不自动等于软件开发职位。",
+          "representative_tasks": ["画出工单状态流转与异常路径。", "核对业务规则对应的数据字段。"],
+          "collaboration": ["与业务人员核对规则。", "与开发和测试核对系统边界。"],
+          "outputs": ["流程、字段与规则的对应说明。"],
+          "technical_system_emphasis": "本演示中偏系统：关注状态流、字段和接口限制；不据此推定高级工程能力。",
+          "variation_notes": ["实施责任可能由其他工程角色承担。"],
+          "uncertainties": ["资料没有确定具体系统栈和真实岗位要求。"],
+          "reference_aliases": ["偏系统那个", "刚才偏系统那个"]
+        }
+      ]
+    },
+    {
+      "source_id": "landscape_knowledge_operations", "version": 1,
+      "status": "approved_public_demo", "source_type": "public_synthetic_curated",
+      "provenance": "independently_authored_fictional_role_landscape",
+      "direction_identity": {"family": "Knowledge Operations", "title": "Knowledge Operations"},
+      "display_name": "知识运营：公开虚构角色分工 v1",
+      "scope": "作者为知识运营方向设计的三种代表性分工，不声称真实市场存在这些固定职位。",
+      "memberships": [
+        {"role_id": "role_ko_curation", "evidence": "本合成资料将知识整理归入 Knowledge Operations：它负责内容组织、边界和版本。"},
+        {"role_id": "role_ko_retrieval", "evidence": "本合成资料将检索体验设计归入 Knowledge Operations：它负责让使用者找到有来源的知识。"},
+        {"role_id": "role_ko_quality", "evidence": "本合成资料将知识质量维护归入 Knowledge Operations：它负责发现过期与冲突并推动修订。"}
+      ],
+      "roles": [
+        {
+          "role_id": "role_ko_curation", "display_name": "知识整理型",
+          "scope": "虚构支持团队中，整理散落说明材料的分工。",
+          "primary_problem": "相同问题的说明散落在多个文档中，版本边界不清楚。",
+          "work_emphasis": "组织内容、术语、适用范围与版本关系。",
+          "distinction": "先整理知识本身，而非实现搜索机制或持续质量检查。",
+          "representative_tasks": ["归并重复的虚构流程说明。", "标注说明适用的版本与负责人。"],
+          "collaboration": ["与领域专家核实内容。", "与一线使用者核对术语。"],
+          "outputs": ["带版本与适用范围的知识条目。"],
+          "technical_system_emphasis": "本示例偏内容与结构；使用工具整理并不证明工程实施能力。",
+          "variation_notes": ["整理与质量维护在小团队中可能重叠。"],
+          "uncertainties": ["真实组织的职责权限与职位名称未被说明。"],
+          "reference_aliases": ["偏内容那个"]
+        },
+        {
+          "role_id": "role_ko_retrieval", "display_name": "检索体验设计型",
+          "scope": "虚构知识库中，设计查找路径与来源呈现的分工。",
+          "primary_problem": "内容存在但使用者找不到，或找到后无法判断是否适用。",
+          "work_emphasis": "改善查询路径、分类标签与来源可见性。",
+          "distinction": "更靠近知识使用与系统检索界面，不等同于训练搜索模型。",
+          "representative_tasks": ["整理公开虚构查询样例及其应找到的条目。", "检查检索结果能否展示版本与出处。"],
+          "collaboration": ["与使用者讨论查找路径。", "与系统实施同事讨论检索界面。"],
+          "outputs": ["检索路径样例和来源呈现方案。"],
+          "technical_system_emphasis": "本演示中偏系统：关注检索流程和来源展示；具体算法与工程栈没有被确定。",
+          "variation_notes": ["系统实施可由工程同事完成，不把此分工等同于模型研发。"],
+          "uncertainties": ["资料未提供真实检索效果、岗位要求或技术资历证据。"],
+          "reference_aliases": ["偏系统那个", "刚才偏系统那个"]
+        },
+        {
+          "role_id": "role_ko_quality", "display_name": "知识质量维护型",
+          "scope": "虚构知识库中，跟踪内容变化与修订闭环的分工。",
+          "primary_problem": "过期或相互冲突的条目持续影响使用者。",
+          "work_emphasis": "发现问题、核实变更并追踪修订。",
+          "distinction": "侧重持续维护闭环，而非首次内容组织或搜索体验设计。",
+          "representative_tasks": ["核查虚构条目的过期版本。", "跟踪专家确认后的修订记录。"],
+          "collaboration": ["与内容负责人确认变更。", "与一线使用者收集条目问题。"],
+          "outputs": ["质量问题清单与已核实的修订记录。"],
+          "technical_system_emphasis": "本示例以维护与核实为中心；检查工具可辅助，但未定义自动化系统责任。",
+          "variation_notes": ["质量维护频率因知识变化速度而异。"],
+          "uncertainties": ["本演示没有给出真实维护指标和组织安排。"],
+          "reference_aliases": ["偏维护那个"]
+        }
+      ]
+    },
+    {
+      "source_id": "landscape_process_improvement", "version": 1,
+      "status": "approved_public_demo", "source_type": "public_synthetic_curated",
+      "provenance": "independently_authored_fictional_role_landscape",
+      "direction_identity": {"family": "Process Improvement", "title": "Process Improvement"},
+      "display_name": "流程改进：公开虚构角色分工 v1",
+      "scope": "作者为流程改进方向设计的三种代表性分工，仅作为本离线演示的工作世界样例。",
+      "memberships": [
+        {"role_id": "role_pi_diagnosis", "evidence": "本合成资料将流程诊断归入 Process Improvement：它负责定位交接与等待中的问题。"},
+        {"role_id": "role_pi_automation", "evidence": "本合成资料将自动化流程落地归入 Process Improvement：它负责把已澄清规则变为有异常边界的流程。"},
+        {"role_id": "role_pi_measurement", "evidence": "本合成资料将改进效果跟踪归入 Process Improvement：它负责核查变更后的流程表现。"}
+      ],
+      "roles": [
+        {
+          "role_id": "role_pi_diagnosis", "display_name": "流程诊断型",
+          "scope": "虚构请求处理团队中，分析交接与等待的分工。",
+          "primary_problem": "请求在多次交接中等待，团队尚不清楚瓶颈出现在哪里。",
+          "work_emphasis": "梳理现有流程、例外情况和责任交接。",
+          "distinction": "侧重定位问题，不直接负责自动化实施或变更后的效果验证。",
+          "representative_tasks": ["画出虚构请求的交接路径。", "与流程参与者核对等待原因。"],
+          "collaboration": ["与业务流程参与者核对真实操作边界。", "与流程负责人讨论可调整环节。"],
+          "outputs": ["流程图、瓶颈假设与待核实问题。"],
+          "technical_system_emphasis": "本示例偏流程观察和业务沟通；可以涉及系统，但不以编写自动化为中心。",
+          "variation_notes": ["流程诊断与效果跟踪可以由同一团队承担。"],
+          "uncertainties": ["真实行业的合规要求和职位名称仍未知。"],
+          "reference_aliases": ["偏诊断那个"]
+        },
+        {
+          "role_id": "role_pi_automation", "display_name": "自动化流程落地型",
+          "scope": "虚构请求流程中，实施已澄清规则与异常分支的分工。",
+          "primary_problem": "重复转录和分流占用时间，但流程规则与异常边界必须保持明确。",
+          "work_emphasis": "把批准的规则接入工具流程，并验证异常和人工接管路径。",
+          "distinction": "更靠近系统落地，不把所有流程问题都视为需要自动化。",
+          "representative_tasks": ["配置虚构请求的规则分流流程。", "用公开合成样例检查异常与人工接管。"],
+          "collaboration": ["与业务负责人确认规则。", "与系统维护和测试同事验证实施边界。"],
+          "outputs": ["可验证的流程配置与异常测试记录。"],
+          "technical_system_emphasis": "本演示中偏系统：关注工具连接、规则执行与异常验证；编程深度依实现方式而变，资料没有定量要求。",
+          "variation_notes": ["工具配置、脚本和系统开发不是同一种实施深度。"],
+          "uncertainties": ["没有真实系统权限、部署责任或岗位门槛证据。"],
+          "reference_aliases": ["偏系统那个", "刚才偏系统那个"]
+        },
+        {
+          "role_id": "role_pi_measurement", "display_name": "改进效果跟踪型",
+          "scope": "虚构流程变更中，核查改进效果与新问题的分工。",
+          "primary_problem": "流程已经调整，但是否减少等待、是否产生新问题还不清楚。",
+          "work_emphasis": "核对前后口径、记录变化与尚不能归因的因素。",
+          "distinction": "侧重变更后的验证，不等同于诊断瓶颈或实施自动化。",
+          "representative_tasks": ["核对虚构流程变更前后的统计口径。", "整理新异常和仍待观察的变化。"],
+          "collaboration": ["与流程负责人核对目标。", "与数据同事讨论口径和归因限制。"],
+          "outputs": ["变更观察记录与待验证问题清单。"],
+          "technical_system_emphasis": "本示例偏测量与解释；分析工具可辅助，但未赋予商业 KPI 所有权。",
+          "variation_notes": ["短期变化不能自动证明因果或长期收益。"],
+          "uncertainties": ["资料不含真实效果数据、市场需求或职位要求。"],
+          "reference_aliases": ["偏效果那个"]
+        }
+      ]
+    }
+  ]
+}

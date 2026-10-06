@@ -147,6 +147,7 @@ def test_repair_scope_has_no_other_ui_backend_dependency_or_test_edits():
     from tests.runtime_contract import V13B_PATHS, V13C1_PATHS, V13C2_PATHS, V13C3_PATHS, V13C4_PATHS, V13C5A_PATHS, V13C_FREEZE_PATHS
     from tests.career_discovery_contract import D1_PATHS
     from tests.profile_conversation_contract import PROFILE_CONVERSATION_PATHS, INTEGRATION_FREEZE_PATHS
+    from tests.career_reality_contract import D2_PATHS
     assert set(changed + untracked) <= {
         "ui/visual_system.py", "tests/test_public_readiness.py", "tests/test_ui_rendering.py",
         "ui/app.py", "ui/app_bar.py", "ui/onboarding/__init__.py", "ui/onboarding/component.py",
@@ -164,7 +165,7 @@ def test_repair_scope_has_no_other_ui_backend_dependency_or_test_edits():
         "ui/conversation_store.py", "tests/test_conversation_store.py",
         "ui/chat_runtime.py", "tests/test_chat_runtime.py", "tests/test_chat_theme.py",
         "tests/test_chat_product.py", "tests/test_observability_integration.py",
-    } | V13B_PATHS | V13C1_PATHS | V13C2_PATHS | V13C3_PATHS | V13C4_PATHS | V13C5A_PATHS | V13C_FREEZE_PATHS | D1_PATHS | PROFILE_CONVERSATION_PATHS | INTEGRATION_FREEZE_PATHS
+    } | V13B_PATHS | V13C1_PATHS | V13C2_PATHS | V13C3_PATHS | V13C4_PATHS | V13C5A_PATHS | V13C_FREEZE_PATHS | D1_PATHS | PROFILE_CONVERSATION_PATHS | INTEGRATION_FREEZE_PATHS | D2_PATHS
     for name in ("ui/components.py", "requirements.txt", ".streamlit/config.toml"):
         from tests.v12_contract import assert_v12_delta
         assert_v12_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{BASELINE}:{name}"], cwd=ROOT))

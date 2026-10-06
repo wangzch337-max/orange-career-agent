@@ -1,6 +1,16 @@
 # Orange 概念数据契约 Data Contracts
 
-**状态：Portfolio v1 / Phase 8D 文档审阅；未修改任何 schema。** 领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；Memory、Evaluation、diagnostic contracts 各自独立。早期表格是概念映射，不是可直接发送的 JSON schema；实际字段／required／enums 以 Pydantic models 与后面的实现映射为准。
+**状态：Orange Career v1.3D.3；既有 Profile/Match/Memory authority schema 未改变。** 领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；Memory、Evaluation、diagnostic contracts 各自独立。早期表格是概念映射，不是可直接发送的 JSON schema；实际字段／required／enums 以 Pydantic models 与后面的实现映射为准。
+
+## D.3 session-only role contracts
+
+`RoleLandscapeSource` 为 approved public synthetic/curated，精确 direction identity、2–5 role archetypes 与一一对应 membership evidence；不代表普遍 taxonomy。`RoleReply/RoleBlock` 保留 role ID、字段 ref、membership ref、authority，完全等于来源投影；版本、字段/归属/authority 改写均拒绝。Binding 绑定 owner/thread/request、父 D.2 generation/request/fingerprint、source version/fingerprint、展示 IDs；FollowupToken 防旧引用重放。仅内存，不进入 Profile/Memory/MatchResult/聊天库/snapshot。详见 [D.3](docs/ROLE_LANDSCAPE_EXPLORATION.md)。
+
+## D.2 session-only work contracts
+
+`CareerRealitySource` 保存 public_synthetic_demo 身份、独立虚构 provenance、版本、精确方向映射、工作目的、代表情境、内部差异与未知。`WorkReply` 的每个 `WorkBlock` 带来源字段 ref/authority，必须逐字等于当前 source 的对应字段；未知 ref、跨来源、改写、重复、authority 替换均拒绝，无 repair。Source fact 只表示这份明确合成资料支持，不表示真实市场事实。
+
+`Binding` 保存 owner/thread/request、D.1 selection receipt、Profile 版本/指纹及 source 版本/指纹；`FollowupToken` 防止旧 chips 跨会话生效。它们不进入 UserProfile、MemoryRecord、MatchResult 或 snapshot。D.2 有界 follow-up 和事件只在内存；正常 QA 不变。
 
 ## 1. 通用约定
 
@@ -288,7 +298,7 @@ Rebuild 只返回 subject 与 cleared／eligible／indexed counts，不返回 ra
 
 ### `MemoryUseCase`／`MemoryContextPolicy`
 
-Use case 仅有 `profile_refinement` 与 `role_exploration`。Policy 固定 allowed MemoryTypes、hybrid retrieval、top-k、max records、character budget、session input 是否参与 query、唯一 consumer 与是否允许 memory-derived statement。LLM 和 UI 都不能覆盖这些字段。
+当前 use case 有 `profile_refinement`、`role_exploration` 与获批准的 D.1 `career_direction_discovery`。D.2 不新增 Memory consumer。Policy 固定 allowed MemoryTypes、hybrid retrieval、top-k、max records、character budget、session input 是否参与 query、唯一 consumer 与是否允许 memory-derived statement。LLM 和 UI 都不能覆盖这些字段。
 
 ### `StructuredSessionSignal`
 

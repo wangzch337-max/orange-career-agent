@@ -1289,7 +1289,9 @@ def test_ui_composer_and_activity_release_while_old_cleanup_stays_blocked(tmp_pa
         assert second.identity.generation_id != first.identity.generation_id
         assert first.worker.is_alive() and not old_stream.gate.cleanup_release.is_set()
         value.button(key="orange_new_chat").click().run()
-        assert not value.exception and not value.chat_message and not value.chat_input[0].disabled
+        assert not value.exception and not value.chat_input[0].disabled
+        assert len(value.chat_message) == 1 and value.chat_message[0].name == "assistant"
+        assert not w.chat.messages and not w.store.list_messages(w.owner_scope_id, w.thread.thread_id)
         value.button(key=f"orange_thread_{first.pending.thread_id}").click().run()
         assert not value.exception and len(value.chat_message) == 4
         old_stream.gate.release()

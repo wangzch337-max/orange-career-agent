@@ -1,9 +1,11 @@
 # Orange 产品规格 Product Specification
 
-**文档状态：Orange Career v1.3C；下方 Golden Flow 保留初始引导产品契约。**
+**文档状态：Orange Career v1.3D.3；下方 Golden Flow 保留初始引导产品契约。**
+
+D.3 获批 A + C：同一聊天内了解三个公开 Demo 方向里的角色类型与工作差异。方向→角色须由独立合成来源支持，顺序非排名；角色事实不消费个人 Profile/Memory。「哪个更适合我」保留给另行授权 Match，兴趣不确认能力/职业目标。无具体职位筛选、真实招聘、网络或 Product Polish。详见 [D.3](docs/ROLE_LANDSCAPE_EXPLORATION.md)。
 **产品副标题：AI Career Discovery Agent**
 
-当前通用简历理解支持学生、经验从业者与转行者，不以学生身份、专业、项目或目标齐全为前提。ResumeEvidence 经来源/材料验证及 canonical 投影仍是候选；澄清不是补全问卷，答案不自动入长期 Memory；画像增量需逐项审核并明确确认。curated Memory 是另行 opt-in 的已确认信号。完整离线链已通过，有限 C.1/C.2/B.2 live 已通过，修复后 Clarification/Profile Refinement 完整真实链仍有不阻塞开发的验证缺口；没有生产认证、OCR、完整 DLP 或云端取消保证。当前范围与验证以 [README](README.md)及[冻结记录](docs/UNIVERSAL_CAREER_VALIDATION.md)为准，v1.3D 尚未实现。
+当前通用简历理解支持学生、经验从业者与转行者，不以学生身份、专业、项目或目标齐全为前提。ResumeEvidence 经来源/材料验证及 canonical 投影仍是候选；澄清不是补全问卷，答案不自动入长期 Memory；画像增量在主聊天审阅并明确确认。curated Memory 是另行 opt-in 的已确认信号。完整离线链已通过，有限 C.1/C.2/B.2 live 已通过，修复后 Clarification/Profile Refinement 完整真实链仍有不阻塞开发的验证缺口；没有生产认证、OCR、完整 DLP 或云端取消保证。D.1 提出宽泛候选；D.2 从有效选择进入公开合成的工作情境理解，不评价个人适合程度。当前范围与验证以 [README](README.md)及[冻结记录](docs/UNIVERSAL_CAREER_VALIDATION.md)为准。
 
 ## 1. 产品愿景 Product Vision
 
@@ -135,7 +137,7 @@ Public Synthetic Demo 使用 `FakeLLMProvider`、`FakeEmbeddingProvider`、公�
 
 ## 15. 未来扩展
 
-长期结构化 Memory、hybrid retrieval 与两个显式 consumer 已实现。更多大学 adapter、真实职位、认证／云部署、导师协作等未实现；Phase 9A / 9B 尚未开始，需单独授权。任何扩展都必须遵守用户确认、来源可追溯、最小数据收集和非自动决策原则。
+长期结构化 Memory、hybrid retrieval 与三个显式 consumer（PROFILE_REFINEMENT、ROLE_EXPLORATION、CAREER_DIRECTION_DISCOVERY）已实现。D.2 不新增 consumer，不读取/写入 Memory。更多大学 adapter、真实职位、认证／云部署、导师协作等未实现；Phase 9A / 9B 尚未开始，需单独授权。任何扩展都必须遵守用户确认、来源可追溯、最小数据收集和非自动决策原则。
 
 ## 16. 伦理与 Responsible AI
 

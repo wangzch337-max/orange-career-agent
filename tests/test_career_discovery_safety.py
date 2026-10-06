@@ -181,9 +181,10 @@ def test_anchor_cannot_remove_negation_or_support_qualifier(h):
 
 def test_frozen_c_authority_and_exact_d1_scope():
     from tests.profile_conversation_contract import RESUME_SUMMARY_PATHS, PROFILE_CONVERSATION_PATHS, INTEGRATION_FREEZE_PATHS
+    from tests.career_reality_contract import D2_PATHS
     # Later explicit UI approvals add exact paths only. The domain/prompt/Memory
     # byte guards below are unchanged and still reject any unauthorized change.
-    assert changed_paths(ROOT, C_FREEZE, ".") <= D1_PATHS | RESUME_SUMMARY_PATHS | PROFILE_CONVERSATION_PATHS | INTEGRATION_FREEZE_PATHS
+    assert changed_paths(ROOT, C_FREEZE, ".") <= D1_PATHS | RESUME_SUMMARY_PATHS | PROFILE_CONVERSATION_PATHS | INTEGRATION_FREEZE_PATHS | D2_PATHS
     for scope in ("resume_intake", "resume_evidence", "clarification", "profile_refinement", "agents", "workflows", "providers", "data/models.py", "memory/sqlite_store.py", "requirements.txt"):
         assert not changed_paths(ROOT, C_FREEZE, scope), scope
     assert_d1_memory_delta(ROOT)

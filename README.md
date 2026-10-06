@@ -16,7 +16,11 @@
 
 Orange 把这些问题连成一条可审阅的探索旅程。它是本地作品集 Demo，不是心理测评、就业保证或自动投递工具，也不是香港城市大学官方产品；通用简历流程支持学生、经验从业者、转行者及工作为主、零项目等背景，不根据专业锁定方向。
 
-## 当前状态：Orange Career v1.3D.1 集成里程碑
+## 当前状态：Orange Career v1.3D.3 Role Landscape Exploration
+
+新增[角色类型概览与差异对话](docs/ROLE_LANDSCAPE_EXPLORATION.md)：D.1 → D.2 后在主聊天问「这个方向有哪些岗位？」可查看 Business Analysis、Knowledge Operations、Process Improvement 各3种非排名分工。独立公开合成来源支持方向→角色关系；首轮小概览，随后问任务、协作、系统侧重与差异。无效来源/上下文不回退旧三岗位；临时状态可经合法一般 QA 后继续，不跨 New Chat，不写 Profile/Memory，不接 Match/真实 provider。实现与离线验证不等于人工产品审阅；Final Product Polish 尚未进行。
+
+新增[聊天式工作情境理解](docs/CAREER_REALITY_EXPLORATION.md)：有效 D.1 选择后，主聊天继续解释工作目的和代表性情境；用户可自由追问任务、协作、输入/产出、工作方式、能力及资料支持的内部差异。资料是独立编写的公开虚构演示内容，精确身份映射，不是招聘资料或通用真实职业数据库。无法解析的方向安全停止，不猜相似岗位。D.2 无模型调用、无 Memory 读取/写入、无 Profile 修改、无 Match；普通 QA 可打断后返回，情境仅在当前会话保留。D.1 默认 Fake 未注入提议时仍安全失败，没有新 live 接线。
 
 Universal Resume Intelligence 与[聊天式自适应职业画像](docs/CHAT_NATIVE_PROFILE_CONVERSATION.md)已集成：本地 PDF/DOCX 读取 → 独立简历 AI 同意 → 只读 ResumeEvidence 摘要 → 主聊天中一次一个问题 → 自动呈现「我的职业画像」→ 明确确认。回答、修改和补充使用同一个普通聊天输入框，最多四轮、信息足够就提前停止，不使用独立补充表单。项目、学历和目标不是必填，工作经历是一等证据。下方 Golden 引导流程仍保留为离线验证路径，不是通用方向发现功能。
 
@@ -24,7 +28,7 @@ ResumeEvidence 不是 Profile：先验证来源、摘录与材料字段，再由
 
 完整离线验证已通过。有限真实 provider 验证已通过生产 Resume Intake、ResumeEvidence 和 canonical authority；C.3 曾在 HTTP 200 / stop 后严格解析失败，B.3 离线修复已通过，但修复后 C.3 尚未重新 live 验证，C.4 完整真实链尚未成功到达。**不声称 complete real-Qwen Resume E2E passed。** 该 Clarification → Profile Refinement 验证缺口不阻止后续产品开发；未来 release/demo 验证仍须独立授权，现有同意不能复用。详见 [当前验收与限制](docs/UNIVERSAL_CAREER_VALIDATION.md)和[运行边界](docs/ORANGE_AGENT_RUNTIME.md)。
 
-v1.3D.1 新增[通用职业方向发现基础](docs/CAREER_DIRECTION_DISCOVERY.md)（离线实现，语义与用户流程仍需人工审核）：显式“开始探索”后以只读确认画像、相关已确认 Memory 与本轮意向提出非排名方向；能力迁移始终是派生候选，缺证据不是确认缺口。只保留本轮选择，不写 Profile/Memory、不进入具体岗位，不连接真实 provider。普通问题仍走原问答路径，画像对话可以随后继续；本轮意向不会悄悄覆盖已确认历史。C 阶段确认权威保持冻结，D.2 未实现。
+v1.3D.1 新增[通用职业方向发现基础](docs/CAREER_DIRECTION_DISCOVERY.md)（离线实现，语义与用户流程仍需人工审核）：显式“开始探索”后以只读确认画像、相关已确认 Memory 与本轮意向提出非排名方向；能力迁移始终是派生候选，缺证据不是确认缺口。只保留本轮选择，不写 Profile/Memory、不进入具体岗位，不连接真实 provider。普通问题仍走原问答路径，画像对话可以随后继续；本轮意向不会悄悄覆盖已确认历史。C 阶段确认权威保持冻结；D.2 仅在有效选择后显式启动工作理解，不自动搜索或匹配。
 
 <a id="product-experience"></a>
 ## 产品体验 Product Experience
@@ -153,7 +157,7 @@ Golden Suite 是生产系统外部 observer，覆盖 deterministic contracts、s
 | Universal Cross-Background | 17 PASS / 1691 checks / 0 FAIL / 0 NEEDS_REVIEW |
 | D.1 Universal Discovery | 17 PASS / 1698 checks / 0 FAIL |
 
-v1.3D.1 集成冻结门在上述外部评价之外运行完整 pytest、测试收集、权威/隐私回归、公开文件与可达历史扫描；只有全部通过才创建一个合并提交并正常推送。完整实测数量以本次冻结报告为准，不把旧 v1.3C 数量当作当前集成结果。
+v1.3D.1 历史集成冻结门在上述外部评价之外运行完整 pytest、测试收集、权威/隐私回归、公开文件与可达历史扫描；该历史记录不构成本轮的提交或推送授权。当前 D.1–D.3 Integration Freeze Audit 仅审核 checkpoint readiness；全部通过也不授权暂存、commit 或 push，须等待产品负责人单独授权 checkpoint。完整实测数量以本轮冻结报告为准，不把旧 v1.3C 数量当作当前集成结果。
 
 `EXPECTED_UNCERTAINTY` 是成功状态：证据不足时，系统正确拒绝给出更强结论。它不是部分失败，也不是为了隐藏失败设置的豁免。任何必要检查失败仍是 FAIL。
 
@@ -239,7 +243,7 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 
 ## Roadmap
 
-当前集成冻结范围为 v1.3D.1 Career Direction Discovery、只读简历证据摘要与聊天式自适应职业画像；最新离线验证状态见上方。v1.3D.2 未开始：下一步只能审核范围，实现仍需单独授权。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
+当前集成冻结范围为 D.1 Career Direction Discovery、pending clarification routing、state-aware New Chat opening、Public Synthetic D.1 Demo、D.2 Career Reality Exploration 与 D.3 Role Landscape / Differences Conversation；D.1 核心已在 `2316616` 冻结，D.2/D.3 及后续 D.1 集成修正仍未提交，当前仅审核是否构成完整、可回退的集成里程碑。D.4 已确定有必要，职责为 Representative Specific Role Understanding，首轮覆盖现有9个 Public Demo archetypes；本轮不实施 D.4。Final Product Polish 与人工产品验收尚未完成。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
 
 **Phase 9A — Web Deployment Readiness** 与 **Phase 9B — Public Web Deployment** 均未开始，必须单独授权。认证、真实模型模式、云数据和部署是否需要，属于未来决策，不是当前承诺。
 

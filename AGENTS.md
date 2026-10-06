@@ -17,13 +17,14 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 ## 阶段式开发
 
 - 严格按 `IMPLEMENTATION_PLAN.md` 推进，不跨阶段实现。
-- Phase 7C 已完成并建立本地 checkpoint。Memory 仍只允许两个显式 use case：`PROFILE_REFINEMENT` 与 `ROLE_EXPLORATION`。`MemoryContextPolicy` 的类型过滤、检索模式、top-k、预算和 consumer 必须由确定性代码决定；retrieval 是只读路径。
+- 当前为获批准的 v1.3D.3 Role Landscape Exploration（A + C），独立公开合成方向→角色归属资料与差异对话属于 Job Intelligence，不是个人 Match 或第五 Agent。三个 Demo 方向均支持，精确 source/parent/owner/thread binding；不增加 Memory reads/consumer/writes、Profile mutation、具体角色筛选、真实 provider/data 或跨 New Chat persistence。保留 D.2/P0/P1/public Demo 未提交工作，Final Product Polish 不在范围；不 commit/push/deploy。以下 Phase 记录为历史，当前以最新授权与 README 为准。
+- Memory 允许三个已批准显式 use case：`PROFILE_REFINEMENT`、`ROLE_EXPLORATION` 与 D.1 `CAREER_DIRECTION_DISCOVERY`。D.2 不新增 consumer，不读取/写入 Memory。`MemoryContextPolicy` 的类型过滤、检索模式、top-k、预算和 consumer 必须由确定性代码决定；retrieval 是只读路径。
 - Job Intelligence 与 Match relation generation 不得消费 retrieved Memory。Memory-aware statement 必须保留 `memory_refs`；只有结构化同维度差异可建立 session-only `MemoryChangeCandidate`，且只有用户明确确认才可 supersede。不得用 semantic similarity 判断冲突，不得自动保存 guided answer、chat transcript 或检索结果。
 - Phase 8A 已通过 668 tests 与 27 Golden scenarios，并经明确授权建立唯一 local checkpoint `e707063`（无 push）。Evaluation 仍是外部 observer；不把评价规则放入生产 agents/workflow/UI/memory，不引入 judge／总体分／Match score／ranking。
 - Phase 8B COMPLETE：743 tests、27 Golden scenarios；唯一获授权本地 checkpoint `5a6a1d1`，无 push。安全诊断 contracts、scope/reset/isolation 和最小内容边界冻结，不记录 raw evidence/profile/Memory/query/Prompt/completion/vector/credential/CoT。
 - Phase 8C COMPLETE：783 tests、27 Golden scenarios；通过恢复权限后的完整 gates，获明确授权建立唯一本地 checkpoint `003c5bc`（`feat: polish orange demo experience`），无 push／remote。
 - Phase 8D COMPLETE — USER RELEASE DECISIONS PENDING：产品优先 README、准确 Mermaid 图、文档导航／当前状态、人工截图计划、当前与全历史安全审查、公开 checklist 和 35 meaningful offline readiness tests。818 passed、Golden 27 / 20 / 7 / 0 / 0；全部现有生产代码、prompts、fixtures、依赖与 783 tests 不变。不得改变 Agent、确认门、Match、Memory、Evaluation、Observability 语义或 artifact 路径。
-- 默认网络禁用，不加载 private data、`.env.local` 或真实 model；仅 Fake providers／offline stubs。不得调用 Qwen、cloud embedding、Canvas、live jobs／cloud telemetry，不自动截图。Phase 8D 保持未提交；不 push、创建 remote、部署、选择 LICENSE 或改写历史。真实敏感内容若在历史中出现必须停止公开发布并报告；不得开始 8A.1 live、Phase 9A 或 Phase 9B。
+- 默认网络禁用，不加载 private data、`.env.local` 或真实 model；仅 Fake providers／offline stubs。不得调用 Qwen、cloud embedding、Canvas、live jobs／cloud telemetry，不自动截图。本阶段不 commit/push、创建 remote、部署、改写历史。真实敏感内容若在历史中出现必须停止公开发布并报告；不得开始 8A.1 live、Phase 9A 或 Phase 9B。
 - 不得静默改变四个核心 Agent、Golden Flow、数据边界或目录结构。必要变更必须先记录理由、影响和取舍，并取得确认。
 - 每个阶段结束时运行与风险相称的测试；测试失败不得伪装为完成。
 

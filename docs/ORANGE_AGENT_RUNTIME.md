@@ -1,8 +1,28 @@
-# Orange Career v1.3B–v1.3C · 有边界的对话与简历执行
+# Orange Career v1.3D.3 · 有边界的对话、简历与角色理解
+
+## v1.3D.3 当前增量
+
+主 composer：画像对话 → D.1 pending answer → D.3 bounded role intent → 原 D.2 work question → 原 General QA。D.3 不注册 planner tools、不新增 provider/Memory consumer，只在有效 D.2 上投影独立公开合成方向→角色 evidence。当前三方向各3种非排名分工，首轮小概览，后续差异/任务/协作/系统侧重；个人适合度请求守住 Match 边界。QA 同线程刷新保留有效父/source binding，New Chat/切换/删除/关闭/版本变化清理；无 chat store/snapshot 持久化。详见 [D.3](ROLE_LANDSCAPE_EXPLORATION.md)。Final Product Polish 未做；UX-1/2/4/5 保留，UX-3 routing/source 功能根因解决、人工体验仍待审核。
+
+## v1.3D.2 当前增量
+
+D.1 public synthetic Demo execution：本地 `ui/app.py` 显式创建 `WorkspaceMode.PUBLIC_SYNTHETIC_DEMO` 并安装网络为零的公开 proposal 注入；普通 `Workspace` 默认 `NORMAL` / 空 Fake，继续 safe failure。模式不保存在 conversation snapshot，不按用户回答或真实职业背景切换，也不从 `.env` 读取。D.1 模板来自单一公开 fixture，并经原有严格输出和来源/语义校验；不是 Golden 岗位映射、真实个性化推荐或 Qwen 结果。D.1 卡片区域只显示一次简短离线合成说明。
+
+New Chat → state-aware opening → 看看职业方向 → 原 information-use consent → 范围澄清 → “都可以看看” → 合成方向 → 选择 → 既有 D.2，是本入口的自动化公开验收路径；不再依赖测试替换 D.1 provider_factory。Profile 的确认门、Memory consumer/写入、Match、职业目标确认与 D.2 工作来源保持原契约。人工产品验收仍须重新从 New Chat 体验，不能把自动化回归写成人工已通过。
+
+D.1 方向发现与聊天式自适应画像已集成。D.2 在有效 D.1 selection 后建立独立 session-only 工作上下文，在主聊天中渐进解释公开合成情境。确定性全文问句语法只处理有界工作追问；未知的明确工作情境请求保留 unknown，普通技术问题回到原 QA，不按零散关键词抢占。它不是通用自然语言意图理解器，也不新接 planner/provider。普通 QA 完成后的同线程 reload 可保留仍有效的 D.2 receipt；普通 QA 的消息仍按原契约保存，D.2 临时回答/状态不写聊天库或 snapshot。无 Memory/Match/live，详见 [D.2](CAREER_REALITY_EXPLORATION.md)。
 
 Qwen 是模型 provider；Orange 的 Orchestrator 负责工具、上下文、权限、版本、执行边界与持久化。没有第五个概念 Agent。
 
-## v1.3C 当前冻结状态
+## D.2 Product UX Fix Pack：主聊天路由与开场
+
+新对话使用 state-aware、non-blocking opening：无确认画像邀请聊经历/想法；有画像邀请探索值得了解的方向。建议是绑定当前 owner/thread/Profile ref 的真实入口动作，用户可拒绝或直接问普通问题；开场不写聊天库/snapshot，不查询 Memory，不开启 AI 或简历同意，不创建向导或新 Agent。
+
+pending direction scope question 在分发器中优先拥有 answer-like 输入；有界 dialogue-act 判断保留 QA/解释请求与混合输入的正常路由。QA 仅暂停合法 pending，完成后保留相同请求并重新校验原 authority；scope answer 使用原文进入临时来源，复用原生成路径，不增加修复/重试。已生成方向的旧 review 仍按原规则清除。New Chat 的 D.1/D.2 状态仍清理，State C 跨新对话恢复 NOT IMPLEMENTED BY DESIGN。
+
+「先聊聊我自己」沿用原主聊天 Self-Discovery 入口；已有简历的聊天式画像继续使用原独立 consent/start/confirmation 路径，不复制业务逻辑或放宽 `ProfileConversation.available()`。普通 AI QA 的既有同意门保持不变。剩余学习任务为人工重走开场→范围问题→回答→方向→工作情境；本轮自动回归不声称人工产品审核通过。
+
+## v1.3C 历史冻结状态
 
 通用 Resume Intake → ResumeEvidence → Clarification → Profile Refinement 已完整实现并通过离线端到端验证，最新完整 pytest 为 2519 passed / 0 failed。工作经历是一等证据，项目/学历/目标可空；支持多样背景，不推断学生身份或按专业锁定方向。ResumeEvidence 与澄清答案均为候选，只有逐项审核及明确确认才能写入唯一 canonical Profile；Memory 仍单独 opt-in。
 

@@ -72,7 +72,8 @@ def test_brand_demo_badge_and_empty_line(app):
     assert app.sidebar.button[0].label == "＋ 新对话"
     assert len(app.chat_input) == 1
     assert app.chat_input[0].placeholder == "和 Orange 说点什么…"
-    assert not app.chat_message
+    assert len(app.chat_message) == 1 and app.chat_message[0].name == "assistant"
+    assert not app.session_state[CHAT_KEY].messages
 
 
 @pytest.mark.parametrize("phrase", ["公开演示模式", "虚构数据", "离线 AI", "重新播放介绍", "重新开始 Demo", "开发者执行轨迹", "诊断尚未开始"])
@@ -92,12 +93,12 @@ def test_normal_main_never_calls_legacy_app_bar_or_trace():
 
 
 def test_initial_chips_click_records_exact_utterance_and_changes_options(app):
-    assert suggestion_labels(app) == INITIAL_SUGGESTIONS
-    app.button(key="orange_suggestion_2").click().run()
+    assert {b.label for b in app.button if b.key and b.key.startswith("orange_opening_")} == {"先聊聊我自己", "我先问个问题"}
+    app.button(key="orange_opening_self").click().run()
     assert not app.exception
     chat = app.session_state[CHAT_KEY]
     assert chat.messages[0].role == "user"
-    assert chat.messages[0].content == INITIAL_SUGGESTIONS[2]
+    assert chat.messages[0].content == INITIAL_SUGGESTIONS[0]
     assert chat.messages[1].role == "assistant"
     assert len(app.chat_message) == 2
     assert "现在开始吧" not in text(app)
@@ -114,12 +115,12 @@ def test_every_initial_suggestion_maps_only_to_existing_guided_choices(controlle
 
 
 def test_typed_chip_and_button_submit_are_equivalent(app):
-    app.chat_input[0].set_value(INITIAL_SUGGESTIONS[2]).run()
+    app.chat_input[0].set_value(INITIAL_SUGGESTIONS[0]).run()
     typed = app.session_state[CHAT_KEY]
     before = asdict(typed)
     stage = app.session_state["orange_demo_controller"].conversation.stage
     app.sidebar.button[0].click().run()
-    app.button(key="orange_suggestion_2").click().run()
+    app.button(key="orange_opening_self").click().run()
     assert asdict(app.session_state[CHAT_KEY]) == before
     assert app.session_state["orange_demo_controller"].conversation.stage == stage
 
@@ -299,7 +300,7 @@ def test_new_chat_keeps_memory_profiles_checkpoint_and_diagnostics(controller, m
 
 
 def test_new_chat_native_button_restores_empty_state(app):
-    app.button(key="orange_suggestion_0").click().run()
+    app.button(key="orange_opening_self").click().run()
     controller = app.session_state["orange_demo_controller"]
     memory = tuple(controller.active_memories())
     app.session_state[BOOT_DONE_KEY] = True
@@ -307,7 +308,8 @@ def test_new_chat_native_button_restores_empty_state(app):
     component = app.session_state[COMPONENT_KEY]
     app.session_state[COMPONENT_KEY] = {**component, "completed": True}
     app.sidebar.button[0].click().run()
-    assert not app.exception and not app.chat_message
+    assert not app.exception and len(app.chat_message) == 1
+    assert not app.session_state[CHAT_KEY].messages
     assert "现在开始吧" in text(app)
     assert tuple(controller.active_memories()) == memory
     assert app.session_state[BOOT_DONE_KEY] and app.session_state[COMPLETED_KEY]
@@ -391,8 +393,13 @@ def test_v12_does_not_change_authority_or_dependencies(scope):
             from tests.career_discovery_contract import assert_d1_memory_delta
             assert_d1_memory_delta(ROOT)  # Exact pre-existing D.1 policy; old consumers remain byte-frozen.
             expected |= {"memory/models.py", "memory/integration.py"}
+        else:
+            from tests.career_reality_contract import D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH, assert_d2_source_delta
+            assert_d2_source_delta(ROOT, inventory_baseline=CHECKPOINT)  # Exact addition, no old path removal.
+            expected |= {D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH}
         assert changed_paths(ROOT, CHECKPOINT, scope) == expected
-        assert_original_inventory(ROOT, CHECKPOINT, scope)
+        if scope == "memory":
+            assert_original_inventory(ROOT, CHECKPOINT, scope)
         return
     if scope == "config/prompts":
         # Freeze old bytes and exactly the approved additions in any Git state.

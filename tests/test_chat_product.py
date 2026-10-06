@@ -50,7 +50,8 @@ def test_thread_history_selection_rename_and_refresh(tmp_path):
         thread_a = workspace.thread.thread_id
         first.button(key="orange_new_chat").click().run()
         thread_b = workspace.thread.thread_id
-        assert thread_b != thread_a and not first.chat_message
+        assert thread_b != thread_a and not workspace.chat.messages
+        assert len(first.chat_message) == 1 and first.chat_message[0].name == "assistant"
         first.chat_input[0].set_value("线程 B 的职业问题").run()
         first.button(key=f"orange_thread_{thread_a}").click().run()
         assert workspace.thread.thread_id == thread_a
@@ -83,7 +84,8 @@ def test_client_b_never_lists_client_a_threads(tmp_path):
         a.chat_input[0].set_value("A 的独立对话").run()
         owned_a = a.session_state[WORKSPACE_KEY].thread.thread_id
         assert owned_a not in {thread.thread_id for thread in b.session_state[WORKSPACE_KEY].threads}
-        assert not b.chat_message
+        assert not b.session_state[WORKSPACE_KEY].chat.messages
+        assert len(b.chat_message) == 1 and "A 的独立对话" not in b.chat_message[0].markdown[0].value
         assert not [button for button in b.button if button.key == f"orange_thread_{owned_a}"]
     finally:
         a.session_state[WORKSPACE_KEY].close()
@@ -149,7 +151,7 @@ def test_normal_ui_menu_is_chinese_without_dead_upload_or_trace(tmp_path):
         assert list(upload.proto.type) == [".pdf", ".docx"]
         assert upload.proto.max_upload_size_mb == 10 and not upload.proto.multiple_files
         assert not [element for element in value.expander if "执行轨迹" in element.label]
-        assert len(suggestions(value)) == 4
+        assert {b.key for b in value.button if b.key and b.key.startswith("orange_opening_")} == {"orange_opening_self", "orange_opening_chat"}
     finally:
         value.session_state[WORKSPACE_KEY].close()
 
@@ -157,7 +159,7 @@ def test_normal_ui_menu_is_chinese_without_dead_upload_or_trace(tmp_path):
 def test_only_latest_suggestions_and_none_in_composer(tmp_path):
     value = app(tmp_path, str(uuid4()))
     try:
-        value.button(key="orange_suggestion_0").click().run()
+        value.button(key="orange_opening_self").click().run()
         value.button(key="orange_suggestion_1").click().run()
         workspace = value.session_state[WORKSPACE_KEY]
         assert len(workspace.chat.messages) == 4
@@ -187,8 +189,12 @@ def test_new_chat_reuses_exact_confirmed_profile_without_second_confirmation(tmp
         history = tuple(workspace.controller.profile_history())
         old_thread = workspace.thread.thread_id
         value.button(key="orange_new_chat").click().run()
-        assert workspace.thread.thread_id != old_thread and not value.chat_message
-        value.button(key="orange_suggestion_1").click().run()
+        assert workspace.thread.thread_id != old_thread and not workspace.chat.messages
+        assert len(value.chat_message) == 1 and value.button(key="orange_opening_discover")
+        # Keep canonical reuse on the original guided entry; New Chat's new
+        # discovery action is exercised by the separate acceptance-path test.
+        workspace.submit(INITIAL_SUGGESTIONS[0], source="suggestion")
+        value.run()
         assert not value.exception
         assert workspace.controller.state["self_discovery_call_count"] == 0
         assert workspace.controller.confirmed_profile().model_dump(mode="json") == exact
@@ -275,9 +281,10 @@ def test_delete_last_ui_conversation_then_new_chat_and_refresh(tmp_path):
         deleted = workspace.thread.thread_id
         value.button(key=f"orange_delete_request_{deleted}").click().run()
         value.button(key="orange_confirm_delete").click().run()
-        assert not value.exception and not value.chat_message
+        assert not value.exception and not workspace.chat.messages
+        assert len(value.chat_message) == 1
         assert any("现在开始吧" in element.value for element in value.markdown)
-        assert len(suggestions(value)) == 4 and len(workspace.threads) == 1
+        assert value.button(key="orange_opening_self") and len(workspace.threads) == 1
         value.button(key="orange_new_chat").click().run()
         value.chat_input[0].set_value("新对话仍可使用").run()
     finally:

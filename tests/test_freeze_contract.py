@@ -154,8 +154,10 @@ def test_integration_compatibility_pins_reject_extra_bytes_without_weakening_his
     from tests.career_discovery_contract import C_FREEZE
     from tests.test_public_readiness import CHECKPOINT, assert_frozen_bytes
     current = (ROOT / name).read_bytes()
+    from tests.career_reality_contract import pre_d2_bytes
+    integrated = pre_d2_bytes(ROOT, name, current)
     original = subprocess.check_output(["git", "show", f"{C_FREEZE}:{name}"], cwd=ROOT)
-    assert hashlib.sha256(current).hexdigest() == INTEGRATION_HASHES[name]
+    assert hashlib.sha256(integrated).hexdigest() == INTEGRATION_HASHES[name]
     assert pre_integration_bytes(ROOT, name, current) == original
     # No alternate path, appended byte or mutation gains the compatibility pin.
     assert pre_integration_bytes(ROOT, "./" + name, current) == current

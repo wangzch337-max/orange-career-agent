@@ -391,11 +391,11 @@ class AgentSession:
             if self._closed or len(text) > 2000 or self.pending is not None or self.busy:
                 raise ValueError("One bounded turn at a time.")
             pending = PendingTurn(uuid4().hex, self.workspace.thread.thread_id, text, source, allow_proposal)
-            # New explicit context invalidates D.1's ephemeral direction review,
-            # without loading discovery Profile/Memory or changing chat routing.
+            # Completed direction reviews clear. A valid pending clarification
+            # pauses under its existing authority binding, without new retrieval.
             discovery = getattr(self.workspace, "career_discovery", None)
             if discovery is not None:
-                discovery.invalidate()
+                discovery.on_general_qa()
             self._new_generation(pending)
             self.pending = pending
             self.last_result = self.last_cancelled = None

@@ -47,6 +47,8 @@ def pre_integration_bytes(root, name, current):
     """Compose exact approved integration deltas with existing historical guards."""
     import hashlib
     import subprocess
+    from tests.career_reality_contract import pre_d2_bytes
+    current = pre_d2_bytes(root, name, current)
     from tests.career_discovery_contract import C_FREEZE
     if name in INTEGRATION_HASHES and hashlib.sha256(current).hexdigest() == INTEGRATION_HASHES[name]:
         return subprocess.check_output(["git", "show", f"{C_FREEZE}:{name}"], cwd=root)

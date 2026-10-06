@@ -1,0 +1,52 @@
+{
+  "directions": [
+    {
+      "title": "Business Analysis",
+      "direction_family": "Business Analysis",
+      "source_refs": ["src_0000000000000000_000"],
+      "transferable_capabilities": [{
+        "interpretation": "structured_documentation",
+        "anchors": [{"source_ref": "src_0000000000000000_000", "excerpt": "公开已确认背景片段"}],
+        "relevance_to_direction": "potential_transfer",
+        "uncertainty": "requires_validation"
+      }],
+      "transition_considerations": [{"kind": "domain_transfer", "source_refs": ["src_0000000000000000_000"], "topic": "相关工作情境", "state": "unknown"}],
+      "uncertainties": ["尚未选定最终方向"],
+      "evidence_gaps": ["方向相关的实际职责情境"],
+      "goal_relation": "EXPLORATORY",
+      "confidence": "TENTATIVE"
+    },
+    {
+      "title": "Process Improvement",
+      "direction_family": "Process Improvement",
+      "source_refs": ["src_0000000000000000_000"],
+      "transferable_capabilities": [{
+        "interpretation": "structured_documentation",
+        "anchors": [{"source_ref": "src_0000000000000000_000", "excerpt": "公开已确认背景片段"}],
+        "relevance_to_direction": "potential_transfer",
+        "uncertainty": "requires_validation"
+      }],
+      "transition_considerations": [{"kind": "domain_transfer", "source_refs": ["src_0000000000000000_000"], "topic": "相关工作情境", "state": "unknown"}],
+      "uncertainties": ["尚未选定最终方向"],
+      "evidence_gaps": ["方向相关的实际职责情境"],
+      "goal_relation": "EXPLORATORY",
+      "confidence": "TENTATIVE"
+    },
+    {
+      "title": "Knowledge Operations",
+      "direction_family": "Knowledge Operations",
+      "source_refs": ["src_0000000000000000_000"],
+      "transferable_capabilities": [{
+        "interpretation": "structured_documentation",
+        "anchors": [{"source_ref": "src_0000000000000000_000", "excerpt": "公开已确认背景片段"}],
+        "relevance_to_direction": "potential_transfer",
+        "uncertainty": "requires_validation"
+      }],
+      "transition_considerations": [{"kind": "domain_transfer", "source_refs": ["src_0000000000000000_000"], "topic": "相关工作情境", "state": "unknown"}],
+      "uncertainties": ["尚未选定最终方向"],
+      "evidence_gaps": ["方向相关的实际职责情境"],
+      "goal_relation": "EXPLORATORY",
+      "confidence": "TENTATIVE"
+    }
+  ]
+}

@@ -264,7 +264,15 @@ def _submit(workspace, text: str, thread_id: str, *, suggested: bool = False, cl
     # A queued old chip cannot act on a newly selected conversation.
     if workspace.thread.thread_id != thread_id:
         return
+    if workspace.agent_session.busy or workspace.career_discovery.busy:
+        return
     if workspace.profile_conversation.submit(text, question_token=profile_question):
+        return
+    if workspace.career_discovery.answer_pending(text):
+        return
+    if workspace.role_landscape.submit(text):
+        return
+    if workspace.career_reality.submit(text):
         return
     if clarification_question is not None:
         # Explicit question-bound answer route; no chat planner, persistence,
@@ -387,13 +395,16 @@ def _render_chat_region(workspace):
         st.warning(failure_text(session.last_failure))
     chat = workspace.chat
     interview = workspace.profile_conversation
+    workspace.career_reality.current()
+    workspace.role_landscape.current()
     st.session_state[CHAT_KEY] = chat
     has_resume = workspace.resume_intake.result is not None
-    if not chat.messages and not has_resume and not interview.messages:
+    if not chat.messages and not has_resume and not interview.messages and not workspace.career_reality.messages and not workspace.role_landscape.messages:
         if not session.busy:
             st.markdown('<div class="orange-chat-empty">' + orange_mark() + '<h1>现在开始吧</h1></div>', unsafe_allow_html=True)
-            if not workspace.agent_session.consent:
-                _suggestions(workspace, INITIAL_SUGGESTIONS)
+            from ui.chat_opening import render_opening
+            if workspace.career_discovery.result is None and workspace.career_discovery.status.value != "CONSENT_REQUIRED":
+                render_opening(workspace)
         if session.busy:
             with st.container(key="orange_transcript", height=600, autoscroll=True):
                 render_pending(workspace)
@@ -402,6 +413,7 @@ def _render_chat_region(workspace):
         with st.container(key="orange_transcript", height=600, autoscroll=True):
             stored = workspace.store.list_messages(workspace.owner_scope_id, workspace.thread.thread_id)
             from ui.profile_conversation import render_interview_messages, render_resume_transition
+            from ui.career_reality import render_reality_messages
             for index in range(len(chat.messages) + 1):
                 if has_resume and index == min(interview.resume_anchor, len(chat.messages)):
                     from ui.resume_upload import render_file_card
@@ -410,6 +422,7 @@ def _render_chat_region(workspace):
                     with st.chat_message("assistant", avatar=sphere_markup()):
                         render_resume_transition(workspace)
                 render_interview_messages(workspace, index)
+                render_reality_messages(workspace, index)
                 if index == len(chat.messages):
                     break
                 message = chat.messages[index]
@@ -432,7 +445,7 @@ def _render_chat_region(workspace):
     from ui.career_discovery import render_career_discovery
     from profile_refinement.models import Status as RefinementStatus
     from career_runtime.profile_conversation import InterviewStage
-    if not has_resume or (interview.stage == InterviewStage.IDLE and
+    if not has_resume or interview.stage == InterviewStage.CONFIRMED or (interview.stage == InterviewStage.IDLE and
                           workspace.profile_refinement.status == RefinementStatus.CONFIRMED):
         render_career_discovery(workspace)
     with st.bottom:

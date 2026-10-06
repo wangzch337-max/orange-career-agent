@@ -4,6 +4,16 @@
 
 ## 执行与边界
 
+### 显式公开离线 Demo 与普通 runtime
+
+`Workspace` 默认 `WorkspaceMode.NORMAL`：D.1 仍使用空 Fake 响应，没有有效 proposal 时安全失败，不重试、不补造方向。`ui/app.py` 是显式 `PUBLIC_SYNTHETIC_DEMO` 入口，只在创建该模式的 workspace 时安装公开合成 provider；模式由代码指定，不从用户文字、聊天 snapshot、truthy 字符串或环境配置恢复。旧普通 workspace 在本入口重新构建时会关闭临时状态，保留原有本地存储。
+
+单一公开 fixture `data/fixtures/career_discovery/public_demo_proposal.json` 抽取此前 D.1 测试的 Business Analysis / Process Improvement / Knowledge Operations 示例。测试和 Demo 共享模板；模板先通过 `DiscoveryProposal` 严格 schema，再只绑定当前 request 的来源别名和完整背景字段锚点，最后复用原 `CareerDiscoveryService` 的引用/语义校验、ID 和非排名排序。示例方向不是按职业背景挑选的事实或真实模型推荐；能力迁移仍为 derived candidate，保留 uncertainty / evidence gaps。0–5 schema 边界未改变，普通 runtime 的错误不能触发该模板或工作来源 fallback。
+
+方向入口只显示一次简短离线合成说明，不在每条消息重复内部术语。仍要求当前确认画像和原有 information-use consent；回答不触发新增 Memory 检索，选择仅建立临时探索 receipt。可以在公开合成背景完成并明确确认后，从 New Chat → 看看职业方向 → 同意参考已确认信息 → 范围澄清 → “都可以看看” → 方向 → 选择 → D.2。没有 live provider、招聘数据、Profile/Memory 写入、Match 或职业目标确认。
+
+本轮 Learning Mode：Codex 负责模式隔离、单一公开模板与离线回归；开发者可选亲手重走上述公开 Demo 路径。关键概念是 synthetic output 与个性化事实的区别，Demo 注入不是生产失败兜底。验收问题：为何正常 runtime 同样没有 proposal 时仍必须失败？人工走到 D.2 前停止后续职业真实感验收；不接真实 provider。
+
 显式“开始探索” → 只读确认画像/相关 Memory/本轮表述/有限近期用户情境 → readiness → 最多一次严格语义提议 → 确定性校验、ID、去重和稳定排序 → 聊天卡片 → 本轮临时选择。普通 General QA 不构建 discovery context，也不加载这项能力的 Profile/Memory。显式文字请求及产品转场可调用同一 session 接口；D.1 不增加关键词抢占、聊天 planner 工具或第二个 Agent。
 
 - `READY`：已有足够相关背景和探索范围，不要求“完整画像”。0–5 个候选，通常 3–5 个，不凑数。
@@ -32,11 +42,19 @@ C.3 公共绑定要求当前 ResumeEvidence 与简历同意；无简历的已确
 
 ## D.1 验证与限制
 
-生产 session 默认 `FakeLLMProvider(None)`，不加载 `.env.local`、不创建真实 provider。未注入离线提议时点击会安全失败，而不是伪造个性化方向；公开合成 UI 测试和 observer 显式注入 Fake。真实 provider 接线/验证需后续独立授权，本阶段 live calls = 0、新依赖 = 0。
+普通 `WorkspaceMode.NORMAL` 的 session 默认 `FakeLLMProvider(None)`，不加载 `.env.local`、不创建真实 provider。未注入离线提议时点击会安全失败，而不是伪造个性化方向。当前公开 UI 入口显式安装 `PublicSyntheticDiscoveryProvider`，完整路径测试使用该入口的默认 provider，不再依赖测试替换提议；独立 observer 仍显式注入 Fake。真实 provider 接线/验证需后续独立授权，本阶段 live calls = 0、新依赖 = 0。
 
 D.1 实现阶段运行定向 tests 和 `python -m career_background_evaluation.discovery`；集成冻结门另运行完整 pytest、Golden、Agent Evaluation 和通用背景套件。复用现有 17 类公开合成背景，经真实 C 流程形成已确认 Profile，再验证 D.1。静态 Fake 提议证明流程/边界/背景兼容，不证明真实模型的职业语义质量。自由方向标题与派生关系仍需人工审阅；拒绝常见危险表达不等于通用自然语言真实性证明。
 
-Profile mutations = 0，Memory writes = 0。选择“继续探索这个方向”仅保存本轮 selected_direction_id；不确认目标、不搜索岗位、不调用 Match、不进入 D.2/D.3。
+Profile mutations = 0，Memory writes = 0。选择“继续探索这个方向”仍仅保存本轮 selected_direction_id；D.2 通过独立 receipt 开始工作理解。获批准 [D.3](ROLE_LANDSCAPE_EXPLORATION.md) 只在有效 D.2 后显式角色问句启动，独立来源精确支持三方向分工；不自动推荐具体职位、确认目标或调用 Match。D.1 仍清理候选，不把 D.2/D.3 对话变成画像或记忆。
+
+## D.2 Product UX Fix Pack：待回答回合与新对话入口
+
+方向范围问题现在拥有有界主聊天回答路由：只在 owner/thread/request、当前画像/来源绑定仍有效时处理 answer-like 回复；不是匹配某个固定中文短语。回答保留原文和明确的不确定性，仅进入本轮来源，复用原单次方向生成路径，不重新检索 Memory，不确认长期偏好或目标。
+
+无关问题或解释请求继续走普通 QA；有效 pending scope clarification 可经合法同线程完成刷新后继续，技术问答不会成为该请求的职业来源。刷新只更新 recent stamp，画像/已引用 Memory 发生变化仍拒绝。新对话、切换、删除、关闭或新请求仍清理；没有跨线程恢复或长期持久化。没有确认背景的 background 问题不能凭一句聊天回答建立确认画像。
+
+新对话根据已有确认画像给出可拒绝的开场；已有画像时「看看职业方向」直接调用原探索入口，原信息使用同意门仍保留，不自动授权。没有画像时邀请先聊自己，并复用原主聊天 Self-Discovery 入口；不会绕过简历理解/画像完善的独立同意。没有可跨 New Chat 恢复的探索状态，因此不显示「继续刚才的方向」。本轮离线自动用户路径不等于人工视觉验收或真实模型质量验收。
 
 ## Learning Mode
 
@@ -44,4 +62,4 @@ Profile mutations = 0，Memory writes = 0。选择“继续探索这个方向”
 2. 可选亲手任务：用一个公开合成背景，通过 AppTest/Fake 对比新意向与历史目标，确认选择前后 canonical Profile/Memory 相同。
 3. 概念：相关不等于权威；派生迁移不等于确认能力；缺证据不等于缺能力；版本/作用域绑定防止过期操作。
 4. 验收问题：为什么“我想探索产品”能改变本轮候选，却不能证明产品管理经验或更新长期目标？
-5. 下一阶段前停止条件：D.1 用户审核未通过、来源/权威检查失败、需要扩展写入或真实数据同意时停止。D.2 只建议进一步解释选定方向的工作情境，不在本阶段实现。
+5. 下一阶段前停止条件：来源/权威检查失败、需要扩展写入或真实数据同意时停止。D.2 工作情境实现见 [Career Reality Exploration](CAREER_REALITY_EXPLORATION.md)，其资料为独立公开合成内容，不是 D.1 用户来源或 specific JobRecord。

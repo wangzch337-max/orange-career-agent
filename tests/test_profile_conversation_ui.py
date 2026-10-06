@@ -62,7 +62,10 @@ def test_resume_question_answer_automatic_review_and_confirmation_are_one_epheme
         assert not value.exception and w.profile_conversation.stage == Stage.CONFIRMED
         final = w.memory_service.get_current_confirmed_profile(w.subject_id)
         assert final and final.work_experience and not final.projects and final.uncertainties
-        assert not [x for x in value.text_input if x.key and x.key.startswith("orange_discovery_statement_")]
+        # D.2 approval makes the existing D.1 downstream entry available after
+        # confirmation; it does not add a second Profile/D.2 questionnaire.
+        assert value.button(key="orange_discovery_start").disabled
+        assert not [x for x in value.text_input if x.key and x.key.startswith("orange_profile_")]
         assert not w.memory_service.memory_store.list_active(w.subject_id)
         assert selector.call_count == refiner.call_count == 1
     finally:

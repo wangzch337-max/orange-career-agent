@@ -2,11 +2,15 @@
 
 本计划以**能力里程碑**而不是机械的“一天一个 Phase”推进。15 天是聚焦范围下的估算；学习检查或质量门未通过时应延长，不以赶日程为理由跨阶段。每个 Phase 都必须遵守 `LEARNING_PLAN.md` 的 Learning Mode。
 
-## 当前里程碑：Orange Career v1.3C
+## 当前里程碑：Orange Career v1.3D.3
+
+D.3 获批实施 Role Landscape + Role Differences Conversation，三个公共 Demo 方向各3种合成角色。独立 direction-role evidence、精确源投影、主聊天问答、QA 共存、临时生命周期；零新增 Profile/Memory/Match/live。先 focused tests，再 full pytest，再六项 Evaluation。人工产品审核仍 pending；不做 Specific Role Screening 或 Final Product Polish，不 commit/push。详见 [D.3](docs/ROLE_LANDSCAPE_EXPLORATION.md)。D.2/P0/P1/public Demo 未提交增量完整保留。
+
+D.1 已在 `2316616` 冻结（历史完整基线 2815 passed）。D.2 为已批准的 Chat-first Career Reality Exploration：公开合成资料、精确解析、工作目的/代表情境/有界追问、普通 QA 共存，零 live/Memory/Match/个人胜任判断。实施与离线验证结果以本阶段报告为准，修改保持未提交。根目录 app.py 历史 placeholder 非入口，不在本阶段重构。
 
 v1.3B generation/Stop hardening 与 v1.3C 通用 Resume Intake、canonical ResumeEvidence、个性化 Clarification、逐项 Profile Refinement、跨背景/E2E/隐私验收为当前冻结范围。最新完整离线基线为2519 passed / 0 failed，Golden 27 / 20 PASS / 7 EXPECTED_UNCERTAINTY / 0 FAIL / 0 NEEDS_REVIEW，Agent 58 PASS，Universal 17 PASS / 1691 checks。有限 C.1/C.2/B.2 live 通过，B.3 修复后的 C.3/C.4 完整真实链仍是已记录、非阻塞的验证缺口；不要求更多 live 才能推进开发。详见 [冻结记录](docs/UNIVERSAL_CAREER_VALIDATION.md)。
 
-v1.3D 未开始，只允许后续讨论 Universal Career Direction Discovery Foundation 范围；用户确认后再生成实现授权。下方 Phase 0–13 总览及 checkpoint/发布限制均为当时历史，不代表当前 Git 状态或新的调用/部署授权。
+上段 v1.3C 数字是历史冻结基线，不是 D.2 最新验收。下方 Phase 0–13 总览及 checkpoint/发布限制均为当时历史，不代表当前 Git 状态或新的调用/部署授权。D.2 不绑定后续岗位筛选、Match、行动、新闻、认证或部署。
 
 ## 历史总览
 

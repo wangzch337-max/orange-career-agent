@@ -8,6 +8,7 @@ Opaque browser scopes provide local/demo isolation, not authentication.
 from __future__ import annotations
 
 from contextlib import ExitStack
+from enum import Enum
 from pathlib import Path
 from typing import Mapping
 from uuid import UUID
@@ -23,6 +24,8 @@ from profile_refinement.context import workspace_inputs as refinement_inputs
 from profile_refinement.session import ProfileRefinementSession
 from career_discovery.context import workspace_inputs as discovery_inputs
 from career_discovery.session import CareerDiscoverySession
+from career_reality.session import CareerRealitySession
+from role_landscape.session import RoleLandscapeSession
 from career_runtime.profile_conversation import ProfileConversation
 from ui.conversation import ConversationStage, GuidedConversation
 from ui.conversation_shell import ChatMessage, ChatSession
@@ -37,6 +40,11 @@ from workflows.langgraph_workflow import new_workflow_id
 
 
 DEFAULT_CHAT_ROOT = Path(__file__).resolve().parents[1] / "data/local/chat"
+
+
+class WorkspaceMode(str, Enum):
+    NORMAL = "NORMAL"
+    PUBLIC_SYNTHETIC_DEMO = "PUBLIC_SYNTHETIC_DEMO"
 
 
 def _text(value: object) -> str:
@@ -99,7 +107,11 @@ def flatten_payload(payload: Mapping[str, object] | None) -> str:
 class Workspace:
     """One browser-scoped persistent workspace; no automatic Memory transcript writes."""
 
-    def __init__(self, owner_scope_id: str, root: str | Path | None = None) -> None:
+    def __init__(self, owner_scope_id: str, root: str | Path | None = None, *,
+                 mode: WorkspaceMode = WorkspaceMode.NORMAL) -> None:
+        if not isinstance(mode, WorkspaceMode):
+            raise ValueError("Invalid workspace mode.")
+        self._runtime_mode = mode
         self.root = Path(root) if root is not None else DEFAULT_CHAT_ROOT
         self.store = ConversationStore(self.root / "conversations.sqlite3")
         identity = self.store.ensure_owner(owner_scope_id)
@@ -129,9 +141,13 @@ class Workspace:
             lambda **kwargs: refinement_inputs(self, **kwargs), self.memory_service,
             on_confirmed=self._profile_refinement_confirmed)
         self.resume_analysis.on_invalidate = self._invalidate_resume_candidates
+        from career_discovery.demo import PublicSyntheticDiscoveryProvider
         self.career_discovery = CareerDiscoverySession(self.owner_scope_id,
-            lambda **kwargs: discovery_inputs(self, **kwargs), self.memory_service)
+            lambda **kwargs: discovery_inputs(self, **kwargs), self.memory_service,
+            provider_factory=PublicSyntheticDiscoveryProvider if mode == WorkspaceMode.PUBLIC_SYNTHETIC_DEMO else None)
         self.profile_conversation = ProfileConversation(self)
+        self.career_reality = CareerRealitySession(self)
+        self.role_landscape = RoleLandscapeSession(self)
         try:
             threads = self.store.list_threads(self.owner_scope_id)
             if threads:
@@ -141,6 +157,11 @@ class Workspace:
         except Exception:
             self.close()
             raise
+
+    @property
+    def runtime_mode(self):
+        """Code-owned, per-workspace mode; not restored from chat/user state."""
+        return self._runtime_mode
 
     @property
     def agent_session(self):
@@ -154,6 +175,10 @@ class Workspace:
         self.profile_refinement.invalidate()
         if hasattr(self, "profile_conversation"):
             self.profile_conversation.invalidate()
+        if hasattr(self, "career_reality"):
+            self.career_reality.invalidate()
+        if hasattr(self, "role_landscape"):
+            self.role_landscape.invalidate()
 
     def _profile_refinement_confirmed(self, binding):
         # Called outside the Profile lock. Never clear a later thread/answer.
@@ -225,9 +250,13 @@ class Workspace:
         if thread_id != self.thread.thread_id:
             raise ConversationStoreError("Completed turn no longer owns the selected thread.")
         keep = self.profile_conversation._current(self.profile_conversation.token())
-        return self.activate(thread_id, _keep_profile_conversation=keep)
+        return self.activate(thread_id, _keep_profile_conversation=keep,
+                             _keep_career_reality=self.career_reality.current(),
+                             _keep_role_landscape=self.role_landscape.current(),
+                             _keep_discovery_pending=self.career_discovery.qa_pending_is_current())
 
-    def activate(self, thread_id: str, *, _keep_profile_conversation=False) -> ConversationThread:
+    def activate(self, thread_id: str, *, _keep_profile_conversation=False, _keep_career_reality=False,
+                 _keep_discovery_pending=False, _keep_role_landscape=False) -> ConversationThread:
         """Load the owned transcript/snapshot/checkpoint without executing anything."""
         if self._closed:
             raise ConversationStoreError("Conversation workspace is unavailable.")
@@ -235,10 +264,20 @@ class Workspace:
             self._agent_session.require_idle()
         keep = (_keep_profile_conversation and self._thread is not None and self._thread.thread_id == thread_id and
                 self.profile_conversation._current(self.profile_conversation.token()))
+        keep_reality = (_keep_career_reality and self._thread is not None and self._thread.thread_id == thread_id and
+                        self.career_reality.current())
+        keep_landscape = (keep_reality and _keep_role_landscape and self.role_landscape.current())
+        if not keep_landscape:
+            self.role_landscape.invalidate()
+        if not keep_reality:
+            self.career_reality.invalidate()
         if not keep:
             self.profile_refinement.invalidate()
             self.profile_conversation.invalidate()
-        self.career_discovery.invalidate()
+        keep_discovery = (_keep_discovery_pending and self._thread is not None and self._thread.thread_id == thread_id and
+                          self.career_discovery.qa_pending_is_current())
+        if not keep_discovery:
+            self.career_discovery.invalidate()
         thread = self.store.get_thread(self.owner_scope_id, thread_id)
         messages = self.store.list_messages(self.owner_scope_id, thread_id)
         snapshot = self.store.load_snapshot(self.owner_scope_id, thread_id)
@@ -271,6 +310,8 @@ class Workspace:
             self._agent_session.pending = None
         self._controller, self._chat, self._thread = controller, chat, thread
         self.resume_intake.bind(self.owner_scope_id, thread_id)
+        if keep_discovery:
+            self.career_discovery.finish_general_qa()
         return thread
 
     def rename(self, thread_id: str, title: str) -> ConversationThread:
@@ -295,6 +336,8 @@ class Workspace:
         if self.thread.thread_id == thread_id:
             self.profile_refinement.invalidate()
             self.career_discovery.invalidate()
+            self.career_reality.invalidate()
+            self.role_landscape.invalidate()
         was_active = self.thread.thread_id == thread_id
         deleted = self.store.delete_thread(self.owner_scope_id, thread_id)
         if self.resume_intake.thread_id == thread_id:
@@ -331,7 +374,7 @@ class Workspace:
         validate_message_content(text)
         if source not in ("typed", "suggestion"):
             raise ConversationStoreError("Unsupported message source.")
-        self.career_discovery.invalidate()
+        keep_discovery = self.career_discovery.on_general_qa()
         self.chat.submit(text, self.controller)
         user, assistant = self.chat.messages[-2:]
         flattened = flatten_payload(assistant.structured_payload)
@@ -353,12 +396,16 @@ class Workspace:
         # a duplicate canonical domain object hidden in presentation metadata.
         self.chat.messages[-1] = ChatMessage("assistant", visible_content, None, suggestions)
         self._thread = self.store.get_thread(self.owner_scope_id, self.thread.thread_id)
+        if keep_discovery:
+            self.career_discovery.finish_general_qa()
 
     def close(self) -> None:
         """Release resources only; never delete transcript/Profile/Memory/checkpoints."""
         if self._closed:
             return
         self.career_discovery.invalidate()
+        self.career_reality.invalidate()
+        self.role_landscape.invalidate()
         self.resume_intake.clear()
         if self._agent_session is not None:
             self._agent_session.close()
@@ -369,6 +416,16 @@ class Workspace:
 
     def __enter__(self) -> Workspace:
         return self
+
+    def explore_direction(self, token, direction_id):
+        """D.1 owns selection validation; D.2 gets its own ephemeral receipt."""
+        if self.agent_session.busy or self.career_reality.busy:
+            return False
+        self.role_landscape.invalidate()
+        if not self.career_discovery.select(token, direction_id):
+            self.career_reality.invalidate()
+            return False
+        return self.career_reality.start(token, direction_id)
 
     def __exit__(self, *_exc: object) -> None:
         self.close()

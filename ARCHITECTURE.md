@@ -1,8 +1,18 @@
 # Orange 系统架构 System Architecture
 
-**当前状态：Orange Career v1.3C 冻结范围；完整离线 Resume Intelligence 通过，完整真实 provider 链保留验证缺口。Phase 9A / 9B 与 v1.3D 未开始。**
+**当前状态：Orange Career v1.3D.3；D.1/D.2 与角色分工探索已实现，完整真实 provider 链保留验证缺口。Phase 9A / 9B 未开始。**
 
-本说明下方总体图与带 Phase 标签的段落保留 Golden 引导路径及实现演进，不覆盖现有聊天入口的全部能力。Memory 只开放 profile refinement 与 role recall；Job Intelligence 和 Match relation generation 不消费 retrieved Memory。当前入口见 [README](README.md)，聊天/generation 边界见 [Runtime](docs/ORANGE_AGENT_RUNTIME.md)。
+## v1.3D.3 当前增量边界
+
+有效 D.2 receipt + 明确角色意图 → `RoleLandscapeSession` → 精确 registry → membership-grounded service → 原主聊天 progressive disclosure。`role_landscape/` 属 Job Intelligence 责任，不是新 Agent；Workspace 管 owner/thread/source/parent 与临时生命周期。D.3 不向 QA planner 注册新工具，不读个人字段或 Memory；只继承父 receipt 一致性验证。同线程 QA reload 可保留，导航/关闭/迟到/重放拒绝；不写 chat store/snapshot。D.2 来源与文案不变，仅最小转场/呈现接线。详见 [D.3](docs/ROLE_LANDSCAPE_EXPLORATION.md)。
+
+本说明下方总体图与带 Phase 标签的段落保留 Golden 引导路径及实现演进，不覆盖现有聊天入口的全部能力。Memory 开放 profile refinement、role recall 与 D.1 direction discovery；Job Intelligence、Match relation generation 和 D.2 不消费 retrieved Memory。当前入口见 [README](README.md)，聊天/generation 边界见 [Runtime](docs/ORANGE_AGENT_RUNTIME.md)。
+
+## v1.3D.2 当前增量边界
+
+有效 D.1 selection → Workspace transition → `CareerRealitySession` → 精确 identity/source registry → 确定性 source-supported projection → 主聊天代表性情境/有界追问。`career_reality/` 是 Job Intelligence 责任内的 work-understanding service；Orchestrator/Workspace 管作用域与生命周期，没有第五 Agent。独立公开合成资料不读取 JobRecord 或私人材料，默认不需要 LLM。每条显示内容保留 source/version/claim ref 与 authority；example 不是普遍职业事实，capability 不是用户能力。
+
+独立 D.2 receipt 绑定有效 D.1 选择、owner/thread/request、Profile 版本/指纹、精确方向、source 版本/指纹。普通 QA 清除旧 D.1 review，但有效同线程 D.2 receipt 可继续；新探索、版本变化、导航、删除、关闭和简历上下文清理均失效。Profile 只用于一致性检查，不进入工作解释；Memory 零读取/写入。D.2 timeline、回答及结构化状态不写 transcript/snapshot，普通 QA 继续既有持久化契约。详见 [D.2](docs/CAREER_REALITY_EXPLORATION.md)。
 
 ## v1.3C 当前增量边界
 

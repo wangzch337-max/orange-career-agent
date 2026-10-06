@@ -527,11 +527,11 @@ def legacy_main() -> None:
 
 
 def main() -> None:
-    """Normal product entry; legacy surfaces are importable, never navigation."""
+    """Public offline demo entry; legacy surfaces are importable, never navigation."""
     from ui.boot_loader import render_boot
     from ui.conversation_shell import render_conversation_shell
     from ui.chat_components import shell_stylesheet
-    from ui.chat_runtime import PersistentChatWorkspace
+    from ui.chat_runtime import PersistentChatWorkspace, WorkspaceMode
     from ui.onboarding.component import CLIENT_SCOPE_KEY
 
     st.set_page_config(
@@ -544,10 +544,12 @@ def main() -> None:
     if scope is None:
         st.stop()
     workspace = st.session_state.get("orange_chat_workspace_v1")
-    if workspace is None or workspace.owner_scope_id != scope:
+    mode = WorkspaceMode.PUBLIC_SYNTHETIC_DEMO
+    if (workspace is None or workspace.owner_scope_id != scope or
+            getattr(workspace, "runtime_mode", None) != mode):
         if workspace is not None:
             workspace.close()
-        workspace = PersistentChatWorkspace(scope, root=st.session_state.get("orange_chat_runtime_root"))
+        workspace = PersistentChatWorkspace(scope, root=st.session_state.get("orange_chat_runtime_root"), mode=mode)
         st.session_state["orange_chat_workspace_v1"] = workspace
     controller = workspace.controller
     st.session_state[SESSION_CONTROLLER] = controller

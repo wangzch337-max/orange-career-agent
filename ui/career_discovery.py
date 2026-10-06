@@ -4,6 +4,8 @@ from uuid import uuid4
 import streamlit as st
 
 from career_discovery.models import Readiness, Status
+from career_discovery.demo import PUBLIC_DEMO_NOTICE
+from ui.chat_runtime import WorkspaceMode
 
 
 def render_career_discovery(workspace):
@@ -12,13 +14,15 @@ def render_career_discovery(workspace):
     result = session.current_result() if session.result is not None else None
     disabled = workspace.agent_session.busy or session.busy
     with st.container(key="orange_career_discovery"):
+        if workspace.runtime_mode == WorkspaceMode.PUBLIC_SYNTHETIC_DEMO:
+            st.caption(PUBLIC_DEMO_NOTICE)
         if result and result.readiness == Readiness.NEEDS_CLARIFICATION:
             with st.chat_message("assistant"):
                 st.write(result.clarification_need.question)
-                st.caption("只需补充这个会影响方向范围的问题；尚未生成方向。")
+                st.caption("这会影响我接下来给你看的方向范围。如果还没想好，也可以直接说“都可以看看”。")
         if session.status in {Status.INVALID_CONTEXT, Status.INVALID_OUTPUT, Status.INVALID_REFERENCE,
                               Status.PROVIDER_FAILED, Status.STALE}:
-            st.warning("本次探索未通过安全检查；没有生成或自动修复方向，也未自动重试。状态：" + session.status.value)
+            st.warning("这次探索暂时没有成功；已有理解没有被修改，也未自动重试或补造方向。")
         if result and result.readiness == Readiness.READY and session.status in {Status.CREATED, Status.SELECTED}:
             with st.chat_message("assistant"):
                 st.write("以下是值得审阅的探索方向，不是具体岗位或已确认职业目标。")
@@ -45,16 +49,17 @@ def render_career_discovery(workspace):
                     for item in (*direction.uncertainties, *direction.evidence_gaps):
                         st.write(item)
                     st.button("继续探索这个方向", key="orange_direction_" + result.request_id + "_" + direction.direction_id,
-                        disabled=disabled or token is None, on_click=session.select, args=(token, direction.direction_id))
+                        disabled=disabled or token is None, on_click=workspace.explore_direction, args=(token, direction.direction_id))
                 if session.selected_direction_id:
-                    st.caption("已选择本轮探索方向；未确认职业目标、保存记忆或启动岗位搜索。")
+                    st.caption("已选择本轮探索方向；工作理解在主聊天继续，未确认职业目标、保存记忆或启动岗位搜索。")
             return
-        with st.expander("探索职业方向", expanded=bool(result)):
+        with st.expander("探索职业方向", expanded=bool(result) or session.status == Status.CONSENT_REQUIRED):
             st.write("按已确认的理解和本轮意向，看看哪些方向值得继续探索。")
-            st.caption("D.1 离线基础：不连接真实模型；只提出候选，不写入画像或长期记忆。")
+            st.caption("只提出值得继续了解的方向，不替你做最终职业决定。")
             statement = st.text_input("本轮探索意向（可选）", max_chars=1200,
                 key="orange_discovery_statement_" + workspace.thread.thread_id, disabled=disabled)
-            consent = st.checkbox("同意本次使用精简的已确认画像、相关已确认记忆和本轮上下文进行方向探索",
+            st.caption("Orange 只会参考你已经确认过的信息。本次探索不会自动修改你的职业画像或长期记忆。")
+            consent = st.checkbox("参考我之前确认过的信息",
                 key="orange_discovery_consent_" + workspace.thread.thread_id, disabled=disabled)
             # Fresh operation identity is captured by one explicit UI action;
             # repeated renders never execute the callback.

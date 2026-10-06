@@ -9,6 +9,7 @@ from providers.fake import FakeLLMProvider
 from career_discovery.context import CareerDiscoveryContextBuilder, bind, fingerprint, readiness
 from career_discovery.models import (CareerDiscoveryResult, DiscoveryError, Readiness, SelectionToken, Status)
 from career_discovery.service import CareerDiscoveryService
+from career_discovery.dialogue import DialogueAct, PendingClarificationToken, scope_dialogue_act
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class CareerDiscoverySession:
         self.status, self._statement = Status.IDLE, ""
         self._request_id = None
         self._used_request_ids = set()
+        self._qa_bridge = None
 
     @property
     def busy(self):
@@ -60,6 +62,105 @@ class CareerDiscoverySession:
             self.status, self._statement = Status.IDLE, ""
             self._request_id = None
             self.events.clear()
+            self._qa_bridge = None
+
+    def pending_token(self):
+        """A question owns replies only while its original authority is valid."""
+        with self._lock:
+            if self._busy or self.status != Status.NEEDS_CLARIFICATION:
+                return None  # Ordinary QA never loads a completed discovery context.
+            result = self.current_result()
+            if (self._busy or not result or self.binding is None or
+                    self.status != Status.NEEDS_CLARIFICATION or
+                    result.readiness != Readiness.NEEDS_CLARIFICATION or result.clarification_need is None or
+                    result.clarification_need.need_id != "exploration_scope"):
+                return None
+            return PendingClarificationToken(self.owner_scope_id, self.binding.conversation_id,
+                result.request_id, self._generation, fingerprint(self.binding.model_dump()),
+                result.clarification_need.need_id)
+
+    def on_general_qa(self):
+        """Pause only a valid pending scope turn; completed reviews still clear."""
+        with self._lock:
+            token = self.pending_token()
+            if token is None:
+                self.invalidate()
+                return False
+            self._qa_bridge = token
+            return True
+
+    def qa_pending_is_current(self):
+        with self._lock:
+            return self._qa_bridge is not None and self._qa_bridge == self.pending_token()
+
+    def finish_general_qa(self):
+        """Same-thread QA may change recent text, never Profile/Memory authority."""
+        with self._lock:
+            old, token = self.binding, self._qa_bridge
+            self._qa_bridge = None
+            if old is None or token is None or token.generation != self._generation:
+                self.invalidate()
+                return False
+            try:
+                inputs = self._inputs()
+                updated = old.model_copy(update={"recent_fingerprint": fingerprint(inputs.recent)})
+                if (fingerprint(old.model_dump()) != token.binding_fingerprint or
+                        not self._current(updated)):
+                    raise DiscoveryError(Status.STALE)
+                self.binding = updated
+                return True
+            except Exception:
+                self.invalidate()
+                self.status = Status.STALE
+                return False
+
+    def answer_pending(self, text, *, token=None):
+        """Consume an answer ephemerally and resume this one request, no retrieval."""
+        with self._lock:
+            current = self.pending_token()
+            if token is not None and token != current:
+                return True  # Stale answers must never become durable QA messages.
+            if current is None or scope_dialogue_act(text) != DialogueAct.ANSWER:
+                return False
+            try:
+                from career_discovery.context import clean, MAX_JSON_CHARS
+                from career_discovery.models import Source
+                from clarification.context import explicitly_uncertain
+                import json
+                clean_text, changed = clean(text)
+                if changed or clean_text != text.strip():
+                    raise DiscoveryError(Status.INVALID_CONTEXT)
+                inputs = self._inputs()
+                statement = "\n".join(filter(None, (self._statement, clean_text)))
+                if len(statement) > 1200:
+                    raise DiscoveryError(Status.INVALID_CONTEXT)
+                prefix = fingerprint((current.owner, current.thread, current.request_id))[:16]
+                answer = Source(ref=f"src_{prefix}_{len(self.context.sources):03d}",
+                    origin="current_explicit", category="reply_to_adjacent_or_cross_industry_scope_question",
+                    text=clean_text, uncertainty="explicit_uncertainty" if explicitly_uncertain(clean_text) else "none")
+                context = type(self.context).model_validate({**self.context.model_dump(),
+                    "sources": [*self.context.sources, answer]})
+                if len(json.dumps(context.provider_payload(), ensure_ascii=False, separators=(",", ":"))) > MAX_JSON_CHARS:
+                    raise DiscoveryError(Status.INVALID_CONTEXT)
+                from dataclasses import replace
+                binding = bind(replace(inputs, current_statement=statement), current.request_id,
+                               self.binding.memory_fingerprints)
+                self._statement, self.context, self.binding = statement, context, binding
+                self.result = CareerDiscoveryResult.model_validate({**self.result.model_dump(),
+                    "readiness": Readiness.READY, "clarification_need": None, "status": Status.READY,
+                    "source_summary": [(origin, sum(s.origin == origin for s in context.sources)) for origin in
+                        ("confirmed_profile", "confirmed_memory", "current_explicit", "recent_user_context")]})
+                self.status, self._busy = Status.READY, True
+                self._qa_bridge = None
+                generation = self._generation
+                self._event("career_discovery_clarification_answered")
+            except Exception:
+                self.status = Status.INVALID_CONTEXT
+                self.result = None
+                self._event("career_discovery_answer_rejected")
+                return True
+        self._discover(context, binding, generation)
+        return True
 
     def _inputs(self, include_memory=False):
         value = self.input_factory(current_statement=self._statement, include_memory=include_memory)
@@ -158,6 +259,10 @@ class CareerDiscoverySession:
                 self.status = error.code if isinstance(error, DiscoveryError) else Status.INVALID_CONTEXT
                 self._event("career_discovery_failed")
                 return None
+        return self._discover(context, binding, generation)
+
+    def _discover(self, context, binding, generation):
+        """Existing single bounded discovery call, shared by start and resume."""
         try:
             if not self._current(binding):
                 raise DiscoveryError(Status.STALE)
