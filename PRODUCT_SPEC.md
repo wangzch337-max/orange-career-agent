@@ -1,6 +1,8 @@
 # Orange 产品规格 Product Specification
 
-**文档状态：Orange Career v1.3D.3；下方 Golden Flow 保留初始引导产品契约。**
+**文档状态：Orange Career v1.3D.4；下方 Golden Flow 保留初始引导产品契约。**
+
+D.4 = Representative Specific Role Understanding：D.3 的9个类型各展开一个独立 public synthetic / curated 角色例子，先目的与情境，后单维度协作、交付、决策、节奏与工具。不是 Specific Role Screening、Job Recommendation、Live Job 或 Match；无 Profile write、Memory write，不判断用户能力或适配，不确认职业目标。来源不足安全停止，歧义澄清；主聊天单输入，状态 session-only。详见 [D.4](docs/REPRESENTATIVE_SPECIFIC_ROLE.md)。D.1–D.3 checkpoint 已冻结；Final Product Polish 延期。
 
 D.3 获批 A + C：同一聊天内了解三个公开 Demo 方向里的角色类型与工作差异。方向→角色须由独立合成来源支持，顺序非排名；角色事实不消费个人 Profile/Memory。「哪个更适合我」保留给另行授权 Match，兴趣不确认能力/职业目标。无具体职位筛选、真实招聘、网络或 Product Polish。详见 [D.3](docs/ROLE_LANDSCAPE_EXPLORATION.md)。
 **产品副标题：AI Career Discovery Agent**

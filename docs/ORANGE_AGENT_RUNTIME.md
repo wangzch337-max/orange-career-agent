@@ -1,4 +1,8 @@
-# Orange Career v1.3D.3 · 有边界的对话、简历与角色理解
+# Orange Career v1.3D.4 · 有边界的对话、简历与角色理解
+
+## v1.3D.4 当前增量
+
+D.1–D.3 已冻结在 `dfeb535`。主 composer 保留画像与 D.1 pending 优先权，随后最小增加 D.4 → D.3 → D.2 → 原 General QA 的有界路由。D.4 = Representative Specific Role Understanding，独立公开合成资料覆盖9个 archetypes 的具体工作形态，首轮目的与一个情境，后续单维度追问；差异仍属 D.3，方向层问题仍属 D.2，技术 QA 不读 D.4 或个人事实。D.4 无 provider、新 Memory consumer、Profile mutation、Match 或真实招聘；只继承父链的版本一致性检查。合法 QA reload 后可继续，导航/关闭/父链/source 变化和迟到/重放不能恢复，消息不进入 chat store/snapshot。不是 Specific Role Screening，Final Product Polish 延期。详见 [D.4](REPRESENTATIVE_SPECIFIC_ROLE.md)。
 
 ## v1.3D.3 当前增量
 

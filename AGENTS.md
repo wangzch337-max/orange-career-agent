@@ -17,7 +17,7 @@ Orange 是面向大学生的 AI 职业探索 Agent，核心顺序是“先理解
 ## 阶段式开发
 
 - 严格按 `IMPLEMENTATION_PLAN.md` 推进，不跨阶段实现。
-- 当前为获批准的 v1.3D.3 Role Landscape Exploration（A + C），独立公开合成方向→角色归属资料与差异对话属于 Job Intelligence，不是个人 Match 或第五 Agent。三个 Demo 方向均支持，精确 source/parent/owner/thread binding；不增加 Memory reads/consumer/writes、Profile mutation、具体角色筛选、真实 provider/data 或跨 New Chat persistence。保留 D.2/P0/P1/public Demo 未提交工作，Final Product Polish 不在范围；不 commit/push/deploy。以下 Phase 记录为历史，当前以最新授权与 README 为准。
+- 当前为获批准的 v1.3D.4 Representative Specific Role Understanding：独立 public synthetic / curated direction→archetype→representative role 资料，覆盖9个既有类型，属于 Job Intelligence，不是个人 Match 或第五 Agent。精确 source pin、双重 membership refs、D.1 receipt / D.2-D.3 generation / owner-thread binding；主聊天渐进问答，QA 可打断后返回。零 Profile role-fact reads/writes、Memory reads added/consumer/writes、Match、fit score、ranking、target confirmation、真实 provider/data 或跨 New Chat persistence。D.1–D.3 已冻结在 `dfeb535`；Final Product Polish 不在范围；本轮不 git add/commit/push/deploy。以下 Phase 记录为历史，当前以最新授权与 README 为准。
 - Memory 允许三个已批准显式 use case：`PROFILE_REFINEMENT`、`ROLE_EXPLORATION` 与 D.1 `CAREER_DIRECTION_DISCOVERY`。D.2 不新增 consumer，不读取/写入 Memory。`MemoryContextPolicy` 的类型过滤、检索模式、top-k、预算和 consumer 必须由确定性代码决定；retrieval 是只读路径。
 - Job Intelligence 与 Match relation generation 不得消费 retrieved Memory。Memory-aware statement 必须保留 `memory_refs`；只有结构化同维度差异可建立 session-only `MemoryChangeCandidate`，且只有用户明确确认才可 supersede。不得用 semantic similarity 判断冲突，不得自动保存 guided answer、chat transcript 或检索结果。
 - Phase 8A 已通过 668 tests 与 27 Golden scenarios，并经明确授权建立唯一 local checkpoint `e707063`（无 push）。Evaluation 仍是外部 observer；不把评价规则放入生产 agents/workflow/UI/memory，不引入 judge／总体分／Match score／ranking。

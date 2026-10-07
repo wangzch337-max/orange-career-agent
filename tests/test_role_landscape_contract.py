@@ -27,7 +27,24 @@ def test_exact_d3_inventory_and_source_pin():
     ("sources.py","d363b1f70036297417077eac66d2b5ae5bc18db4caf908cf57020862332ff8c8"),
 ])
 def test_d2_production_source_and_copy_remain_exact(name, pin):
-    assert hashlib.sha256((ROOT / "career_reality" / name).read_bytes()).hexdigest() == pin
+    current = (ROOT / "career_reality" / name).read_bytes()
+    if name == "service.py":
+        # Exact authorized PURPOSE alias and bounded overall-work grammar only;
+        # no source/copy/authority changes or permissive hash fallback.
+        from tests.career_reality_contract import D4_FREEZE
+        import subprocess
+        original = subprocess.check_output(["git", "show", f"{D4_FREEZE}:career_reality/service.py"], cwd=ROOT)
+        assert hashlib.sha256(original).hexdigest() == pin
+        before = "|主要解决什么问题|存在的目的是什么|".encode()
+        after = "|主要解决什么问题|整体在解决什么问题|存在的目的是什么|".encode()
+        assert original.count(before) == 1
+        expected = original.replace(before, after, 1)
+        work_before = 'D.WORK: r"(?:平时(?:主要)?做什么|'.encode()
+        work_after = 'D.WORK: r"(?:整体(?:是)?做什么(?:的)?|平时(?:主要)?做什么|'.encode()
+        assert expected.count(work_before) == 1
+        assert current == expected.replace(work_before, work_after, 1)
+    else:
+        assert hashlib.sha256(current).hexdigest() == pin
 
 
 @pytest.mark.parametrize("name", ["models.py", "sources.py", "service.py", "session.py"])

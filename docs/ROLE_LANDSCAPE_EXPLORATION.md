@@ -1,5 +1,7 @@
 # v1.3D.3 · Role Landscape Exploration（A + C）
 
+本页保留 D.3 冻结职责；D.1–D.3 checkpoint 为 `dfeb535`。当前已获批的 [v1.3D.4 Representative Specific Role Understanding](REPRESENTATIVE_SPECIFIC_ROLE.md) 从独立资料展开全部9个既有 archetypes，不改变本页的类型概览/差异职责，也不做 Specific Role Screening、Match 或真实招聘。D.2 仅扩充授权方向问句的有界语法，其来源及权威不变。
+
 角色类型概览与差异对话属于 Job Intelligence，不是 Match 或第五个核心 Agent。公开合成 / curated prototype 仅支持作者设计的分工，不证明真实岗位存在，不代表完整职业 taxonomy、所有公司的职位或实时劳动力市场。
 
 ## 产品路径

@@ -44,15 +44,29 @@ D2_PATHS |= D3_PATHS  # Compose the exact authorized additions for older scope g
 D3_SOURCE_PATH = "data/fixtures/role_landscape/role_sources.json"
 D3_SOURCE_HASH = "4d27dce2284bc0fe02c1d5f388d068af05add6ba15c8420324361dea7a117e33"
 
+# Explicitly authorized D.4 extension, never a wildcard or fixture exemption.
+D4_FREEZE = "dfeb5352ca728ef91858b117ebc383d7dfb896d9"
+D4_PATHS = {
+    "specific_role/__init__.py", "specific_role/models.py", "specific_role/sources.py",
+    "specific_role/service.py", "specific_role/session.py", "ui/specific_role.py",
+    "data/fixtures/specific_role/role_sources.json", "docs/REPRESENTATIVE_SPECIFIC_ROLE.md",
+    "career_background_evaluation/specific.py", "tests/test_specific_role.py",
+    "tests/test_specific_role_ui.py", "tests/test_specific_role_contract.py",
+}
+D2_PATHS |= D4_PATHS
+D4_SOURCE_PATH = "data/fixtures/specific_role/role_sources.json"
+D4_SOURCE_HASH = "78218383b6b87292ad20668a9619354df1c6308f448fcb95548a61c04f7b371a"
+
 
 def assert_d2_source_delta(root, *, inventory_baseline=D1_FREEZE):
     from tests.freeze_contract import changed_paths, historical_paths, repository_paths
-    additions = {D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH}
+    additions = {D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH, D4_SOURCE_PATH}
     assert changed_paths(root, D1_FREEZE, "data") == additions
     assert repository_paths(root, "data") == historical_paths(root, inventory_baseline, "data") | additions
     assert hashlib.sha256((root / D2_SOURCE_PATH).read_bytes()).hexdigest() == D2_SOURCE_HASH
     assert hashlib.sha256((root / DEMO_PROPOSAL_PATH).read_bytes()).hexdigest() == DEMO_PROPOSAL_HASH
     assert hashlib.sha256((root / D3_SOURCE_PATH).read_bytes()).hexdigest() == D3_SOURCE_HASH
+    assert hashlib.sha256((root / D4_SOURCE_PATH).read_bytes()).hexdigest() == D4_SOURCE_HASH
 
 # Approved new integration bytes will compose with the original D.1 pins;
 # unapproved mutations still face every historical guard.
@@ -74,9 +88,22 @@ D3_INTEGRATION_HASHES = {
     "ui/conversation_shell.py": "f0bef0008ddb1b5ea1d1a0da8953106576d9517d8c23c16155ed7a79ee4f9326",
 }
 
+# Existing UI integration and the exact fixture-inventory test compose only at
+# exact approved D.4 bytes; any arbitrary byte still reaches the original guard.
+D4_INTEGRATION_HASHES = {
+    "ui/chat_runtime.py": "b2209b7f6637d7968f79cc9e56221b4fd01bf14bafa2c8340617d46b7e9d8063",
+    "ui/conversation_shell.py": "3f9eb58cf9255db523ddb088f580244a7ea8469b25e6b9d9a10a726c741e9a18",
+    "tests/test_conversation_shell.py": "a1b72b0d29254c55c387bc3aa26147e104dcca9033ca3576c46a01272aa5e360",
+}
+D4_PROJECTION_HASHES = {
+    "ui/role_landscape.py": "7b47ec762583a6a98d6692b7c0c6aa20737629c25203c9b3d0f4e3c043ae4ff1",
+    "career_reality/service.py": "80ced55d2149292307fbac7e8cc12aa7c748eeb7ba53af58ca5a71e5d7932277",
+    "specific_role/service.py": "9a216ba1ed5f587891474efa7ee1724485f249fd3df2fd57f5ded75d8ae47355",
+}
+
 
 def pre_d2_bytes(root, name, current):
-    pins = D2_INTEGRATION_HASHES | D3_INTEGRATION_HASHES
+    pins = D2_INTEGRATION_HASHES | D3_INTEGRATION_HASHES | D4_INTEGRATION_HASHES
     if name in pins and hashlib.sha256(current).hexdigest() == pins[name]:
         return subprocess.check_output(["git", "show", f"{D1_FREEZE}:{name}"], cwd=root)
     return current

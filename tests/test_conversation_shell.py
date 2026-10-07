@@ -394,9 +394,9 @@ def test_v12_does_not_change_authority_or_dependencies(scope):
             assert_d1_memory_delta(ROOT)  # Exact pre-existing D.1 policy; old consumers remain byte-frozen.
             expected |= {"memory/models.py", "memory/integration.py"}
         else:
-            from tests.career_reality_contract import D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH, assert_d2_source_delta
+            from tests.career_reality_contract import D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH, D4_SOURCE_PATH, assert_d2_source_delta
             assert_d2_source_delta(ROOT, inventory_baseline=CHECKPOINT)  # Exact addition, no old path removal.
-            expected |= {D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH}
+            expected |= {D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH, D4_SOURCE_PATH}
         assert changed_paths(ROOT, CHECKPOINT, scope) == expected
         if scope == "memory":
             assert_original_inventory(ROOT, CHECKPOINT, scope)

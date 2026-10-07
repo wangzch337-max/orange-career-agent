@@ -26,6 +26,7 @@ from career_discovery.context import workspace_inputs as discovery_inputs
 from career_discovery.session import CareerDiscoverySession
 from career_reality.session import CareerRealitySession
 from role_landscape.session import RoleLandscapeSession
+from specific_role.session import SpecificRoleSession
 from career_runtime.profile_conversation import ProfileConversation
 from ui.conversation import ConversationStage, GuidedConversation
 from ui.conversation_shell import ChatMessage, ChatSession
@@ -148,6 +149,7 @@ class Workspace:
         self.profile_conversation = ProfileConversation(self)
         self.career_reality = CareerRealitySession(self)
         self.role_landscape = RoleLandscapeSession(self)
+        self.specific_role = SpecificRoleSession(self)
         try:
             threads = self.store.list_threads(self.owner_scope_id)
             if threads:
@@ -179,6 +181,8 @@ class Workspace:
             self.career_reality.invalidate()
         if hasattr(self, "role_landscape"):
             self.role_landscape.invalidate()
+        if hasattr(self, "specific_role"):
+            self.specific_role.invalidate()
 
     def _profile_refinement_confirmed(self, binding):
         # Called outside the Profile lock. Never clear a later thread/answer.
@@ -253,10 +257,11 @@ class Workspace:
         return self.activate(thread_id, _keep_profile_conversation=keep,
                              _keep_career_reality=self.career_reality.current(),
                              _keep_role_landscape=self.role_landscape.current(),
+                             _keep_specific_role=self.specific_role.current(),
                              _keep_discovery_pending=self.career_discovery.qa_pending_is_current())
 
     def activate(self, thread_id: str, *, _keep_profile_conversation=False, _keep_career_reality=False,
-                 _keep_discovery_pending=False, _keep_role_landscape=False) -> ConversationThread:
+                 _keep_discovery_pending=False, _keep_role_landscape=False, _keep_specific_role=False) -> ConversationThread:
         """Load the owned transcript/snapshot/checkpoint without executing anything."""
         if self._closed:
             raise ConversationStoreError("Conversation workspace is unavailable.")
@@ -267,6 +272,9 @@ class Workspace:
         keep_reality = (_keep_career_reality and self._thread is not None and self._thread.thread_id == thread_id and
                         self.career_reality.current())
         keep_landscape = (keep_reality and _keep_role_landscape and self.role_landscape.current())
+        keep_specific = (keep_landscape and _keep_specific_role and self.specific_role.current())
+        if not keep_specific:
+            self.specific_role.invalidate()
         if not keep_landscape:
             self.role_landscape.invalidate()
         if not keep_reality:
@@ -338,6 +346,7 @@ class Workspace:
             self.career_discovery.invalidate()
             self.career_reality.invalidate()
             self.role_landscape.invalidate()
+            self.specific_role.invalidate()
         was_active = self.thread.thread_id == thread_id
         deleted = self.store.delete_thread(self.owner_scope_id, thread_id)
         if self.resume_intake.thread_id == thread_id:
@@ -406,6 +415,7 @@ class Workspace:
         self.career_discovery.invalidate()
         self.career_reality.invalidate()
         self.role_landscape.invalidate()
+        self.specific_role.invalidate()
         self.resume_intake.clear()
         if self._agent_session is not None:
             self._agent_session.close()
@@ -421,6 +431,7 @@ class Workspace:
         """D.1 owns selection validation; D.2 gets its own ephemeral receipt."""
         if self.agent_session.busy or self.career_reality.busy:
             return False
+        self.specific_role.invalidate()
         self.role_landscape.invalidate()
         if not self.career_discovery.select(token, direction_id):
             self.career_reality.invalidate()

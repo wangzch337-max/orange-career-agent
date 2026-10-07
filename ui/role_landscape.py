@@ -8,7 +8,9 @@ from ui.onboarding.assets import sphere_markup
 
 def render_role_messages(workspace, anchor, reality_offset):
     session = workspace.role_landscape
-    for message in session.messages:
+    from ui.specific_role import render_specific_messages
+    for offset, message in enumerate(session.messages):
+        render_specific_messages(workspace, anchor, reality_offset, offset)
         if (message.anchor, message.reality_offset) != (anchor, reality_offset):
             continue
         with st.chat_message(message.role, avatar=sphere_markup() if message.role == "assistant" else None):
@@ -33,9 +35,12 @@ def render_role_messages(workspace, anchor, reality_offset):
                     for block in reply.blocks:
                         st.caption(block.membership_ref)
                         st.caption(block.source_ref)
+    render_specific_messages(workspace, anchor, reality_offset, len(session.messages))
 
 
 def render_role_chips(workspace):
+    from ui.specific_role import render_specific_chips
+    render_specific_chips(workspace)
     session = workspace.role_landscape
     if session.current() and not workspace.agent_session.busy:
         token = session.token()

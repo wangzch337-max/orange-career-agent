@@ -1,6 +1,10 @@
 # Orange 概念数据契约 Data Contracts
 
-**状态：Orange Career v1.3D.3；既有 Profile/Match/Memory authority schema 未改变。** 领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；Memory、Evaluation、diagnostic contracts 各自独立。早期表格是概念映射，不是可直接发送的 JSON schema；实际字段／required／enums 以 Pydantic models 与后面的实现映射为准。
+**状态：Orange Career v1.3D.4；既有 Profile/Match/Memory authority schema 未改变。** 领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；Memory、Evaluation、diagnostic contracts 各自独立。早期表格是概念映射，不是可直接发送的 JSON schema；实际字段／required／enums 以 Pydantic models 与后面的实现映射为准。
+
+## D.4 Representative Specific Role Understanding contracts（session-only）
+
+`SpecificRoleSource` 为独立公开合成 / curated 且逐字节 SHA-256 固定的9条资料，精确绑定 parent direction/archetype/source version/fingerprint 与 representative role ID。双重 membership evidence 支持 direction→archetype→role，不能用 D.3 文本自由扩写。`RoleReply/RoleBlock` 完全等于指定维度的字段投影，含 source fingerprint、field/index ref 与双重 membership refs；改文案、authority、ID、归属或顺序均拒绝，无修复。`Binding` 包含 owner/thread、D.1 selection request、D.2/D.3 generation/request/fingerprint、选中 archetype 与 D.4 source fingerprint；`FollowupToken` 包含当前轮次指纹，防跨作用域/旧 chip/重放。`SpecificRoleMessage` 保留当时来源，全部 session-only，不进入 canonical Profile、Memory、Match、聊天数据库或 snapshot。详见 [D.4](docs/REPRESENTATIVE_SPECIFIC_ROLE.md)。
 
 ## D.3 session-only role contracts
 

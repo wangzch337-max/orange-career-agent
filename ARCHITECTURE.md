@@ -1,6 +1,10 @@
 # Orange 系统架构 System Architecture
 
-**当前状态：Orange Career v1.3D.3；D.1/D.2 与角色分工探索已实现，完整真实 provider 链保留验证缺口。Phase 9A / 9B 未开始。**
+**当前状态：Orange Career v1.3D.4；D.1–D.3 checkpoint 已冻结，D.4 为 Job Intelligence 的代表性具体角色理解；完整真实 provider 链保留验证缺口。Phase 9A / 9B 未开始。**
+
+## v1.3D.4 当前增量边界
+
+现有 dispatcher 最小增加 D.4 路由，`specific_role/` 的严格 model / pinned registry / deterministic service / session 不是第五 Agent。来源独立于 D.3 文本，方向→archetype→代表性角色的双重归属和逐字段 refs 均验证。Binding 绑定 owner/thread、D.1 selection receipt、D.2/D.3 generation/request/fingerprint 与 D.4 source version/fingerprint。只继承父 receipt 一致性检查（含既有 Profile version/fingerprint），个人字段不进入角色事实，没有新 Memory consumer/reads/writes。D.2 仅扩充授权方向问句的有界语法：「整体在解决什么问题」属 PURPOSE，「整体（是）做什么（的）」属 WORK；D.4 的「（平时）一天（大概）怎么工作/过/安排」属工作节奏。仍为全文匹配，无 dispatcher、source/copy/authority 改动。UI 仍在主聊天渐进呈现，消息保留自己的已验证来源，避免切换角色后重新标注历史；无跨 New Chat 或 snapshot/数据库恢复。详见 [D.4](docs/REPRESENTATIVE_SPECIFIC_ROLE.md)。
 
 ## v1.3D.3 当前增量边界
 
