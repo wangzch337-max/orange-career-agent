@@ -16,9 +16,13 @@
 
 Orange 把这些问题连成一条可审阅的探索旅程。它是本地作品集 Demo，不是心理测评、就业保证或自动投递工具，也不是香港城市大学官方产品；通用简历流程支持学生、经验从业者、转行者及工作为主、零项目等背景，不根据专业锁定方向。
 
-## 当前状态：Orange Career v1.3D.4 Representative Specific Role Understanding
+## 当前状态：Orange Career v1.3D.5 Evidence-based Match
 
-D.1–D.3 已在 `dfeb535` 建立 Integration Checkpoint 并正常推送。本轮新增[代表性具体角色理解](docs/REPRESENTATIVE_SPECIFIC_ROLE.md)：D.3 后问「详细讲讲第二种角色」，从独立公开合成 / curated 资料展开一种具体工作形态。现有9个 Public Demo archetypes 各有一个来源支持的角色例子；先看目的与一个情境，再逐步问输入输出、协作、决策边界、节奏、工具深度、涉及能力、组织差异与未知。它不是 Specific Role Screening、Job Recommendation、Live Job 或 Match；不写 Profile/Memory，不把兴趣当职业目标或能力。D.4 状态只在当前会话保留，合法一般 QA 可打断后返回。本轮不暂存、commit、push、真实模型验证或部署；人工审核与 Final Product Polish 尚未完成。
+D.1–D.4 已在 `044c8a2` 建立并正常推送 Integration Checkpoint。本轮获批实施 [D.5 Evidence-based Match](docs/EVIDENCE_BASED_MATCH.md)：一个确认用户与一个合法 D.4 representative role 的直接/部分/未知/有依据张力关系；Fake-only、主聊天渐进、独立 typed work projection、无 fit score/ranking/recommendation/Action Plan，零 Profile/Memory writes、新 consumer 和自动持久化。D.5 包括展示均 session-only，人工审阅 pending；本轮不提交/推送/部署。
+
+### v1.3D.4 Representative Specific Role Understanding（已冻结）
+
+D.1–D.3 已在 `dfeb535` 建立 Integration Checkpoint 并正常推送。D.4 新增[代表性具体角色理解](docs/REPRESENTATIVE_SPECIFIC_ROLE.md)，已冻结于 `044c8a2`：D.3 后问「详细讲讲第二种角色」，从独立公开合成 / curated 资料展开一种具体工作形态。现有9个 Public Demo archetypes 各有一个来源支持的角色例子；先看目的与一个情境，再逐步问输入输出、协作、决策边界、节奏、工具深度、涉及能力、组织差异与未知。它不是 Specific Role Screening、Job Recommendation、Live Job 或 Match；不写 Profile/Memory，不把兴趣当职业目标或能力。D.4 状态只在当前会话保留，合法一般 QA 可打断后返回。人工审核与 Final Product Polish 尚未完成。
 
 新增[角色类型概览与差异对话](docs/ROLE_LANDSCAPE_EXPLORATION.md)：D.1 → D.2 后在主聊天问「这个方向有哪些岗位？」可查看 Business Analysis、Knowledge Operations、Process Improvement 各3种非排名分工。独立公开合成来源支持方向→角色关系；首轮小概览，随后问任务、协作、系统侧重与差异。无效来源/上下文不回退旧三岗位；临时状态可经合法一般 QA 后继续，不跨 New Chat，不写 Profile/Memory，不接 Match/真实 provider。实现与离线验证不等于人工产品审阅；Final Product Polish 尚未进行。
 
@@ -245,7 +249,7 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 
 ## Roadmap
 
-已冻结 D.1 Career Direction Discovery、pending clarification routing、state-aware New Chat opening、Public Synthetic D.1 Demo、D.2 Career Reality Exploration 与 D.3 Role Landscape / Differences Conversation，checkpoint 为 `dfeb535`。本轮获批实施 D.4 Representative Specific Role Understanding，覆盖现有9个 Public Demo archetypes；不是个人筛选、真实招聘或 Match。D.4 增量保持未提交。Final Product Polish 与人工产品验收尚未完成。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
+已冻结 D.1 Career Direction Discovery、pending clarification routing、state-aware New Chat opening、Public Synthetic D.1 Demo、D.2 Career Reality Exploration 与 D.3 Role Landscape / Differences Conversation，D.1–D.3 checkpoint 为 `dfeb535`。D.4 Representative Specific Role Understanding 覆盖现有9个 Public Demo archetypes；不是个人筛选、真实招聘或 Match，D.1–D.4 checkpoint 为 `044c8a2`。本轮 D.5 Evidence-based Match 增量保持未提交。Final Product Polish 与人工产品验收尚未完成。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
 
 **Phase 9A — Web Deployment Readiness** 与 **Phase 9B — Public Web Deployment** 均未开始，必须单独授权。认证、真实模型模式、云数据和部署是否需要，属于未来决策，不是当前承诺。
 
@@ -268,6 +272,7 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 | [Chat-native Career Profile](docs/CHAT_NATIVE_PROFILE_CONVERSATION.md) | 主聊天自适应提问、显式确认与临时数据边界 |
 | [Career Direction Discovery](docs/CAREER_DIRECTION_DISCOVERY.md) | D.1 只读方向候选、通用背景与权限约束 |
 | [Representative Specific Role](docs/REPRESENTATIVE_SPECIFIC_ROLE.md) | D.4 独立合成角色来源、渐进问答与父上下文绑定 |
+| [Evidence-based Match](docs/EVIDENCE_BASED_MATCH.md) | D.5 单角色证据关系、确认权威、session-only 与离线限制 |
 | [Product UX Acceptance](docs/PRODUCT_UX_ACCEPTANCE.md) | Phase 8C 的本地交互／布局验收 |
 | [Public Release Checklist](docs/PUBLIC_RELEASE_CHECKLIST.md) | 每项 PASS／BLOCKED／用户决策 |
 | [Portfolio Acceptance](docs/PORTFOLIO_ACCEPTANCE.md) | 公开阅读与工程故事审阅 |

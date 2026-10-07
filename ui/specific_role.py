@@ -10,7 +10,9 @@ from ui.onboarding.assets import sphere_markup
 def render_specific_messages(workspace, anchor, reality_offset, landscape_offset):
     session = workspace.specific_role
     session.current()
-    for message in session.messages:
+    from ui.evidence_match import render_match_messages
+    for offset, message in enumerate(session.messages):
+        render_match_messages(workspace, anchor, reality_offset, landscape_offset, offset)
         if (message.anchor, message.reality_offset, message.landscape_offset) != (anchor, reality_offset, landscape_offset):
             continue
         with st.chat_message(message.role, avatar=sphere_markup() if message.role == "assistant" else None):
@@ -38,6 +40,7 @@ def render_specific_messages(workspace, anchor, reality_offset, landscape_offset
                         st.caption(block.source_ref)
                         for ref in block.membership_refs:
                             st.caption(ref)
+    render_match_messages(workspace, anchor, reality_offset, landscape_offset, len(session.messages))
 
 
 def render_specific_chips(workspace):

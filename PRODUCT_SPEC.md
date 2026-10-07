@@ -1,6 +1,8 @@
 # Orange 产品规格 Product Specification
 
-**文档状态：Orange Career v1.3D.4；下方 Golden Flow 保留初始引导产品契约。**
+**文档状态：Orange Career v1.3D.5；下方 Golden Flow 保留初始引导产品契约。**
+
+D.5 = evidence relationship analysis，A Evidence Relationship Map + B Progressive Conversation：one confirmed user ↔ one valid D.4 role；direct/partial/unknown/evidence-backed tension，not fit score/ranking/recommendation/action plan；no Profile/Memory writes/new consumer，展示也 session-only。适合我吗只展示证据关系，不给 yes/no；新经历走既有确认路径。Fake-only / 无真实 Qwen，详见 [D.5](docs/EVIDENCE_BASED_MATCH.md)。v1.3D.4 work-side responsibility 不变。
 
 D.4 = Representative Specific Role Understanding：D.3 的9个类型各展开一个独立 public synthetic / curated 角色例子，先目的与情境，后单维度协作、交付、决策、节奏与工具。不是 Specific Role Screening、Job Recommendation、Live Job 或 Match；无 Profile write、Memory write，不判断用户能力或适配，不确认职业目标。来源不足安全停止，歧义澄清；主聊天单输入，状态 session-only。详见 [D.4](docs/REPRESENTATIVE_SPECIFIC_ROLE.md)。D.1–D.3 checkpoint 已冻结；Final Product Polish 延期。
 

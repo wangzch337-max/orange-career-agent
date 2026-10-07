@@ -384,6 +384,10 @@ def test_legacy_page_functions_are_byte_preserved(name):
 @pytest.mark.parametrize("scope", ["agents", "providers", "memory", "workflows", "evaluation", "observability", "data", "config/prompts", "requirements.txt", "ui/visual_system.py", "ui/app_bar.py"])
 def test_v12_does_not_change_authority_or_dependencies(scope):
     from tests.freeze_contract import assert_original_inventory, assert_resume_prompt_scope, changed_paths
+    if scope == "agents":
+        from tests.evidence_match_contract import assert_match_extension
+        assert_match_extension(ROOT, CHECKPOINT)  # One pinned D.5 entry point; all legacy bytes stay frozen.
+        return
     if scope in {"data", "memory"}:
         from tests.profile_refinement_contract import assert_c4_shared_delta
         name = "data/models.py" if scope == "data" else "memory/sqlite_store.py"

@@ -1,6 +1,8 @@
 # D.4 — Representative Specific Role Understanding
 
-状态：工程实现，离线验收结果以本轮最终报告为准；人工审阅 pending。D.1–D.3 checkpoint 为 `dfeb535`。D.4 属于 Job Intelligence responsibility，Orchestrator / Workspace 负责路由、上下文与生命周期；new core Agent = NO。
+D.1–D.4 已建立 checkpoint `044c8a2`。当前另行获批 [D.5 Evidence-based Match](EVIDENCE_BASED_MATCH.md)：有效 D.4 上明确个人关系问句转到独立 D.5 contract；D.4 自身仍只做 work-side understanding，不读个人角色事实、不生成 MatchResult。D.5 只读确认 Profile，typed projection 保留本资料 source/version/fingerprint/authority，capabilities_involved 不是 qualification；无 score/ranking/Action/Profile/Memory writes，session-only。下方「适合我吗只解释边界」是 D.4 service 的历史/独立合同，主聊天现由 D.5 承接。
+
+状态：工程已冻结于 `044c8a2`；人工审阅 pending。此前 D.1–D.3 checkpoint 为 `dfeb535`。D.4 属于 Job Intelligence responsibility，Orchestrator / Workspace 负责路由、上下文与生命周期；new core Agent = NO。
 
 ## 产品边界
 

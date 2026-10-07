@@ -405,6 +405,11 @@ class MatchInsightAgent(BaseAgent):
         result, _, _ = self.analyze_with_details(profile, intelligence)
         return result
 
+    def analyze_role_relationships(self, profile, source):
+        """D.5 contract; no legacy jobs/actions/workflow, Fake only this phase."""
+        from evidence_match.service import analyze
+        return analyze(profile, source, self.llm_provider)
+
     def run(self, state: WorkflowState) -> WorkflowState:
         if state.stage != WorkflowStage.MATCH_INSIGHT:
             raise ValueError("Match & Insight Agent 只能在 match_insight 阶段运行")

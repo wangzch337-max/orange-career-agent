@@ -2,7 +2,11 @@
 
 本计划以**能力里程碑**而不是机械的“一天一个 Phase”推进。15 天是聚焦范围下的估算；学习检查或质量门未通过时应延长，不以赶日程为理由跨阶段。每个 Phase 都必须遵守 `LEARNING_PLAN.md` 的 Learning Mode。
 
-## 当前里程碑：Orange Career v1.3D.4
+## 当前里程碑：Orange Career v1.3D.5
+
+D.1–D.4 已冻结为 `044c8a2`。本轮获批 D.5 Evidence-based Match：A+B、单确认用户/单合法代表性角色、typed user/work projection、确认权威、Fake-only、证据关系和主聊天渐进展示；session-only，包括展示，不写 Profile/Memory、不新增 consumer、无 score/ranking/recommendation/Action Plan。先 focused/full，再 Golden/Agent/Universal/D.1–D.5；本轮未提交，不开始 Product Polish/Action/live/deploy。详见 [D.5](docs/EVIDENCE_BASED_MATCH.md)。
+
+### v1.3D.4 历史实施范围（现已冻结）
 
 D.1–D.3 Integration Checkpoint `dfeb535` 已 commit + 正常 push，冻结基线 3042 passed。D.4 获批实施 Representative Specific Role Understanding：现有9个 archetypes 各有独立公开合成代表性角色，精确 membership / refs / source pin、主聊天渐进问答、QA 共存、父链与 session-only 生命周期。无个人适配、筛选、真实招聘或新 Memory consumer，零 live。先 focused，再 full pytest，再 Golden / Agent / Universal / D.1 / D.2 / D.3 / D.4 七项 Evaluation；人工审阅仍 pending，不暂存/commit/push/deploy，不做 Final Product Polish。详见 [D.4](docs/REPRESENTATIVE_SPECIFIC_ROLE.md)。
 

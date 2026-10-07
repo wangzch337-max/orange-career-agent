@@ -270,6 +270,8 @@ def _submit(workspace, text: str, thread_id: str, *, suggested: bool = False, cl
         return
     if workspace.career_discovery.answer_pending(text):
         return
+    if workspace.evidence_match.submit(text):
+        return
     if workspace.specific_role.submit(text):
         return
     if workspace.role_landscape.submit(text):
@@ -400,9 +402,10 @@ def _render_chat_region(workspace):
     workspace.career_reality.current()
     workspace.role_landscape.current()
     workspace.specific_role.current()
+    workspace.evidence_match.current()
     st.session_state[CHAT_KEY] = chat
     has_resume = workspace.resume_intake.result is not None
-    if not chat.messages and not has_resume and not interview.messages and not workspace.career_reality.messages and not workspace.role_landscape.messages and not workspace.specific_role.messages:
+    if not chat.messages and not has_resume and not interview.messages and not workspace.career_reality.messages and not workspace.role_landscape.messages and not workspace.specific_role.messages and not workspace.evidence_match.messages:
         if not session.busy:
             st.markdown('<div class="orange-chat-empty">' + orange_mark() + '<h1>现在开始吧</h1></div>', unsafe_allow_html=True)
             from ui.chat_opening import render_opening

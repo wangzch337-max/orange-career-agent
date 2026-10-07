@@ -1,6 +1,10 @@
 # Orange 概念数据契约 Data Contracts
 
-**状态：Orange Career v1.3D.4；既有 Profile/Match/Memory authority schema 未改变。** 领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；Memory、Evaluation、diagnostic contracts 各自独立。早期表格是概念映射，不是可直接发送的 JSON schema；实际字段／required／enums 以 Pydantic models 与后面的实现映射为准。
+## v1.3D.5 Evidence-based Match（独立产品合同）
+
+UserProjection 保留已确认 signal/evidence ownership、fact vs inference、source/provenance、scope/uncertainty、Profile version/fingerprint/partial；WorkProjection 保留 D.4 role/source version/fingerprint、逐字段 refs/authority/membership、variation/unknown，不是 JobIntelligenceRecord，不创造 qualification。Relationship 为 DIRECTLY_SUPPORTED/RELATED_BUT_PARTIAL/UNKNOWN/TENSION/NOT_APPLICABLE，绑定双侧 IDs、reason、limitations、uncertainty、版本和来源归属。Result 没有 score/ranking/actions/coverage；Binding/Token 绑定 owner/subject/thread/Profile/role/source/projection/request/generation。全部 session-only，Profile/Memory writes=0/new consumer=NO。详见 [D.5](docs/EVIDENCE_BASED_MATCH.md)。下方旧 Match schema 是历史兼容合同，未修改。
+
+**历史状态：Orange Career v1.3D.4；既有 Profile/Match/Memory authority schema 未改变。** 领域实现位于 `data/models.py`；extraction 位于 Agent contract 模块；Memory、Evaluation、diagnostic contracts 各自独立。早期表格是概念映射，不是可直接发送的 JSON schema；实际字段／required／enums 以 Pydantic models 与后面的实现映射为准。
 
 ## D.4 Representative Specific Role Understanding contracts（session-only）
 

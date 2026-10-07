@@ -1,8 +1,12 @@
 # Orange 系统架构 System Architecture
 
-**当前状态：Orange Career v1.3D.4；D.1–D.3 checkpoint 已冻结，D.4 为 Job Intelligence 的代表性具体角色理解；完整真实 provider 链保留验证缺口。Phase 9A / 9B 未开始。**
+D.4 Representative Specific Role Understanding 已冻结于 `044c8a2`，继续只做 work-side understanding；D.5 在独立关系合同中读取确认 Profile，不改变 D.4 的工作事实权威。
 
-## v1.3D.4 当前增量边界
+**当前状态：Orange Career v1.3D.5；D.1–D.4 checkpoint `044c8a2` 已冻结；完整真实 provider 链保留验证缺口。Phase 9A / 9B 未开始。**
+
+D.5 扩展既有 Match & Insight Agent，独立 `evidence_match` typed projections/session；不把 D.4 转成 JobIntelligenceRecord。复用 scoped IDs/ownership/Fake/版本化 prompt，有限完整陈述验证与确定性解释。Orchestrator/Workspace 管 routing/readiness/lifecycle。零第五 Agent、Profile/Memory writes、新 consumer、fit score/ranking/actions；展示 session-only 不走 append_turn。历史 Golden workflow 不变。详见 [D.5](docs/EVIDENCE_BASED_MATCH.md)。
+
+## v1.3D.4 已冻结边界
 
 现有 dispatcher 最小增加 D.4 路由，`specific_role/` 的严格 model / pinned registry / deterministic service / session 不是第五 Agent。来源独立于 D.3 文本，方向→archetype→代表性角色的双重归属和逐字段 refs 均验证。Binding 绑定 owner/thread、D.1 selection receipt、D.2/D.3 generation/request/fingerprint 与 D.4 source version/fingerprint。只继承父 receipt 一致性检查（含既有 Profile version/fingerprint），个人字段不进入角色事实，没有新 Memory consumer/reads/writes。D.2 仅扩充授权方向问句的有界语法：「整体在解决什么问题」属 PURPOSE，「整体（是）做什么（的）」属 WORK；D.4 的「（平时）一天（大概）怎么工作/过/安排」属工作节奏。仍为全文匹配，无 dispatcher、source/copy/authority 改动。UI 仍在主聊天渐进呈现，消息保留自己的已验证来源，避免切换角色后重新标注历史；无跨 New Chat 或 snapshot/数据库恢复。详见 [D.4](docs/REPRESENTATIVE_SPECIFIC_ROLE.md)。
 

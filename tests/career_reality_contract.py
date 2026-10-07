@@ -2,6 +2,7 @@
 
 import hashlib
 import subprocess
+from tests.evidence_match_contract import D5_PATHS, pre_d5_bytes
 
 D1_FREEZE = "2316616ca8244d545d966f1064c7f7b798d53b22"
 D2_PATHS = {
@@ -54,6 +55,7 @@ D4_PATHS = {
     "tests/test_specific_role_ui.py", "tests/test_specific_role_contract.py",
 }
 D2_PATHS |= D4_PATHS
+D2_PATHS |= D5_PATHS  # Exact new approval, not a protected-domain exemption.
 D4_SOURCE_PATH = "data/fixtures/specific_role/role_sources.json"
 D4_SOURCE_HASH = "78218383b6b87292ad20668a9619354df1c6308f448fcb95548a61c04f7b371a"
 
@@ -103,6 +105,7 @@ D4_PROJECTION_HASHES = {
 
 
 def pre_d2_bytes(root, name, current):
+    current = pre_d5_bytes(root, name, current)
     pins = D2_INTEGRATION_HASHES | D3_INTEGRATION_HASHES | D4_INTEGRATION_HASHES
     if name in pins and hashlib.sha256(current).hexdigest() == pins[name]:
         return subprocess.check_output(["git", "show", f"{D1_FREEZE}:{name}"], cwd=root)

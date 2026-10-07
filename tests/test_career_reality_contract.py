@@ -6,6 +6,7 @@ import subprocess
 import pytest
 from tests.career_reality_contract import D1_FREEZE, D2_PATHS, D2_INTEGRATION_HASHES, D3_INTEGRATION_HASHES, D4_INTEGRATION_HASHES, D2_SOURCE_PATH, assert_d2_source_delta, pre_d2_bytes
 from tests.freeze_contract import changed_paths
+from tests.evidence_match_contract import pre_d5_bytes, assert_match_extension
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -13,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_exact_d2_scope_and_frozen_authority_dependencies():
     assert changed_paths(ROOT, D1_FREEZE, ".") <= D2_PATHS
     assert not any("*" in path for path in D2_PATHS)
-    for scope in ("agents", "providers", "workflows", "memory", "clarification", "profile_refinement",
+    assert_match_extension(ROOT, D1_FREEZE)
+    for scope in ("providers", "workflows", "memory", "clarification", "profile_refinement",
                   "resume_intake", "resume_evidence", "config/prompts", "data/models.py", "requirements.txt"):
         assert not changed_paths(ROOT, D1_FREEZE, scope), scope
     assert changed_paths(ROOT, D1_FREEZE, "career_discovery") == {"career_discovery/session.py", "career_discovery/dialogue.py", "career_discovery/demo.py"}
@@ -39,7 +41,7 @@ def test_exact_d2_scope_and_frozen_authority_dependencies():
 def test_d2_pin_composes_without_accepting_arbitrary_edits(name):
     original = subprocess.check_output(["git", "show", f"{D1_FREEZE}:{name}"], cwd=ROOT)
     current = (ROOT / name).read_bytes()
-    assert hashlib.sha256(current).hexdigest() == (D2_INTEGRATION_HASHES | D3_INTEGRATION_HASHES | D4_INTEGRATION_HASHES)[name]
+    assert hashlib.sha256(pre_d5_bytes(ROOT, name, current)).hexdigest() == (D2_INTEGRATION_HASHES | D3_INTEGRATION_HASHES | D4_INTEGRATION_HASHES)[name]
     assert pre_d2_bytes(ROOT, name, current) == original
     assert pre_d2_bytes(ROOT, name, current + b"\n") == current + b"\n"
     assert pre_d2_bytes(ROOT, "./" + name, current) == current
@@ -67,8 +69,9 @@ def test_integration_freeze_docs_keep_current_scope_and_separate_commit_authorit
                        "Public Synthetic D.1 Demo", "D.2 Career Reality Exploration",
                        "D.3 Role Landscape / Differences Conversation"):
         assert capability in roadmap
-    assert "本轮获批实施 D.4 Representative Specific Role Understanding" in roadmap and "现有9个 Public Demo archetypes" in roadmap
-    assert "checkpoint 为 `dfeb535`" in roadmap and "D.4 增量保持未提交" in roadmap
+    assert "D.4 Representative Specific Role Understanding" in roadmap and "现有9个 Public Demo archetypes" in roadmap
+    assert "checkpoint 为 `dfeb535`" in roadmap and "D.1–D.4 checkpoint 为 `044c8a2`" in roadmap
+    assert "本轮 D.5 Evidence-based Match 增量保持未提交" in roadmap
     assert "Final Product Polish 与人工产品验收尚未完成" in roadmap
     assert "全部通过也不授权暂存、commit 或 push" in readme
     assert "须等待产品负责人单独授权 checkpoint" in readme

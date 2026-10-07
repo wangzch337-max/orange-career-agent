@@ -1,6 +1,10 @@
-# Orange Career v1.3D.4 · 有边界的对话、简历与角色理解
+# Orange Career v1.3D.5 · 有边界的对话、简历与证据关系
 
-## v1.3D.4 当前增量
+## v1.3D.5 Evidence-based Match 当前增量
+
+D.1–D.4 已冻结在 `044c8a2`。主 composer 在 D.4 前处理明确个人关系 intent，由 existing Match & Insight Agent 的独立 D.5 contract 对比 canonical confirmed Profile 与有效 D.4 typed work projection；不使用旧 known_role/existing_match tools 或 multi-job workflow。证据关系而非 fit score/ranking/recommendation/action plan；Fake-only、零 Profile/Memory writes/new consumer。展示也 session-only，不进入 chat store/snapshot/checkpoint；General QA不消费分析，合法QA可返回，跨线程/New Chat/stale/late/replay拒绝。详见 [D.5](EVIDENCE_BASED_MATCH.md)。下方 D.4/history 边界不再覆盖新获批个人关系入口。
+
+## v1.3D.4 已冻结增量
 
 D.1–D.3 已冻结在 `dfeb535`。主 composer 保留画像与 D.1 pending 优先权，随后最小增加 D.4 → D.3 → D.2 → 原 General QA 的有界路由。D.4 = Representative Specific Role Understanding，独立公开合成资料覆盖9个 archetypes 的具体工作形态，首轮目的与一个情境，后续单维度追问；差异仍属 D.3，方向层问题仍属 D.2，技术 QA 不读 D.4 或个人事实。D.4 无 provider、新 Memory consumer、Profile mutation、Match 或真实招聘；只继承父链的版本一致性检查。合法 QA reload 后可继续，导航/关闭/父链/source 变化和迟到/重放不能恢复，消息不进入 chat store/snapshot。不是 Specific Role Screening，Final Product Polish 延期。详见 [D.4](REPRESENTATIVE_SPECIFIC_ROLE.md)。
 

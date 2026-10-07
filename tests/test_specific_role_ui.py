@@ -40,7 +40,7 @@ def test_real_public_demo_all_nine_archetypes_to_d4_without_live_match_or_memory
         value.chat_input[0].set_value("这个角色最后要交付什么？").run()
         assert s.messages[-1].reply.dimension == Dimension.IO
         value.chat_input[0].set_value("这个角色适合我吗？").run()
-        assert s.messages[-1].reply is None and "后续另行授权的 Match" in visible(value)
+        assert w.evidence_match.current() and "最终决定属于你" in visible(value)
         value.chat_input[0].set_value("你觉得我能做" + w.role_landscape.source.roles[index].display_name + "吗？").run()
         assert not value.exception and s.messages[-1].reply is None
         assert "个人证据与工作证据" in s.messages[-1].text
@@ -128,7 +128,7 @@ def test_freeze_workday_routing_actual_public_demo_and_qa_resume(tmp_path, monke
                 assert s.service.validate(s.messages[-1].reply, s.source)
                 assert parents == (w.career_reality.messages, w.role_landscape.messages)
             value.chat_input[0].set_value("这个角色适合我吗？").run()
-            assert s.messages[-1].reply is None and "个人证据与工作证据" in s.messages[-1].text
+            assert w.evidence_match.current() and "最终决定属于你" in visible(value)
         qa = ScriptedProvider([plan(relevance="LEARNING_OR_TECHNICAL")], answer("Attention 在输入位置之间分配权重。"))
         w.agent_session.provider_factory = lambda: qa
         value.button(key="orange_agent_consent").click().run()

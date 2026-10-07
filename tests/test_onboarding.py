@@ -219,6 +219,9 @@ def test_allowed_navigation_still_opens_every_original_surface(page):
 
 @pytest.mark.parametrize('directory',['agents','providers','memory','workflows','evaluation','observability','data','config/prompts'])
 def test_domain_sources_prompts_and_public_fixtures_unchanged(directory):
+    from tests.evidence_match_contract import pre_d5_bytes, assert_match_extension
+    if directory == 'agents':
+        assert_match_extension(ROOT, BASELINE)
     for name in subprocess.check_output(['git','ls-tree','-r','--name-only',BASELINE,directory],cwd=ROOT,text=True).splitlines():
         if name in {'memory/models.py', 'memory/integration.py'}:
             from tests.career_discovery_contract import C_FREEZE, assert_d1_memory_delta
@@ -233,7 +236,7 @@ def test_domain_sources_prompts_and_public_fixtures_unchanged(directory):
             from tests.v12_contract import assert_v12_delta
             assert_v12_delta(name, (ROOT/name).read_bytes(), subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT))
             continue
-        assert (ROOT/name).read_bytes() == subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT), name
+        assert pre_d5_bytes(ROOT, name, (ROOT/name).read_bytes()) == subprocess.check_output(['git','show',f'{BASELINE}:{name}'],cwd=ROOT), name
 
 
 def test_dependencies_and_all_original_rendering_guards_preserved():

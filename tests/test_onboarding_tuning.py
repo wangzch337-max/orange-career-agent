@@ -185,6 +185,10 @@ def test_app_bar_is_byte_identical_to_pre_tuning_static_representation():
 @pytest.mark.parametrize("scope", ["agents", "agents/match_insight_models.py", "memory", "workflows", "evaluation", "config/prompts", "tools", "providers"])
 def test_no_domain_or_golden_change(scope):
     assert (ROOT / scope).exists()
+    if scope == "agents":
+        from tests.evidence_match_contract import assert_match_extension
+        assert_match_extension(ROOT, PRE_RESUME_BASELINE)
+        return
     if scope == "memory":
         from tests.profile_refinement_contract import assert_c4_shared_delta
         name = "memory/sqlite_store.py"
