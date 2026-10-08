@@ -13,6 +13,7 @@ from tests.career_reality_contract import (
 from tests.freeze_contract import changed_paths, assert_original_inventory
 from tests.evidence_match_contract import D5_PATHS, pre_d5_bytes, assert_match_extension
 from tests.evidence_validation_contract import D6_PATHS, D6_SOURCE_PATH
+from tests.online_foundation_contract import PACK1_PATHS, assert_pre_pack1_scope
 from tests.test_role_landscape import h, offline
 from tests.test_specific_role import expanded
 from specific_role.sources import SOURCE_HASH
@@ -29,13 +30,12 @@ EXACT_DELTA = D4_PATHS | {
 
 
 def test_exact_d4_delta_and_every_protected_production_inventory():
-    assert changed_paths(ROOT, D4_FREEZE, ".") == EXACT_DELTA | D5_PATHS | D6_PATHS
+    assert changed_paths(ROOT, D4_FREEZE, ".") == EXACT_DELTA | D5_PATHS | D6_PATHS | PACK1_PATHS
     assert not any("*" in name for name in EXACT_DELTA)
     assert_match_extension(ROOT, D4_FREEZE)
     for scope in ("providers", "memory", "workflows", "career_discovery", "career_runtime",
                   "clarification", "profile_refinement", "resume_intake", "resume_evidence", "config", "requirements.txt", "data/models.py"):
-        assert not changed_paths(ROOT, D4_FREEZE, scope), scope
-        assert_original_inventory(ROOT, D4_FREEZE, scope)
+        assert_pre_pack1_scope(ROOT, D4_FREEZE, scope)
     assert changed_paths(ROOT, D4_FREEZE, "data") == {D4_SOURCE_PATH, D6_SOURCE_PATH}
     assert_d2_source_delta(ROOT)
     assert SOURCE_HASH == D4_SOURCE_HASH == hashlib.sha256((ROOT / D4_SOURCE_PATH).read_bytes()).hexdigest()

@@ -254,8 +254,14 @@ def test_closed_diagnostic_field_does_not_weaken_global_metadata():
 
 def test_repair_context_cannot_read_another_owner(workspace):
     original = seed(workspace)
-    foreign = workspace.memory_service.create_confirmed(subject_id="subject_foreign", memory_type="career_preference",
+    with pytest.raises(ValueError):
+        workspace.memory_service.create_confirmed(subject_id="subject_foreign", memory_type="career_preference",
+            content="FOREIGN_PRIVATE_SENTINEL", source_type="explicit_user_input", confirmed_by_user=True)
+    # Fault injection below the bound port; retain every original disclosure
+    # assertion and additionally require normal cross-subject writes to fail.
+    foreign = workspace.memory_service.memory_store._store.create_confirmed(subject_id="subject_foreign", memory_type="career_preference",
         content="FOREIGN_PRIVATE_SENTINEL", source_type="explicit_user_input", confirmed_by_user=True)
+    workspace.memory_service.vector_index._store.index_record(foreign)
     valid = plan(relevance="DIRECT_CAREER", tools=[request("current_profile", sections=["skills"]), request("relevant_memory")])
     bad = valid.model_dump(); bad["needs_tools"] = False
     provider = ScriptedProvider([bad, valid])

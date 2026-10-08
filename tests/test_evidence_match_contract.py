@@ -12,19 +12,19 @@ from tests.evidence_match_contract import (
 from tests.freeze_contract import changed_paths, assert_original_inventory, historical_paths, repository_paths
 from tests.career_reality_contract import assert_d2_source_delta
 from tests.evidence_validation_contract import D6_PATHS, D6_SOURCE_PATH, pre_d6_bytes
+from tests.online_foundation_contract import PACK1_PATHS, assert_pre_pack1_scope
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_exact_d5_delta_no_wildcard_or_private_artifact_exemption():
-    assert changed_paths(ROOT, D5_FREEZE, ".") == D5_PATHS | D6_PATHS
+    assert changed_paths(ROOT, D5_FREEZE, ".") == D5_PATHS | D6_PATHS | PACK1_PATHS
     assert not any("*" in name for name in D5_PATHS)
     assert_match_extension(ROOT, D5_FREEZE)
     for scope in ("providers", "memory", "workflows", "career_discovery", "career_reality",
                   "role_landscape", "specific_role", "career_runtime", "clarification",
                   "profile_refinement", "resume_intake", "resume_evidence", "config", "requirements.txt"):
-        assert not changed_paths(ROOT, D5_FREEZE, scope), scope
-        assert_original_inventory(ROOT, D5_FREEZE, scope)
+        assert_pre_pack1_scope(ROOT, D5_FREEZE, scope)
     assert changed_paths(ROOT, D5_FREEZE, "data") == {D6_SOURCE_PATH}
     assert repository_paths(ROOT, "data") == historical_paths(ROOT, D5_FREEZE, "data") | {D6_SOURCE_PATH}
     assert_d2_source_delta(ROOT)

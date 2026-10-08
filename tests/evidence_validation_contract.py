@@ -2,6 +2,7 @@
 
 import hashlib
 import subprocess
+from tests.online_foundation_contract import pre_pack1_bytes
 
 D6_FREEZE = "d84005af3ba28c717e54ae1ee076b5f220b5d884"
 D6_SOURCE_PATH = "data/fixtures/evidence_validation/experiments.json"
@@ -29,6 +30,7 @@ D6_INTEGRATION_HASHES = {
 
 
 def pre_d6_bytes(root, name, current):
+    current = pre_pack1_bytes(root, name, current)
     if name in D6_INTEGRATION_HASHES and hashlib.sha256(current).hexdigest() == D6_INTEGRATION_HASHES[name]:
         return subprocess.check_output(["git", "show", f"{D6_FREEZE}:{name}"], cwd=root)
     return current

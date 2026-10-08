@@ -7,6 +7,7 @@ import pytest
 from tests.career_reality_contract import D1_FREEZE, D2_PATHS, D2_INTEGRATION_HASHES, D3_INTEGRATION_HASHES, D4_INTEGRATION_HASHES, D2_SOURCE_PATH, assert_d2_source_delta, pre_d2_bytes
 from tests.freeze_contract import changed_paths
 from tests.evidence_match_contract import pre_d5_bytes, assert_match_extension
+from tests.online_foundation_contract import pre_pack1_bytes, assert_pre_pack1_scope
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -17,7 +18,7 @@ def test_exact_d2_scope_and_frozen_authority_dependencies():
     assert_match_extension(ROOT, D1_FREEZE)
     for scope in ("providers", "workflows", "memory", "clarification", "profile_refinement",
                   "resume_intake", "resume_evidence", "config/prompts", "data/models.py", "requirements.txt"):
-        assert not changed_paths(ROOT, D1_FREEZE, scope), scope
+        assert_pre_pack1_scope(ROOT, D1_FREEZE, scope)
     assert changed_paths(ROOT, D1_FREEZE, "career_discovery") == {"career_discovery/session.py", "career_discovery/dialogue.py", "career_discovery/demo.py"}
     assert changed_paths(ROOT, D1_FREEZE, "career_runtime") == {"career_runtime/session.py"}
     old_runtime = subprocess.check_output(["git", "show", f"{D1_FREEZE}:career_runtime/session.py"], cwd=ROOT)
@@ -27,7 +28,7 @@ def test_exact_d2_scope_and_frozen_authority_dependencies():
         b"# Completed direction reviews clear. A valid pending clarification\n            # pauses under its existing authority binding, without new retrieval.").replace(
         b"if discovery is not None:\n                discovery.invalidate()",
         b"if discovery is not None:\n                discovery.on_general_qa()")
-    assert (ROOT / "career_runtime/session.py").read_bytes() == expected
+    assert pre_pack1_bytes(ROOT, "career_runtime/session.py", (ROOT / "career_runtime/session.py").read_bytes()) == expected
     old_test = subprocess.check_output(["git", "show", f"{D1_FREEZE}:tests/test_generation_control.py"], cwd=ROOT)
     expected_test = old_test.replace(
         b"assert not value.exception and not value.chat_message and not value.chat_input[0].disabled",
@@ -72,7 +73,7 @@ def test_integration_freeze_docs_keep_current_scope_and_separate_commit_authorit
     assert "D.4 Representative Specific Role Understanding" in roadmap and "现有9个 Public Demo archetypes" in roadmap
     assert "checkpoint 为 `dfeb535`" in roadmap and "D.1–D.4 checkpoint 为 `044c8a2`" in roadmap
     assert "D.1–D.5 checkpoint 为 `d84005a`" in roadmap
-    assert "本轮 D.6 Evidence Gap Validation 增量保持未提交" in roadmap
+    assert "D.1–D.6 checkpoint 为 `b319c67`" in roadmap
     assert "Final Product Polish 与人工产品验收尚未完成" in roadmap
     assert "全部通过也不授权暂存、commit 或 push" in readme
     assert "须等待产品负责人单独授权 checkpoint" in readme

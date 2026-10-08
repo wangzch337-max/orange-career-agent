@@ -34,6 +34,7 @@ from memory.sqlite_store import (
     SQLiteStructuredProfileStore,
 )
 from memory.vector_index import DEFAULT_VECTOR_DATABASE_PATH, MemoryVectorIndex
+from storage.contracts import PurgeStorage, VectorStorage
 
 
 from observability.instrumentation import observe
@@ -49,8 +50,8 @@ class MemoryService:
         profile_store: StructuredProfileStore,
         memory_store: MemoryStore,
         retriever: MemoryRetriever,
-        database: SQLiteMemoryDatabase,
-        vector_index: MemoryVectorIndex | None = None,
+        database: PurgeStorage,
+        vector_index: VectorStorage | None = None,
         semantic_retriever: SemanticMemoryRetriever | None = None,
         hybrid_retriever: HybridMemoryRetriever | None = None,
         context_builder: MemoryContextBuilder | None = None,

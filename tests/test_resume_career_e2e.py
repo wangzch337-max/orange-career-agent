@@ -271,7 +271,7 @@ def test_full_e2e_profile_transaction_failure_rolls_back_both(h, monkeypatch, fa
     before = h.memories()
     new = CareerHarness(h.root, SCENARIOS[4], workspace=h.workspace)
     new.upload(); new.analyze(); new.draft(); new.resolve_all()
-    database = h.workspace.memory_service.database
+    database = h.workspace.memory_service.database._store  # Fault injection below the storage facade.
     native = database.connection
     class Fault:
         def __init__(self, connection): self.connection = connection

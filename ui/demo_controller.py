@@ -628,7 +628,23 @@ class DemoController:
         """Read-only safe projection; page rerenders create no events."""
         return snapshot(self.diagnostic_collector, self.diagnostic_context.run_id)
 
-    def close(self) -> None:
+    def close(self, *, clear_session: bool = False) -> None:
+        if clear_session:
+            self._state = None
+            self.profile_reference = None
+            self.conversation = GuidedConversation()
+            self.profile_calibration.clear()
+            self.role_clarifications.clear()
+            self.saved_feedback_memory_ids.clear()
+            self.role_exploration.clear()
+            self.role_deprioritization_reasons.clear()
+            self.action_statuses.clear()
+            self.actions_needing_evidence_review.clear()
+            self.structured_session_signals.clear()
+            self.memory_change_candidates.clear()
+            self.role_memory_contexts.clear()
+            self.role_memory_statements.clear()
+            self.pending_profile_refinement = None
         self.diagnostic_collector.reset()
         if self._temporary_directory is not None:
             self._temporary_directory.cleanup()

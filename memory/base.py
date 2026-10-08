@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 from data.models import EvidenceSourceType, UserProfile
 from memory.models import (
@@ -17,7 +17,8 @@ from memory.models import (
 class StructuredProfileStore(ABC):
     @abstractmethod
     def save_confirmed_profile(
-        self, subject_id: str, profile: UserProfile
+        self, subject_id: str, profile: UserProfile, *,
+        expected_current: object = ..., confirmation_guard: Callable[[], object] | None = None,
     ) -> ProfileSaveResult:
         raise NotImplementedError
 

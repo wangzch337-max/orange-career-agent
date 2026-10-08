@@ -6,6 +6,7 @@ entry. Domain bytes, assertions, onboarding motion and security stay frozen.
 
 import ast
 import hashlib
+from pathlib import Path
 
 
 NEW_MAIN = '''def main() -> None:
@@ -221,6 +222,10 @@ def approved_ui_test_source(name, source):
 
 def assert_v12_delta(name, current, expected):
     """Reject every byte outside the listed presentation compatibility edits."""
+    from tests.online_foundation_contract import pre_pack1_bytes
+    root = Path(__file__).resolve().parents[1]
+    current = pre_pack1_bytes(root, name, current)
+    expected = pre_pack1_bytes(root, name, expected)
     if name == "requirements.txt":
         from tests.runtime_contract import assert_resume_requirements
         assert_resume_requirements(current, expected)

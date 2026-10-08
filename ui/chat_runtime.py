@@ -108,26 +108,23 @@ def flatten_payload(payload: Mapping[str, object] | None) -> str:
 
 
 class Workspace:
-    """One browser-scoped persistent workspace; no automatic Memory transcript writes."""
+    """One scoped runtime with injected storage; no automatic Memory transcript writes."""
 
     def __init__(self, owner_scope_id: str, root: str | Path | None = None, *,
-                 mode: WorkspaceMode = WorkspaceMode.NORMAL) -> None:
+                 mode: WorkspaceMode = WorkspaceMode.NORMAL, storage_adapters=None) -> None:
         if not isinstance(mode, WorkspaceMode):
             raise ValueError("Invalid workspace mode.")
         self._runtime_mode = mode
-        self.root = Path(root) if root is not None else DEFAULT_CHAT_ROOT
-        self.store = ConversationStore(self.root / "conversations.sqlite3")
-        identity = self.store.ensure_owner(owner_scope_id)
-        self.owner_scope_id = identity.owner_scope_id
-        self.subject_id = identity.subject_id
-        self.runtime_root = self.root / "runtime" / UUID(self.owner_scope_id).hex
-        self.memory_service = build_semantic_memory_service(
-            memory_path=self.runtime_root / "memory.sqlite3",
-            vector_path=self.runtime_root / "vectors.sqlite3",
-            embedding_provider=FakeEmbeddingProvider(),
-        )
-        self._stack = ExitStack()
-        self.checkpointer = self._stack.enter_context(sqlite_checkpointer(self.runtime_root / "checkpoints.sqlite3"))
+        from storage.workspace import sqlite_storage
+        if storage_adapters is not None and root is not None:
+            raise ValueError("Explicit storage owns its paths; root must be omitted.")
+        self.storage = storage_adapters or sqlite_storage(owner_scope_id, Path(root) if root is not None else DEFAULT_CHAT_ROOT)
+        self.storage.claim(owner_scope_id)
+        self.root, self.runtime_root = self.storage.root, self.storage.runtime_root
+        self.store, self.memory_service = self.storage.conversations, self.storage.memory_service
+        self.owner_scope_id, self.subject_id = self.storage.owner_scope_id, self.storage.subject_id
+        self.checkpointer = self.storage.checkpointer
+        self.settings_store = self.storage.settings
         self._controller: DemoController | None = None
         self._chat = ChatSession()
         self._thread: ConversationThread | None = None
@@ -226,12 +223,14 @@ class Workspace:
                                 version=thread.profile_version_ref)
 
     def _new_controller(self, thread: ConversationThread) -> DemoController:
-        return DemoController(
+        controller = DemoController(
             memory_service=self.memory_service, checkpointer=self.checkpointer,
             subject_id=self.subject_id, workflow_id=thread.workflow_thread_id,
             profile_reference=self._reference(thread), seed_public_memory=False,
-            checkpoint_mode="sqlite",
+            checkpoint_mode="memory" if self.storage.ephemeral else "sqlite",
         )
+        self.storage.register_workflow(controller.workflow_id, thread.thread_id)
+        return controller
 
     def _snapshot(self) -> dict[str, object]:
         guided = self.controller.conversation
@@ -324,7 +323,7 @@ class Workspace:
             controller.close()
             raise
         if self._controller is not None:
-            self._controller.close()
+            self._controller.close(clear_session=self.storage.ephemeral)
         if self._agent_session is not None and self._thread is not None and self._thread.thread_id != thread_id:
             self._agent_session.cancel_pending()
             self._agent_session.last_result = None
@@ -370,6 +369,13 @@ class Workspace:
         if self.resume_intake.thread_id == thread_id:
             self.resume_intake.clear()
         remaining = self.threads
+        # Old empty conversations have no persistent workflow ref; their
+        # process-bound controller still needs deletion/late-write isolation.
+        if deleted.workflow_thread_id is None:
+            try:
+                self.storage.retire_transient_thread(thread_id)
+            except Exception:
+                pass  # Owned checkpoint cleanup remains best-effort, never resurrection.
         workflow_id = deleted.workflow_thread_id
         self.last_checkpoint_cleanup = "not_created"
         if workflow_id is not None:
@@ -427,7 +433,7 @@ class Workspace:
             self.career_discovery.finish_general_qa()
 
     def close(self) -> None:
-        """Release resources only; never delete transcript/Profile/Memory/checkpoints."""
+        """Revoke runtime authority; discard ephemeral, retain SQLite diagnostics."""
         if self._closed:
             return
         self.career_discovery.invalidate()
@@ -440,8 +446,13 @@ class Workspace:
         if self._agent_session is not None:
             self._agent_session.close()
         if self._controller is not None:
-            self._controller.close()
-        self._stack.close()
+            self._controller.close(clear_session=self.storage.ephemeral)
+        self.profile_refinement.invalidate()
+        self.profile_conversation.invalidate()
+        self.storage.close()
+        if self.storage.ephemeral:
+            self._chat.messages.clear()
+            self._controller = self._thread = None
         self._closed = True
 
     def __enter__(self) -> Workspace:

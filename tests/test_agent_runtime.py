@@ -83,8 +83,14 @@ def test_memory_uses_existing_policy_and_preserves_confirmed_authority(workspace
     service = workspace.memory_service
     owned = service.create_confirmed(subject_id=workspace.subject_id, memory_type=MemoryType.CAREER_PREFERENCE,
         content="AI 产品方向探索 ai_product", source_type=EvidenceSourceType.EXPLICIT_USER_INPUT, confirmed_by_user=True)
-    other = service.create_confirmed(subject_id="subject_other", memory_type=MemoryType.CAREER_PREFERENCE,
+    with pytest.raises(ValueError):
+        service.create_confirmed(subject_id="subject_other", memory_type=MemoryType.CAREER_PREFERENCE,
+            content="AI 产品方向探索 ai_product", source_type=EvidenceSourceType.EXPLICIT_USER_INPUT, confirmed_by_user=True)
+    # Retain the original canonical/vector foreign-row exclusion test while
+    # requiring the Workspace port itself to reject cross-subject writes.
+    other = service.memory_store._store.create_confirmed(subject_id="subject_other", memory_type=MemoryType.CAREER_PREFERENCE,
         content="AI 产品方向探索 ai_product", source_type=EvidenceSourceType.EXPLICIT_USER_INPUT, confirmed_by_user=True)
+    service.vector_index._store.index_record(other)
     candidate = service.create_candidate(subject_id=workspace.subject_id, memory_type=MemoryType.CAREER_PREFERENCE,
         content="AI 产品方向探索 ai_product", source_type=EvidenceSourceType.EXPLICIT_USER_INPUT)
     provider = ScriptedProvider([plan(relevance="DIRECT_CAREER", tools=[request("relevant_memory", role_id="job_001")])])

@@ -2,7 +2,13 @@
 
 D.4 Representative Specific Role Understanding 已冻结于 `044c8a2`，继续只做 work-side understanding；D.5 在独立关系合同中读取确认 Profile，不改变 D.4 的工作事实权威。
 
-**当前状态：Orange Career v1.3D.6；D.1–D.5 checkpoint `d84005a` 已冻结；完整真实 provider 链保留验证缺口。Phase 9A / 9B 未开始。**
+**当前状态：Online Foundation Pack 1；D.1–D.6 checkpoint `b319c67` 已冻结；完整真实 provider 链保留验证缺口。认证与部署尚未实施。**
+
+## Unified Workspace / Storage Contracts（Pack 1）
+
+`Workspace(storage_adapters=...)` 显式接收 `WorkspaceStorage`，未传时继续使用既有 SQLite 路径。`storage/` 从实际调用抽取 Conversation、Consent、Receipt、Vector、Purge ports，复用既有 StructuredProfileStore/MemoryStore 和 LangGraph checkpoint API。进程内 Ephemeral dictionaries + InMemorySaver 不创建目录/临时 SQLite；持久模式复用现有 stores/savers，不迁移私有数据。
+
+存储持久性与身份、Provider/Source 模式独立；同一四 Agent/runtime 不推断 Guest/Registered。owner/subject-bound facade + shared lease 序列化关闭与写入；Ephemeral close 清除内容并拒绝旧调用/迟到发布。默认 SQLite close 保留本地数据及既有 Conversation/Profile/Memory 只读诊断兼容，不作为未来账户 logout 合同。确认门、expected_current/confirmation_guard、不可变版本、Memory policy/consumer、canonical 向量回查及 D.5/D.6 session-only 不变。不是账户级安全、Guest 页面或 Online Beta；详见 [存储设计与限制](docs/ONLINE_FOUNDATION_STORAGE.md)。
 
 D.6 `evidence_validation` 是 Orchestrator 的 deterministic helper/session，不是第五 Agent。消费已有 Match & Insight validated relation 与 Job Intelligence work scope；独立 exact path/SHA-256 九模板、ONE relation/ONE unresolved scope、generation-bound 延迟发布。Self-Discovery 仍独占未来显式确认；handoff 不执行 start/confirm、不读取简历或新增 Memory consumer。展示/候选/结果/摘要 session-only，Profile/Memory writes=0、D.5 mutation=0，score/ranking=0；不是 skill-gap/test/fit/Learning/Action Plan。详见 [D.6](docs/EVIDENCE_GAP_VALIDATION.md)。
 

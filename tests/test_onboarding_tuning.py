@@ -195,7 +195,9 @@ def test_no_domain_or_golden_change(scope):
         assert_c4_shared_delta(name, (ROOT / name).read_bytes(), subprocess.check_output(["git", "show", f"{PRE_RESUME_BASELINE}:{name}"], cwd=ROOT))
         from tests.career_discovery_contract import assert_d1_memory_delta
         assert_d1_memory_delta(ROOT)
-        assert changed_paths(ROOT, PRE_RESUME_BASELINE, scope) == {name, "memory/models.py", "memory/integration.py"}
+        from tests.online_foundation_contract import PACK1_BASELINE, assert_pre_pack1_scope
+        assert_pre_pack1_scope(ROOT, PACK1_BASELINE, "memory")
+        assert changed_paths(ROOT, PRE_RESUME_BASELINE, scope) == {name, "memory/models.py", "memory/integration.py", "memory/base.py", "memory/service.py"}
         assert_original_inventory(ROOT, PRE_RESUME_BASELINE, scope)
         return
     if scope == "config/prompts":

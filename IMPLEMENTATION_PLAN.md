@@ -2,7 +2,11 @@
 
 本计划以**能力里程碑**而不是机械的“一天一个 Phase”推进。15 天是聚焦范围下的估算；学习检查或质量门未通过时应延长，不以赶日程为理由跨阶段。每个 Phase 都必须遵守 `LEARNING_PLAN.md` 的 Learning Mode。
 
-## 当前里程碑：Orange Career v1.3D.6
+## 当前里程碑：Online Foundation Pack 1
+
+D.1–D.6 已冻结在 `b319c67`。获批范围仅 Unified Workspace / Storage Contracts：实际调用链审计、显式存储注入、进程内 Ephemeral adapters、既有 SQLite 兼容、共同合同及 D.1–D.6 双适配器回归、九套 offline evaluations、安全检查和必要文档。四 Agent/确认权威/Memory governance/来源验证不变，D.5/D.6 session-only。当前增量不 add/commit/push/deploy/live；不开发认证、Guest UI、PostgreSQL/RLS、无简历画像或 Product Polish，不进入 Pack 2。详见 [Pack 1](docs/ONLINE_FOUNDATION_STORAGE.md)（含 Learning Mode 与停止条件）。
+
+### v1.3D.6 历史实施范围（现已冻结）
 
 D.1–D.5 已冻结为 `d84005a`。本轮仅 Evidence Gap Validation：Candidate A + optional B、ONE UNKNOWN/PARTIAL unresolved user-side scope、九 public synthetic templates、deterministic source pins/lifecycle、主聊天 session-only。Profile/Memory writes=0/new consumer=NO、D.5 mutation=0、无 score/ranking/考试/fit judgment/Learning/Action Plan。本轮先 focused/full pytest，再 Golden/Agent/Universal/D.1–D.6 九 evaluations；不 add/commit/push/deploy/live/private/Product Polish。人工审阅 pending；详见 [D.6](docs/EVIDENCE_GAP_VALIDATION.md)。
 

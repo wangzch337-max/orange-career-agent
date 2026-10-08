@@ -397,6 +397,9 @@ def test_v12_does_not_change_authority_or_dependencies(scope):
             from tests.career_discovery_contract import assert_d1_memory_delta
             assert_d1_memory_delta(ROOT)  # Exact pre-existing D.1 policy; old consumers remain byte-frozen.
             expected |= {"memory/models.py", "memory/integration.py"}
+            from tests.online_foundation_contract import PACK1_BASELINE, assert_pre_pack1_scope
+            assert_pre_pack1_scope(ROOT, PACK1_BASELINE, "memory")
+            expected |= {"memory/base.py", "memory/service.py"}
         else:
             from tests.career_reality_contract import D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH, D4_SOURCE_PATH, assert_d2_source_delta
             from tests.evidence_validation_contract import D6_SOURCE_PATH

@@ -109,6 +109,7 @@ def test_langgraph_imports_are_confined_to_phase_6_workflow_modules() -> None:
     assert set(importers) == {
         "workflows/langgraph_checkpoint.py",
         "workflows/langgraph_workflow.py",
+        "storage/checkpoint.py",  # Exact owner-bound adapter, not a new graph/Agent.
     }
 
 

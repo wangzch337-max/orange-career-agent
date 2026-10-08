@@ -15,6 +15,7 @@ from career_runtime.models import SafeFailure, StreamMetrics, Activity, length_b
 from career_runtime.models import PreviousTurn, TurnStatus
 from career_runtime.continuity import previous_from_messages, failure_status
 from career_runtime.diagnostics import RuntimeDiagnostic
+from storage.settings import ConsentCategory
 from time import perf_counter
 from providers.models import load_llm_settings
 from observability.context import diagnostic_scope
@@ -126,23 +127,15 @@ class AgentSession:
         self._generation = None
         self._executions = {}
         self._closed = False
-        self.path = workspace.runtime_root / "agent_settings.sqlite3"
-        with sqlite3.connect(self.path) as db:
-            db.execute("CREATE TABLE IF NOT EXISTS consent (owner TEXT PRIMARY KEY, version TEXT NOT NULL, granted INTEGER NOT NULL CHECK(granted IN (0,1)))")
-            # Additive, content-free receipt. Separate settings storage can retain
-            # a failed-persistence/cancelled attempt when no message pair exists.
-            db.execute("""CREATE TABLE IF NOT EXISTS turn_receipts (
-                owner TEXT NOT NULL, thread_id TEXT NOT NULL, turn_id TEXT NOT NULL,
-                status TEXT NOT NULL CHECK(status IN ('COMPLETED','FAILED_TRANSPORT','FAILED_VALIDATION','FAILED_PERSISTENCE','CANCELLED','UNKNOWN')),
-                previous_assistant_id TEXT NOT NULL, PRIMARY KEY(owner,thread_id))""")
+        self.settings = workspace.settings_store
+        self.settings.open()
+        self.path = getattr(self.settings, "path", None)  # Local compatibility; no runtime IO decision.
 
     def previous_turn(self, thread_id=None):
         thread_id = thread_id or self.workspace.thread.thread_id
         messages = self.workspace.store.list_messages(self.workspace.owner_scope_id, thread_id, limit=12)
         previous = previous_from_messages(messages)
-        with sqlite3.connect(self.path) as db:
-            receipt = db.execute("SELECT turn_id,status,previous_assistant_id FROM turn_receipts WHERE owner=? AND thread_id=?",
-                (self.workspace.owner_scope_id, thread_id)).fetchone()
+        receipt = self.settings.get_receipt(self.workspace.owner_scope_id, thread_id)
         if receipt:
             turn_id, status, anchor = receipt
             stored = self.workspace.store.get_turn(self.workspace.owner_scope_id, thread_id, turn_id)
@@ -154,9 +147,8 @@ class AgentSession:
 
     def _record_turn(self, pending, status, anchor):
         self.workspace.store.get_thread(self.workspace.owner_scope_id, pending.thread_id)
-        with sqlite3.connect(self.path) as db:
-            db.execute("INSERT INTO turn_receipts VALUES (?,?,?,?,?) ON CONFLICT(owner,thread_id) DO UPDATE SET turn_id=excluded.turn_id,status=excluded.status,previous_assistant_id=excluded.previous_assistant_id",
-                (self.workspace.owner_scope_id, pending.thread_id, pending.turn_id, TurnStatus(status).value, anchor))
+        self.settings.record_receipt(self.workspace.owner_scope_id, pending.thread_id, pending.turn_id,
+                                     TurnStatus(status).value, anchor)
 
     def cancel_pending(self):
         if self.busy:
@@ -338,7 +330,7 @@ class AgentSession:
         self._worker_done.wait(.25)
 
     def progress(self):
-        if self._control is None or self._active_pending is None:
+        if self._closed or self._control is None or self._active_pending is None:
             return None
         text, activities, cancelled = self._control.snapshot()
         return self._active_pending, text, activities, cancelled
@@ -365,16 +357,12 @@ class AgentSession:
 
     @property
     def consent(self):
-        with sqlite3.connect(self.path) as db:
-            row = db.execute("SELECT version, granted FROM consent WHERE owner = ?", (self.workspace.owner_scope_id,)).fetchone()
-        return bool(row and row == (CONSENT_VERSION, 1))
+        return self.settings.valid(self.workspace.owner_scope_id, ConsentCategory.AI_CHAT, CONSENT_VERSION)
 
     def set_consent(self, *, granted: bool):
         if type(granted) is not bool:
             raise ValueError("Consent must be explicit.")
-        with sqlite3.connect(self.path) as db:
-            db.execute("INSERT INTO consent VALUES (?, ?, ?) ON CONFLICT(owner) DO UPDATE SET version=excluded.version, granted=excluded.granted",
-                       (self.workspace.owner_scope_id, CONSENT_VERSION, int(granted)))
+        self.settings.set(self.workspace.owner_scope_id, ConsentCategory.AI_CHAT, CONSENT_VERSION, granted=granted)
         if not granted:
             self.cancel_pending()
             if not self.busy:

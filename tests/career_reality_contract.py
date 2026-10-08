@@ -4,6 +4,7 @@ import hashlib
 import subprocess
 from tests.evidence_match_contract import D5_PATHS, pre_d5_bytes
 from tests.evidence_validation_contract import D6_PATHS, D6_SOURCE_PATH, D6_SOURCE_HASH
+from tests.online_foundation_contract import PACK1_PATHS
 
 D1_FREEZE = "2316616ca8244d545d966f1064c7f7b798d53b22"
 D2_PATHS = {
@@ -58,6 +59,7 @@ D4_PATHS = {
 D2_PATHS |= D4_PATHS
 D2_PATHS |= D5_PATHS  # Exact new approval, not a protected-domain exemption.
 D2_PATHS |= D6_PATHS
+D2_PATHS |= PACK1_PATHS  # Exact storage-only approval; fixture/source guards unchanged.
 D4_SOURCE_PATH = "data/fixtures/specific_role/role_sources.json"
 D4_SOURCE_HASH = "78218383b6b87292ad20668a9619354df1c6308f448fcb95548a61c04f7b371a"
 

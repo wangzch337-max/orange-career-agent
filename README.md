@@ -16,11 +16,15 @@
 
 Orange 把这些问题连成一条可审阅的探索旅程。它是本地作品集 Demo，不是心理测评、就业保证或自动投递工具，也不是香港城市大学官方产品；通用简历流程支持学生、经验从业者、转行者及工作为主、零项目等背景，不根据专业锁定方向。
 
-## 当前状态：Orange Career v1.3D.6 Evidence Gap Validation
+## 当前状态：Online Foundation Pack 1 — Storage Contracts
+
+D.1–D.6 已冻结在 `b319c67`。当前获批增量只建立 [统一存储合同](docs/ONLINE_FOUNDATION_STORAGE.md)：同一 Workspace/四 Agent 显式注入进程内 Ephemeral 或既有 SQLite。默认本地入口及 SQLite 路径不变；Profile 的逐项审核/明确确认、Memory 治理和 D.5/D.6 session-only 不变。不是完整 Guest Mode 或 Online Beta；认证、访客页面、PostgreSQL/RLS、部署与 Product Polish 尚未实现。本轮不暂存、commit、push 或调用真实 provider。
+
+### v1.3D.6 Evidence Gap Validation（已冻结）
 
 D.6 的显式 handoff 仅提示已经存在的画像审核入口，不转移候选，不自动调用确认、简历读取或 provider。
 
-D.1–D.5 已在 `d84005a` 建立并正常推送 Integration Checkpoint。本轮获批实施 [D.6 Evidence Gap Validation](docs/EVIDENCE_GAP_VALIDATION.md)：合法 D.5 UNKNOWN / PARTIAL 的一个具体未证实范围，先澄清过去经历或直接选择公开合成小实验。独立九模板、精确来源绑定、主聊天明确选择、全部 session-only；不是 skill-gap、考试、fit judgment、Learning Plan 或 Action Plan。Profile/Memory writes、新 consumer、自动确认和 D.5 mutation 均为零；无需 provider。本轮不提交/推送/部署，人工审阅 pending。D.5 仍为单角色 evidence relationship，无 fit score/ranking/recommendation。
+D.1–D.5 曾在 `d84005a` 建立并正常推送 Integration Checkpoint；D.6 现已纳入 `b319c67`。[D.6 Evidence Gap Validation](docs/EVIDENCE_GAP_VALIDATION.md) 面向合法 D.5 UNKNOWN / PARTIAL 的一个具体未证实范围，先澄清过去经历或直接选择公开合成小实验。独立九模板、精确来源绑定、主聊天明确选择、全部 session-only；不是 skill-gap、考试、fit judgment、Learning Plan 或 Action Plan。Profile/Memory writes、新 consumer、自动确认和 D.5 mutation 均为零；无需 provider。人工产品验收仍 pending。D.5 仍为单角色 evidence relationship，无 fit score/ranking/recommendation。
 
 ### v1.3D.4 Representative Specific Role Understanding（已冻结）
 
@@ -227,6 +231,7 @@ orange-career-agent/
 ├── profile_refinement/ # 增量草案、逐项审核、确认与版本 CAS
 ├── career_background_evaluation/ # 外部跨背景离线 observer
 ├── memory/          # Canonical stores、local retrieval、显式 consumers
+├── storage/         # Workspace 合同、进程内适配器、既有 SQLite 接线
 ├── evaluation/      # 外部 Golden observer、合成场景、safe reports
 ├── observability/   # 最小化事件、session collector、安全 diagnostics
 ├── ui/              # Streamlit、presentation adapter、visual system
@@ -251,7 +256,7 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 
 ## Roadmap
 
-已冻结 D.1 Career Direction Discovery、pending clarification routing、state-aware New Chat opening、Public Synthetic D.1 Demo、D.2 Career Reality Exploration 与 D.3 Role Landscape / Differences Conversation，D.1–D.3 checkpoint 为 `dfeb535`。D.4 Representative Specific Role Understanding 覆盖现有9个 Public Demo archetypes；不是个人筛选、真实招聘或 Match，D.1–D.4 checkpoint 为 `044c8a2`。D.5 Evidence-based Match 已冻结，D.1–D.5 checkpoint 为 `d84005a`。本轮 D.6 Evidence Gap Validation 增量保持未提交。Final Product Polish 与人工产品验收尚未完成。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
+已冻结 D.1 Career Direction Discovery、pending clarification routing、state-aware New Chat opening、Public Synthetic D.1 Demo、D.2 Career Reality Exploration 与 D.3 Role Landscape / Differences Conversation，D.1–D.3 checkpoint 为 `dfeb535`。D.4 Representative Specific Role Understanding 覆盖现有9个 Public Demo archetypes；不是个人筛选、真实招聘或 Match，D.1–D.4 checkpoint 为 `044c8a2`。D.5 Evidence-based Match 已冻结，D.1–D.5 checkpoint 为 `d84005a`。D.6 Evidence Gap Validation 已冻结，D.1–D.6 checkpoint 为 `b319c67`。当前 Pack 1 Storage Contracts 增量保持未提交。Final Product Polish 与人工产品验收尚未完成。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
 
 **Phase 9A — Web Deployment Readiness** 与 **Phase 9B — Public Web Deployment** 均未开始，必须单独授权。认证、真实模型模式、云数据和部署是否需要，属于未来决策，不是当前承诺。
 

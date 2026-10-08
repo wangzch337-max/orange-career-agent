@@ -8,18 +8,18 @@ import pytest
 from tests.evidence_validation_contract import D6_FREEZE, D6_PATHS, D6_SOURCE_PATH, D6_SOURCE_HASH, D6_INTEGRATION_HASHES, pre_d6_bytes
 from tests.freeze_contract import changed_paths, assert_original_inventory
 from tests.career_reality_contract import assert_d2_source_delta
+from tests.online_foundation_contract import PACK1_PATHS, pre_pack1_bytes, assert_pre_pack1_scope
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_exact_d6_scope_without_private_artifact_wildcard_exemptions():
-    assert changed_paths(ROOT,D6_FREEZE,".")==D6_PATHS
+    assert changed_paths(ROOT,D6_FREEZE,".")==D6_PATHS | PACK1_PATHS
     assert not any("*" in p for p in D6_PATHS)
     for scope in ("agents","providers","memory","workflows","career_discovery","career_reality",
         "role_landscape","specific_role","career_runtime","clarification","profile_refinement",
         "resume_intake","resume_evidence","config","requirements.txt","data/models.py"):
-        assert not changed_paths(ROOT,D6_FREEZE,scope),scope
-        assert_original_inventory(ROOT,D6_FREEZE,scope)
+        assert_pre_pack1_scope(ROOT,D6_FREEZE,scope)
     assert changed_paths(ROOT,D6_FREEZE,"data")=={D6_SOURCE_PATH}
     assert_d2_source_delta(ROOT)
     from evidence_validation.sources import SOURCE_HASH
@@ -29,7 +29,7 @@ def test_exact_d6_scope_without_private_artifact_wildcard_exemptions():
 @pytest.mark.parametrize("name",tuple(D6_INTEGRATION_HASHES))
 def test_exact_integration_pin_rejects_extra_byte_and_alias(name):
     current=(ROOT/name).read_bytes()
-    assert hashlib.sha256(current).hexdigest()==D6_INTEGRATION_HASHES[name]
+    assert hashlib.sha256(pre_pack1_bytes(ROOT,name,current)).hexdigest()==D6_INTEGRATION_HASHES[name]
     original=subprocess.check_output(["git","show",f"{D6_FREEZE}:{name}"],cwd=ROOT)
     assert pre_d6_bytes(ROOT,name,current)==original
     assert pre_d6_bytes(ROOT,name,current+b"\n")==current+b"\n"

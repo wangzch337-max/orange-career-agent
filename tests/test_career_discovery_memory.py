@@ -39,7 +39,12 @@ def test_discovery_policy_has_exact_allowlist_and_wrong_consumer_rejected(h):
 def test_candidate_superseded_archived_cross_owner_disallowed_types_excluded(h):
     service, subject = h.workspace.memory_service, h.workspace.subject_id
     allowed = make(h)
-    wrong = make(h, subject="subject_other")
+    with pytest.raises(ValueError): make(h, subject="subject_other")
+    # Deliberately poison the backing store, not the owner-bound runtime port.
+    # The original retrieval exclusion assertions below must still hold.
+    wrong = service.memory_store._store.create_confirmed(subject_id="subject_other", memory_type=MemoryType.GOAL,
+        content="public synthetic career preference", source_type=EvidenceSourceType.SYSTEM_FIXTURE, confirmed_by_user=True)
+    service.vector_index._store.index_record(wrong)
     excluded = make(h, type=MemoryType.PROJECT_EVIDENCE)
     archived = make(h)
     service.archive(subject, archived.memory_id)
