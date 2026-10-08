@@ -2,7 +2,9 @@
 
 D.4 Representative Specific Role Understanding 已冻结于 `044c8a2`，继续只做 work-side understanding；D.5 在独立关系合同中读取确认 Profile，不改变 D.4 的工作事实权威。
 
-**当前状态：Orange Career v1.3D.5；D.1–D.4 checkpoint `044c8a2` 已冻结；完整真实 provider 链保留验证缺口。Phase 9A / 9B 未开始。**
+**当前状态：Orange Career v1.3D.6；D.1–D.5 checkpoint `d84005a` 已冻结；完整真实 provider 链保留验证缺口。Phase 9A / 9B 未开始。**
+
+D.6 `evidence_validation` 是 Orchestrator 的 deterministic helper/session，不是第五 Agent。消费已有 Match & Insight validated relation 与 Job Intelligence work scope；独立 exact path/SHA-256 九模板、ONE relation/ONE unresolved scope、generation-bound 延迟发布。Self-Discovery 仍独占未来显式确认；handoff 不执行 start/confirm、不读取简历或新增 Memory consumer。展示/候选/结果/摘要 session-only，Profile/Memory writes=0、D.5 mutation=0，score/ranking=0；不是 skill-gap/test/fit/Learning/Action Plan。详见 [D.6](docs/EVIDENCE_GAP_VALIDATION.md)。
 
 D.5 扩展既有 Match & Insight Agent，独立 `evidence_match` typed projections/session；不把 D.4 转成 JobIntelligenceRecord。复用 scoped IDs/ownership/Fake/版本化 prompt，有限完整陈述验证与确定性解释。Orchestrator/Workspace 管 routing/readiness/lifecycle。零第五 Agent、Profile/Memory writes、新 consumer、fit score/ranking/actions；展示 session-only 不走 append_turn。历史 Golden workflow 不变。详见 [D.5](docs/EVIDENCE_BASED_MATCH.md)。
 

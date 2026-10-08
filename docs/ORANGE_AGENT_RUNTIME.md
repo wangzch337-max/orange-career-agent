@@ -1,4 +1,8 @@
-# Orange Career v1.3D.5 · 有边界的对话、简历与证据关系
+# Orange Career v1.3D.6 · 有边界的对话、简历与证据验证
+
+## v1.3D.6 当前增量
+
+画像对话/D.1 pending 优先，随后 D.6 → D.5 → D.4 → D.3 → D.2 → General QA。D.6 仅有界整句 intent + 显式 relation 选择；技术问句/学习问题不捕获。Orchestrator session 消费 validated D.5 uncertainty，九模板 exact source-grounded；候选/结果/摘要均 session-only 不走 chat store/snapshot/checkpoint/Match history，Profile/Memory writes=0、新 consumer=NO、D.5 mutation=0、score/ranking=0。handoff 只提示既有入口，不自动启动 provider/确认。合法 QA reload 保留 current，New Chat/导航/父关系/Profile/source/template 变化及 late/replay/cross-owner/thread 清除。不是 Learning/Action Plan；无第五 Agent。详见 [D.6](EVIDENCE_GAP_VALIDATION.md)。下方为已冻结的历史范围。
 
 ## v1.3D.5 Evidence-based Match 当前增量
 

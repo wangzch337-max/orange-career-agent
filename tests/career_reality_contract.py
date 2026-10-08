@@ -3,6 +3,7 @@
 import hashlib
 import subprocess
 from tests.evidence_match_contract import D5_PATHS, pre_d5_bytes
+from tests.evidence_validation_contract import D6_PATHS, D6_SOURCE_PATH, D6_SOURCE_HASH
 
 D1_FREEZE = "2316616ca8244d545d966f1064c7f7b798d53b22"
 D2_PATHS = {
@@ -56,19 +57,21 @@ D4_PATHS = {
 }
 D2_PATHS |= D4_PATHS
 D2_PATHS |= D5_PATHS  # Exact new approval, not a protected-domain exemption.
+D2_PATHS |= D6_PATHS
 D4_SOURCE_PATH = "data/fixtures/specific_role/role_sources.json"
 D4_SOURCE_HASH = "78218383b6b87292ad20668a9619354df1c6308f448fcb95548a61c04f7b371a"
 
 
 def assert_d2_source_delta(root, *, inventory_baseline=D1_FREEZE):
     from tests.freeze_contract import changed_paths, historical_paths, repository_paths
-    additions = {D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH, D4_SOURCE_PATH}
+    additions = {D2_SOURCE_PATH, DEMO_PROPOSAL_PATH, D3_SOURCE_PATH, D4_SOURCE_PATH, D6_SOURCE_PATH}
     assert changed_paths(root, D1_FREEZE, "data") == additions
     assert repository_paths(root, "data") == historical_paths(root, inventory_baseline, "data") | additions
     assert hashlib.sha256((root / D2_SOURCE_PATH).read_bytes()).hexdigest() == D2_SOURCE_HASH
     assert hashlib.sha256((root / DEMO_PROPOSAL_PATH).read_bytes()).hexdigest() == DEMO_PROPOSAL_HASH
     assert hashlib.sha256((root / D3_SOURCE_PATH).read_bytes()).hexdigest() == D3_SOURCE_HASH
     assert hashlib.sha256((root / D4_SOURCE_PATH).read_bytes()).hexdigest() == D4_SOURCE_HASH
+    assert hashlib.sha256((root / D6_SOURCE_PATH).read_bytes()).hexdigest() == D6_SOURCE_HASH
 
 # Approved new integration bytes will compose with the original D.1 pins;
 # unapproved mutations still face every historical guard.

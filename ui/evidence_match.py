@@ -8,9 +8,11 @@ from ui.onboarding.assets import sphere_markup
 
 def render_match_messages(workspace, anchor, reality_offset, landscape_offset, specific_offset):
     session = workspace.evidence_match
+    from ui.evidence_validation import render_validation_messages
     # The transcript entry point validates once before rendering its offsets.
     # Do not re-project/re-read the same sources for every nested empty offset.
-    for message in session.messages:
+    for offset, message in enumerate(session.messages):
+        render_validation_messages(workspace, (anchor, reality_offset, landscape_offset, specific_offset, offset))
         if (message.anchor, message.reality_offset, message.landscape_offset, message.specific_offset) != (
                 anchor, reality_offset, landscape_offset, specific_offset): continue
         with st.chat_message(message.role, avatar=sphere_markup() if message.role == "assistant" else None):
@@ -33,3 +35,4 @@ def render_match_messages(workspace, anchor, reality_offset, landscape_offset, s
                     for limitation in relation.limitations: st.text(limitation)
                     st.caption(f"画像 v{relation.profile_version} · source v{relation.source_version} · {relation.source_fingerprint}")
                     for provenance in relation.user_sources: st.caption(provenance)
+    render_validation_messages(workspace, (anchor, reality_offset, landscape_offset, specific_offset, len(session.messages)))

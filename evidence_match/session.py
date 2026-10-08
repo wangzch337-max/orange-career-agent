@@ -26,7 +26,7 @@ def intent(text, active=False):
     s = normalized(text)
     if re.fullmatch(r"(?:那)?(?:你觉得)?(?:这个角色|这种角色|这项工作|这个工作)(?:与我有什么关系|适合我(?:吗)?)|我(?:有什么|目前有哪些)(?:经历|证据)和(?:这个工作|这个角色|这项工作)相关|我和(?:这个角色|这种工作)有什么匹配的地方|我(?:目前)?还缺什么", s):
         return "start"
-    if active and re.fullmatch(r"为什么(?:你说)?(?:这个|这里)(?:算相关|还是unknown|仍未知|是未知)|这里具体用了我的哪段经历|(?:展开|解释)(?:第[1-9一二三四五六七八九]条)(?:关系)?", s, re.I):
+    if active and re.fullmatch(r"为什么(?:你说)?(?:这个|这里)(?:算相关|还是unknown|是unknown|仍未知|是未知)|这里具体用了我的哪段经历|(?:展开|解释)(?:第[1-9一二三四五六七八九]条)(?:关系)?", s, re.I):
         return "detail"
     if active and re.fullmatch(r"我(?:做过|完成过|参与过|还做过).+", s):
         return "new_evidence"

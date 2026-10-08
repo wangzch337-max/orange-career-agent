@@ -1,5 +1,9 @@
 # v1.3D.5 — Evidence-based Match
 
+## D.6 已授权消费边界
+
+D.1–D.5 已冻结于 `d84005a`。新 [D.6 Evidence Gap Validation](EVIDENCE_GAP_VALIDATION.md) 只读 validated UNKNOWN/PARTIAL 的唯一未证实用户侧范围，澄清或 optional source-bound 合成实验；所有候选/结果/摘要 session-only。完成/产出/反思不成为技能，Profile/Memory writes=0/new consumer=NO，不改变当前 D.5 Result，无 score/ranking/Action Plan。只有未来新材料→现有显式确认→新 canonical Profile→用户明确 fresh D.5 rerun 才可能得到新关系；handoff 本阶段只提示入口、不调用确认/provider。下方首版实施限制保留。
+
 获批 A Evidence Relationship Map + B Progressive Conversation；D.1–D.4 checkpoint `044c8a2`。工程验证以本轮报告为准；人工产品审阅 pending。D.5 = evidence relationship analysis，不是 fit score/ranking/recommendation/action plan、Profile write 或 Memory write；展示也 session-only。
 
 ## Authority 与 projection

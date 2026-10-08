@@ -71,7 +71,8 @@ def test_integration_freeze_docs_keep_current_scope_and_separate_commit_authorit
         assert capability in roadmap
     assert "D.4 Representative Specific Role Understanding" in roadmap and "现有9个 Public Demo archetypes" in roadmap
     assert "checkpoint 为 `dfeb535`" in roadmap and "D.1–D.4 checkpoint 为 `044c8a2`" in roadmap
-    assert "本轮 D.5 Evidence-based Match 增量保持未提交" in roadmap
+    assert "D.1–D.5 checkpoint 为 `d84005a`" in roadmap
+    assert "本轮 D.6 Evidence Gap Validation 增量保持未提交" in roadmap
     assert "Final Product Polish 与人工产品验收尚未完成" in roadmap
     assert "全部通过也不授权暂存、commit 或 push" in readme
     assert "须等待产品负责人单独授权 checkpoint" in readme

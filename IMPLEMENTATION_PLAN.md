@@ -2,7 +2,13 @@
 
 本计划以**能力里程碑**而不是机械的“一天一个 Phase”推进。15 天是聚焦范围下的估算；学习检查或质量门未通过时应延长，不以赶日程为理由跨阶段。每个 Phase 都必须遵守 `LEARNING_PLAN.md` 的 Learning Mode。
 
-## 当前里程碑：Orange Career v1.3D.5
+## 当前里程碑：Orange Career v1.3D.6
+
+D.1–D.5 已冻结为 `d84005a`。本轮仅 Evidence Gap Validation：Candidate A + optional B、ONE UNKNOWN/PARTIAL unresolved user-side scope、九 public synthetic templates、deterministic source pins/lifecycle、主聊天 session-only。Profile/Memory writes=0/new consumer=NO、D.5 mutation=0、无 score/ranking/考试/fit judgment/Learning/Action Plan。本轮先 focused/full pytest，再 Golden/Agent/Universal/D.1–D.6 九 evaluations；不 add/commit/push/deploy/live/private/Product Polish。人工审阅 pending；详见 [D.6](docs/EVIDENCE_GAP_VALIDATION.md)。
+
+D.6 的 handoff 只导航到已有审核入口，不自动转移、确认或启动旧流程。
+
+### v1.3D.5 历史实施范围（现已冻结）
 
 D.1–D.4 已冻结为 `044c8a2`。本轮获批 D.5 Evidence-based Match：A+B、单确认用户/单合法代表性角色、typed user/work projection、确认权威、Fake-only、证据关系和主聊天渐进展示；session-only，包括展示，不写 Profile/Memory、不新增 consumer、无 score/ranking/recommendation/Action Plan。先 focused/full，再 Golden/Agent/Universal/D.1–D.5；本轮未提交，不开始 Product Polish/Action/live/deploy。详见 [D.5](docs/EVIDENCE_BASED_MATCH.md)。
 

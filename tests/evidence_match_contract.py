@@ -2,6 +2,7 @@
 
 import hashlib
 import subprocess
+from tests.evidence_validation_contract import pre_d6_bytes
 
 D5_FREEZE = "044c8a2e026adaa2de66d97e652d78f8d20786d1"
 D5_PATHS = {
@@ -33,6 +34,7 @@ D5_PROMPT_HASH = "7dc7cecaee06d81444af552d27803a21baf925f7c08ce171a5b6c6c9b37b25
 
 
 def pre_d5_bytes(root, name, current):
+    current = pre_d6_bytes(root, name, current)
     if name in D5_INTEGRATION_HASHES and hashlib.sha256(current).hexdigest() == D5_INTEGRATION_HASHES[name]:
         return subprocess.check_output(["git", "show", f"{D5_FREEZE}:{name}"], cwd=root)
     return current

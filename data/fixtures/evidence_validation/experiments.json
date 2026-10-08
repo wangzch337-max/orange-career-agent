@@ -1,0 +1,365 @@
+{
+  "schema_version": "orange.evidence_validation.templates.v1",
+  "templates": [
+    {
+      "template_id": "experiment_ba_problem",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_2f4d870f22605a39243d188c",
+      "archetype_id": "role_ba_problem",
+      "role_id": "specific_role_ba_problem",
+      "source_id": "specific_ba_problem",
+      "source_version": 1,
+      "source_fingerprint": "fc5cdab503510eba75bd6ed826aa7699ba36e39dc71ddb3176b6ecb0ee7a3ab6",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_ba_problem@1:specific_role_ba_problem:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "核对不同岗位对服务慢的定义，整理待验证的问题假设。",
+      "partial_scope": "独立性与完整责任尚未证实：核对不同岗位对服务慢的定义，整理待验证的问题假设。",
+      "task": "用合成服务记录区分不同人的“慢”，写一个待核对问题假设及样本限制。",
+      "synthetic_material": "申请人甲认为等回复超过一天是慢；处理员乙认为补材料超过两轮是慢。四件合成申请：A 等回复两天、无补交；B 当天回复、补交三轮；C 等回复一天、补交一轮；D 无回复时间记录。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "观察两种定义是否改变问题范围。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    },
+    {
+      "template_id": "experiment_ba_requirements",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_2f4d870f22605a39243d188c",
+      "archetype_id": "role_ba_requirements",
+      "role_id": "specific_role_ba_requirements",
+      "source_id": "specific_ba_requirements",
+      "source_version": 1,
+      "source_fingerprint": "78c8bf3e4adf4601ce82ec3b7a1d1996e1ff225672cb173f2adf452344fcaca0",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_ba_requirements@1:specific_role_ba_requirements:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "维护需求说明和验收例子，向工程解释业务含义。",
+      "partial_scope": "独立性与完整责任尚未证实：维护需求说明和验收例子，向工程解释业务含义。",
+      "task": "仅根据合成规则写一段需求说明、正常/异常验收例子和一个待确认规则。",
+      "synthetic_material": "合成借用申请：申请人填用途和归还日期；审批人审核后才能借出；缺日期需退回补填。批准后修改日期的规则尚未确定。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "记录从业务规则到验收例子时的假设和遗漏。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    },
+    {
+      "template_id": "experiment_ba_system",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_2f4d870f22605a39243d188c",
+      "archetype_id": "role_ba_system",
+      "role_id": "specific_role_ba_system",
+      "source_id": "specific_ba_system",
+      "source_version": 1,
+      "source_fingerprint": "13009efa1534ff42d4a9bad4ba8c1c6c58309d998d7ed3f9919a6c745c6ba1d3",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_ba_system@1:specific_role_ba_system:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "与工程核对异常重试路径，并把未明确的业务规则标出。",
+      "partial_scope": "独立性与完整责任尚未证实：与工程核对异常重试路径，并把未明确的业务规则标出。",
+      "task": "画出合成事件的异常重试路径，标记重复事件和未明确的规则；不连接真实系统。",
+      "synthetic_material": "合成状态：草稿→已提交→已审核。事件 E1 提交成功但响应超时，调用方重发 E1；E2 审核到达时记录仍为草稿。是否允许跨状态审核未知。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "记录重复事件、先后顺序及需工程/业务核对的边界。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    },
+    {
+      "template_id": "experiment_ko_curation",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_1bb30913e89d25c0fdcc691b",
+      "archetype_id": "role_ko_curation",
+      "role_id": "specific_role_ko_curation",
+      "source_id": "specific_ko_curation",
+      "source_version": 1,
+      "source_fingerprint": "90d1fc9d6a0e527c4f689fde5ceec95c4e4612214216b7b6ce75cf6143bcb667",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_ko_curation@1:specific_role_ko_curation:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "把模糊说明拆成适用条件与步骤，提交业务专家审核。",
+      "partial_scope": "独立性与完整责任尚未证实：把模糊说明拆成适用条件与步骤，提交业务专家审核。",
+      "task": "把合成模糊条目拆成适用条件和步骤，保留出处，并标注待专家审核之处。",
+      "synthetic_material": "合成条目 K1 v1：“通常先联系服务台再处理退款”。K2 v2：“重复支付可提交付款记录”。两条适用对象与审批人未明确。出处均为虚构练习材料，不代表任何政策。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "记录拆分时哪些内容有出处、哪些必须留待审核。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    },
+    {
+      "template_id": "experiment_ko_retrieval",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_1bb30913e89d25c0fdcc691b",
+      "archetype_id": "role_ko_retrieval",
+      "role_id": "specific_role_ko_retrieval",
+      "source_id": "specific_ko_retrieval",
+      "source_version": 1,
+      "source_fingerprint": "1b9dd661c030c2c01aee0d4d5bdcfda9867c4f930fed6684e2e73672c5d01082",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_ko_retrieval@1:specific_role_ko_retrieval:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "设计有限检索任务，与内容及工程同事复核结果。",
+      "partial_scope": "独立性与完整责任尚未证实：设计有限检索任务，与内容及工程同事复核结果。",
+      "task": "为合成条目设计三个有限查找任务，用手工表格记录结果及内容/术语/导航疑问。",
+      "synthetic_material": "合成条目：K1 标题“更换预约”正文“修改服务时间”；K2 标题“取消办理”正文“终止预约”；K3 标题“退款条件”正文未列时限。查询：改时间、撤销预约、何时能退。无需检索 API。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "观察任务定义是否区分找不到内容与术语不一致。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    },
+    {
+      "template_id": "experiment_ko_quality",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_1bb30913e89d25c0fdcc691b",
+      "archetype_id": "role_ko_quality",
+      "role_id": "specific_role_ko_quality",
+      "source_id": "specific_ko_quality",
+      "source_version": 1,
+      "source_fingerprint": "806d36bf97dccc865921403aab24f28e670a069f6e55376786eeeb0aaf4ec324",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_ko_quality@1:specific_role_ko_quality:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "追踪内容负责人确认与修订状态，维护失效记录。",
+      "partial_scope": "独立性与完整责任尚未证实：追踪内容负责人确认与修订状态，维护失效记录。",
+      "task": "根据合成变更通知做复核队列与状态表；未知项标记待负责人确认，不代替政策审核。",
+      "synthetic_material": "虚构通知 N1 将预约提前期从两天改为三天。K1 v1 仍写两天、负责人未回复；K2 v2 写三天、负责人标记待复核；K3 引用 K1，依赖尚未核实。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "记录出处、依赖和负责人确认状态是否被分开。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    },
+    {
+      "template_id": "experiment_pi_diagnosis",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_1752261ef928f890147538b5",
+      "archetype_id": "role_pi_diagnosis",
+      "role_id": "specific_role_pi_diagnosis",
+      "source_id": "specific_pi_diagnosis",
+      "source_version": 1,
+      "source_fingerprint": "c686a12497f708843164347972437aee641f55313ecb27112bf24fc4c9fb6e47",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_pi_diagnosis@1:specific_role_pi_diagnosis:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "观察不同处理情形，记录可能的等待原因和证据限制。",
+      "partial_scope": "独立性与完整责任尚未证实：观察不同处理情形，记录可能的等待原因和证据限制。",
+      "task": "比较合成流程情形，写一项等待假设、反例和证据限制；不要做因果结论。",
+      "synthetic_material": "合成处理记录（分钟）：A 提交0/审核10/完成20；B 提交0/补交15/审核35/完成45；C 提交0/审核缺失/完成50。记录没有人员排班或资源信息。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "观察等待与返工能否区分，以及缺失事件如何影响解释。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    },
+    {
+      "template_id": "experiment_pi_automation",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_1752261ef928f890147538b5",
+      "archetype_id": "role_pi_automation",
+      "role_id": "specific_role_pi_automation",
+      "source_id": "specific_pi_automation",
+      "source_version": 1,
+      "source_fingerprint": "affd82890d2654ad96d68c0801a296d7a29181d0953f1fd456fbcf9dd0df0b26",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_pi_automation@1:specific_role_pi_automation:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "组织试点验收，记录人工接管与回退条件。",
+      "partial_scope": "独立性与完整责任尚未证实：组织试点验收，记录人工接管与回退条件。",
+      "task": "在纸面或本地文本中写合成试点验收情形、人工接管及回退条件；不部署自动化。",
+      "synthetic_material": "合成流程：读取申请编号→检查字段→生成待审核通知。样本 A 字段齐全；B 缺用途；C 编号重复；D 通知步骤超时。负责人尚未批准重试次数。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "记录异常与待批准条件，观察是否遗漏人工接管。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    },
+    {
+      "template_id": "experiment_pi_measurement",
+      "version": 1,
+      "provenance": "independently_authored_public_synthetic",
+      "direction_id": "direction_1752261ef928f890147538b5",
+      "archetype_id": "role_pi_measurement",
+      "role_id": "specific_role_pi_measurement",
+      "source_id": "specific_pi_measurement",
+      "source_version": 1,
+      "source_fingerprint": "0601a260ce4f2c8023b2796f38d262db1c92b2799797a9fbfd1f65a7e441fc13",
+      "work_field": "responsibilities",
+      "work_evidence_ids": [
+        "specific_pi_measurement@1:specific_role_pi_measurement:responsibilities:1"
+      ],
+      "work_authority": "SOURCE_FACT",
+      "eligible_relation_types": [
+        "UNKNOWN",
+        "RELATED_BUT_PARTIAL"
+      ],
+      "unknown_scope": "整理试点后记录与异常案例，追踪未解释变化。",
+      "partial_scope": "独立性与完整责任尚未证实：整理试点后记录与异常案例，追踪未解释变化。",
+      "task": "把合成前后记录做同口径观察表，列出异常和未解释变化；不宣称改进成功。",
+      "synthetic_material": "合成基线三件处理用时20/30/40分钟；试点三件15/25/缺失分钟。基线从提交计时，试点从材料齐备计时，窗口与数量变化未知。",
+      "estimated_minutes": 45,
+      "allowed_assistance": "可用纸笔、表格或本地工具；可请人解释、使用 AI，但必须自述哪些部分借助了帮助。不要求独立完成，也不调用外部服务。",
+      "expected_observations": [
+        "观察口径不一致、缺失与异常是否限制前后解释。",
+        "记下采用的假设、遇到的阻碍和借助的帮助；没有标准成绩。"
+      ],
+      "reflection_questions": [
+        "哪些判断来自给定材料，哪些仍不知道？",
+        "哪一部分由自己完成，哪里获得帮助？这次观察还有什么范围限制？"
+      ],
+      "limitations": [
+        "只观察一项公开合成工作活动，不是完整工作责任或能力认证。",
+        "合成材料没有真实组织、客户或招聘要求；不能推出整个角色的胜任或职业选择。"
+      ],
+      "optional": true,
+      "can_stop": true
+    }
+  ]
+}

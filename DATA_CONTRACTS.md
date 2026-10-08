@@ -1,5 +1,9 @@
 # Orange 概念数据契约 Data Contracts
 
+## v1.3D.6 Evidence Gap Validation（独立 session-only 合同）
+
+Template 为 exact path/SHA-256 public synthetic fixture，绑定 direction/archetype/role/source/version/fingerprint、work evidence IDs/types、UNKNOWN/PARTIAL scope、模板版本/指纹。Target 为 ONE relation + ONE unresolved scope；Candidate 是 session_candidate 回忆/表述/范围/情境；Outcome 分离自述 completion/observation/text output/reflection/assistance，非 confirmed evidence。Binding/Token 防父关系/Profile/source/template 改变与跨 owner/subject/thread/replay/late。没有 skill fact、score/ranking、成绩、fit judgment、Learning/Action Plan 或 canonical schema 改动。所有展示/摘要不落盘，Profile/Memory writes=0，D.5 mutation=0；handoff 不调用确认。详见 [D.6](docs/EVIDENCE_GAP_VALIDATION.md)。
+
 ## v1.3D.5 Evidence-based Match（独立产品合同）
 
 UserProjection 保留已确认 signal/evidence ownership、fact vs inference、source/provenance、scope/uncertainty、Profile version/fingerprint/partial；WorkProjection 保留 D.4 role/source version/fingerprint、逐字段 refs/authority/membership、variation/unknown，不是 JobIntelligenceRecord，不创造 qualification。Relationship 为 DIRECTLY_SUPPORTED/RELATED_BUT_PARTIAL/UNKNOWN/TENSION/NOT_APPLICABLE，绑定双侧 IDs、reason、limitations、uncertainty、版本和来源归属。Result 没有 score/ranking/actions/coverage；Binding/Token 绑定 owner/subject/thread/Profile/role/source/projection/request/generation。全部 session-only，Profile/Memory writes=0/new consumer=NO。详见 [D.5](docs/EVIDENCE_BASED_MATCH.md)。下方旧 Match schema 是历史兼容合同，未修改。

@@ -16,9 +16,11 @@
 
 Orange 把这些问题连成一条可审阅的探索旅程。它是本地作品集 Demo，不是心理测评、就业保证或自动投递工具，也不是香港城市大学官方产品；通用简历流程支持学生、经验从业者、转行者及工作为主、零项目等背景，不根据专业锁定方向。
 
-## 当前状态：Orange Career v1.3D.5 Evidence-based Match
+## 当前状态：Orange Career v1.3D.6 Evidence Gap Validation
 
-D.1–D.4 已在 `044c8a2` 建立并正常推送 Integration Checkpoint。本轮获批实施 [D.5 Evidence-based Match](docs/EVIDENCE_BASED_MATCH.md)：一个确认用户与一个合法 D.4 representative role 的直接/部分/未知/有依据张力关系；Fake-only、主聊天渐进、独立 typed work projection、无 fit score/ranking/recommendation/Action Plan，零 Profile/Memory writes、新 consumer 和自动持久化。D.5 包括展示均 session-only，人工审阅 pending；本轮不提交/推送/部署。
+D.6 的显式 handoff 仅提示已经存在的画像审核入口，不转移候选，不自动调用确认、简历读取或 provider。
+
+D.1–D.5 已在 `d84005a` 建立并正常推送 Integration Checkpoint。本轮获批实施 [D.6 Evidence Gap Validation](docs/EVIDENCE_GAP_VALIDATION.md)：合法 D.5 UNKNOWN / PARTIAL 的一个具体未证实范围，先澄清过去经历或直接选择公开合成小实验。独立九模板、精确来源绑定、主聊天明确选择、全部 session-only；不是 skill-gap、考试、fit judgment、Learning Plan 或 Action Plan。Profile/Memory writes、新 consumer、自动确认和 D.5 mutation 均为零；无需 provider。本轮不提交/推送/部署，人工审阅 pending。D.5 仍为单角色 evidence relationship，无 fit score/ranking/recommendation。
 
 ### v1.3D.4 Representative Specific Role Understanding（已冻结）
 
@@ -249,7 +251,7 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 
 ## Roadmap
 
-已冻结 D.1 Career Direction Discovery、pending clarification routing、state-aware New Chat opening、Public Synthetic D.1 Demo、D.2 Career Reality Exploration 与 D.3 Role Landscape / Differences Conversation，D.1–D.3 checkpoint 为 `dfeb535`。D.4 Representative Specific Role Understanding 覆盖现有9个 Public Demo archetypes；不是个人筛选、真实招聘或 Match，D.1–D.4 checkpoint 为 `044c8a2`。本轮 D.5 Evidence-based Match 增量保持未提交。Final Product Polish 与人工产品验收尚未完成。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
+已冻结 D.1 Career Direction Discovery、pending clarification routing、state-aware New Chat opening、Public Synthetic D.1 Demo、D.2 Career Reality Exploration 与 D.3 Role Landscape / Differences Conversation，D.1–D.3 checkpoint 为 `dfeb535`。D.4 Representative Specific Role Understanding 覆盖现有9个 Public Demo archetypes；不是个人筛选、真实招聘或 Match，D.1–D.4 checkpoint 为 `044c8a2`。D.5 Evidence-based Match 已冻结，D.1–D.5 checkpoint 为 `d84005a`。本轮 D.6 Evidence Gap Validation 增量保持未提交。Final Product Polish 与人工产品验收尚未完成。[实施与阶段历史](IMPLEMENTATION_PLAN.md)保留早期工程演进，不代表当前发布状态。
 
 **Phase 9A — Web Deployment Readiness** 与 **Phase 9B — Public Web Deployment** 均未开始，必须单独授权。认证、真实模型模式、云数据和部署是否需要，属于未来决策，不是当前承诺。
 
@@ -273,6 +275,7 @@ Deterministic-first 让确认、引用和失败路径可测试；LangGraph 承�
 | [Career Direction Discovery](docs/CAREER_DIRECTION_DISCOVERY.md) | D.1 只读方向候选、通用背景与权限约束 |
 | [Representative Specific Role](docs/REPRESENTATIVE_SPECIFIC_ROLE.md) | D.4 独立合成角色来源、渐进问答与父上下文绑定 |
 | [Evidence-based Match](docs/EVIDENCE_BASED_MATCH.md) | D.5 单角色证据关系、确认权威、session-only 与离线限制 |
+| [Evidence Gap Validation](docs/EVIDENCE_GAP_VALIDATION.md) | D.6 唯一未知范围、临时澄清、九个可选合成实验与失效边界 |
 | [Product UX Acceptance](docs/PRODUCT_UX_ACCEPTANCE.md) | Phase 8C 的本地交互／布局验收 |
 | [Public Release Checklist](docs/PUBLIC_RELEASE_CHECKLIST.md) | 每项 PASS／BLOCKED／用户决策 |
 | [Portfolio Acceptance](docs/PORTFOLIO_ACCEPTANCE.md) | 公开阅读与工程故事审阅 |

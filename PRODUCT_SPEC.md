@@ -1,6 +1,8 @@
 # Orange 产品规格 Product Specification
 
-**文档状态：Orange Career v1.3D.5；下方 Golden Flow 保留初始引导产品契约。**
+**文档状态：Orange Career v1.3D.6；下方 Golden Flow 保留初始引导产品契约。**
+
+D.6 = uncertainty reduction：单条合法 D.5 UNKNOWN/PARTIAL 的具体未证实范围，临时澄清或 optional public synthetic experiment。九模板 source-bound、明确选择、可跳过/中止；所有结果/摘要 session-only，Profile/Memory writes=0/new consumer=NO、D.5 mutation=0、无 score/ranking、考试、fit judgment、Learning/Action Plan。handoff 只提示已有确认入口，不自动调用旧流程。详见 [D.6](docs/EVIDENCE_GAP_VALIDATION.md)。D.1–D.5 已冻结在 `d84005a`。
 
 D.5 = evidence relationship analysis，A Evidence Relationship Map + B Progressive Conversation：one confirmed user ↔ one valid D.4 role；direct/partial/unknown/evidence-backed tension，not fit score/ranking/recommendation/action plan；no Profile/Memory writes/new consumer，展示也 session-only。适合我吗只展示证据关系，不给 yes/no；新经历走既有确认路径。Fake-only / 无真实 Qwen，详见 [D.5](docs/EVIDENCE_BASED_MATCH.md)。v1.3D.4 work-side responsibility 不变。
 

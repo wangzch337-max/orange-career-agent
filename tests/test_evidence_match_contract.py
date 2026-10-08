@@ -9,28 +9,31 @@ from tests.evidence_match_contract import (
     D5_FREEZE, D5_PATHS, D5_INTEGRATION_HASHES, D5_PROMPT_PATH, D5_PROMPT_HASH,
     pre_d5_bytes, assert_match_extension,
 )
-from tests.freeze_contract import changed_paths, assert_original_inventory
+from tests.freeze_contract import changed_paths, assert_original_inventory, historical_paths, repository_paths
 from tests.career_reality_contract import assert_d2_source_delta
+from tests.evidence_validation_contract import D6_PATHS, D6_SOURCE_PATH, pre_d6_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_exact_d5_delta_no_wildcard_or_private_artifact_exemption():
-    assert changed_paths(ROOT, D5_FREEZE, ".") == D5_PATHS
+    assert changed_paths(ROOT, D5_FREEZE, ".") == D5_PATHS | D6_PATHS
     assert not any("*" in name for name in D5_PATHS)
     assert_match_extension(ROOT, D5_FREEZE)
     for scope in ("providers", "memory", "workflows", "career_discovery", "career_reality",
                   "role_landscape", "specific_role", "career_runtime", "clarification",
-                  "profile_refinement", "resume_intake", "resume_evidence", "config", "data", "requirements.txt"):
+                  "profile_refinement", "resume_intake", "resume_evidence", "config", "requirements.txt"):
         assert not changed_paths(ROOT, D5_FREEZE, scope), scope
         assert_original_inventory(ROOT, D5_FREEZE, scope)
+    assert changed_paths(ROOT, D5_FREEZE, "data") == {D6_SOURCE_PATH}
+    assert repository_paths(ROOT, "data") == historical_paths(ROOT, D5_FREEZE, "data") | {D6_SOURCE_PATH}
     assert_d2_source_delta(ROOT)
 
 
 @pytest.mark.parametrize("name", tuple(D5_INTEGRATION_HASHES))
 def test_approved_pins_reject_extra_byte_and_noncanonical_name(name):
     current = (ROOT / name).read_bytes()
-    assert hashlib.sha256(current).hexdigest() == D5_INTEGRATION_HASHES[name]
+    assert hashlib.sha256(pre_d6_bytes(ROOT, name, current)).hexdigest() == D5_INTEGRATION_HASHES[name]
     original = subprocess.check_output(["git", "show", f"{D5_FREEZE}:{name}"], cwd=ROOT)
     assert pre_d5_bytes(ROOT, name, current) == original
     assert pre_d5_bytes(ROOT, name, current + b"\n") == current + b"\n"

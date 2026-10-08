@@ -28,6 +28,7 @@ from career_reality.session import CareerRealitySession
 from role_landscape.session import RoleLandscapeSession
 from specific_role.session import SpecificRoleSession
 from evidence_match.session import EvidenceMatchSession
+from evidence_validation.session import EvidenceValidationSession
 from career_runtime.profile_conversation import ProfileConversation
 from ui.conversation import ConversationStage, GuidedConversation
 from ui.conversation_shell import ChatMessage, ChatSession
@@ -152,6 +153,7 @@ class Workspace:
         self.role_landscape = RoleLandscapeSession(self)
         self.specific_role = SpecificRoleSession(self)
         self.evidence_match = EvidenceMatchSession(self)
+        self.evidence_validation = EvidenceValidationSession(self)
         try:
             threads = self.store.list_threads(self.owner_scope_id)
             if threads:
@@ -187,6 +189,8 @@ class Workspace:
             self.specific_role.invalidate()
         if hasattr(self, "evidence_match"):
             self.evidence_match.invalidate()
+        if hasattr(self, "evidence_validation"):
+            self.evidence_validation.invalidate()
 
     def _profile_refinement_confirmed(self, binding):
         # Called outside the Profile lock. Never clear a later thread/answer.
@@ -263,11 +267,12 @@ class Workspace:
                              _keep_role_landscape=self.role_landscape.current(),
                              _keep_specific_role=self.specific_role.current(),
                              _keep_evidence_match=self.evidence_match.current(),
+                             _keep_evidence_validation=self.evidence_validation.current(),
                              _keep_discovery_pending=self.career_discovery.qa_pending_is_current())
 
     def activate(self, thread_id: str, *, _keep_profile_conversation=False, _keep_career_reality=False,
                  _keep_discovery_pending=False, _keep_role_landscape=False, _keep_specific_role=False,
-                 _keep_evidence_match=False) -> ConversationThread:
+                 _keep_evidence_match=False, _keep_evidence_validation=False) -> ConversationThread:
         """Load the owned transcript/snapshot/checkpoint without executing anything."""
         if self._closed:
             raise ConversationStoreError("Conversation workspace is unavailable.")
@@ -279,7 +284,10 @@ class Workspace:
                         self.career_reality.current())
         keep_landscape = (keep_reality and _keep_role_landscape and self.role_landscape.current())
         keep_specific = (keep_landscape and _keep_specific_role and self.specific_role.current())
-        if not (keep_specific and _keep_evidence_match and self.evidence_match.current()):
+        keep_match = keep_specific and _keep_evidence_match and self.evidence_match.current()
+        if not (keep_match and _keep_evidence_validation and self.evidence_validation.current()):
+            self.evidence_validation.invalidate()
+        if not keep_match:
             self.evidence_match.invalidate()
         if not keep_specific:
             self.specific_role.invalidate()
@@ -356,6 +364,7 @@ class Workspace:
             self.role_landscape.invalidate()
             self.specific_role.invalidate()
             self.evidence_match.invalidate()
+            self.evidence_validation.invalidate()
         was_active = self.thread.thread_id == thread_id
         deleted = self.store.delete_thread(self.owner_scope_id, thread_id)
         if self.resume_intake.thread_id == thread_id:
@@ -426,6 +435,7 @@ class Workspace:
         self.role_landscape.invalidate()
         self.specific_role.invalidate()
         self.evidence_match.invalidate()
+        self.evidence_validation.invalidate()
         self.resume_intake.clear()
         if self._agent_session is not None:
             self._agent_session.close()
@@ -443,6 +453,7 @@ class Workspace:
             return False
         self.specific_role.invalidate()
         self.evidence_match.invalidate()
+        self.evidence_validation.invalidate()
         self.role_landscape.invalidate()
         if not self.career_discovery.select(token, direction_id):
             self.career_reality.invalidate()
